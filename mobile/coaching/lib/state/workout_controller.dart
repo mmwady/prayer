@@ -157,6 +157,7 @@ class WorkoutController extends ChangeNotifier {
     }
     _faultsThisSet = 0;
     _repCount = 0;
+    _repCounter.reset();
     notifyListeners();
   }
 
@@ -173,11 +174,6 @@ class WorkoutController extends ChangeNotifier {
   void _onPose(List<Keypoint> kp) {
     _keypoints = kp;
 
-    if (_repCounter.checkRepPattern(kp)) {
-      _repCount++;
-      notifyListeners();
-    }
-
     final now = DateTime.now().millisecondsSinceEpoch / 1000.0;
     final fault = analyzer.analyze(
       exercise: exercise,
@@ -190,7 +186,18 @@ class WorkoutController extends ChangeNotifier {
       _lastFault = fault;
       _faultUntil = DateTime.now().add(const Duration(milliseconds: 1200));
       _faultsThisSet += 1;
+
+      // Important: invalid movement should not be allowed to finish an in-flight
+      // repetition. This makes the HUD show valid reps only.
+      _repCounter.reset();
+
       ws.send(fault);
+      notifyListeners();
+      return;
+    }
+
+    if (_repCounter.checkRepPattern(kp)) {
+      _repCount++;
     }
 
     notifyListeners();
