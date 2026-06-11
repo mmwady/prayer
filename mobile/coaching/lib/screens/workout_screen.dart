@@ -97,9 +97,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                     Expanded(
                       child: _Panel(
                         title: 'Original video',
-                        child: _videoLoaded
-                            ? _controller.detector.buildPreview()
-                            : _LoadVideoPrompt(onPressed: _loadDetector),
+                        child: Consumer<WorkoutController>(
+                          builder: (_, c, __) {
+                            // Web video selection happens asynchronously after the
+                            // file dialog closes. The keypoint stream then calls
+                            // notifyListeners(), so rebuilding this Consumer gives
+                            // WebVideoPoseDetector a chance to replace the loading
+                            // placeholder with the HtmlElementView.
+                            if (!_videoLoaded) {
+                              return _LoadVideoPrompt(onPressed: _loadDetector);
+                            }
+                            return c.detector.buildPreview();
+                          },
+                        ),
                       ),
                     ),
                   ],
