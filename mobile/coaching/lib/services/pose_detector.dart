@@ -3,38 +3,39 @@
 //
 // Pose-detection interface + a deterministic stub implementation.
 //
-// The stub exists so the rest of the app (AR overlay, WebSocket, audio) can
-// be developed, demoed, and tested without a running MediaPipe model. In
-// production, a second implementation of [PoseDetector] wraps either
-// `google_mlkit_pose_detection` or a MediaPipe Tasks platform channel and
-// is injected in place of [StubPoseDetector] — nothing else changes.
+// A detector now owns two things:
+//   1. a stream of normalized skeleton keypoints for analysis
+//   2. an optional preview widget for the real camera/video feed
+//
+// This lets the workout screen show a split view:
+//   top    → skeleton / joints
+//   bottom → real camera or uploaded video
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
+
 import '../models/keypoint.dart';
 
 /// Contract every pose-detection backend must satisfy.
-///
-/// Emitting a [Stream] (rather than a pull-based iterator) mirrors how
-/// camera frames are produced on native platforms and plays well with
-/// [StreamBuilder] in the overlay widget.
 abstract class PoseDetector {
   /// Frames per second. The frontend overlay ties its animation refresh to
   /// whatever the detector produces, so this is effectively the UI tick rate.
   Stream<List<Keypoint>> get stream;
 
+  /// Real visual source behind the pose stream.
+  ///
+  /// Mobile returns a CameraPreview, Web returns an HtmlElementView for the
+  /// selected video, and the stub returns a placeholder.
+  Widget buildPreview();
+
   Future<void> start();
   Future<void> stop();
 }
 
-/// Canned squat animation with an intentional "curved back" fault every 4s.
-///
-/// Useful for:
-///   • Smoke-testing the end-to-end pipeline on an emulator with no camera.
-///   • UI screenshots / demos at conferences (no PII in frame, no model IP).
-///   • Deterministic integration tests where frame timing matters.
+/// Canned animation useful when no real camera/video source is available.
 class StubPoseDetector implements PoseDetector {
   StubPoseDetector({this.fps = 30});
 
@@ -50,10 +51,20 @@ class StubPoseDetector implements PoseDetector {
   Stream<List<Keypoint>> get stream => _controller.stream;
 
   @override
+  Widget buildPreview() {
+    return const ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: Text(
+          'No live video source',
+          style: TextStyle(color: Colors.white70),
+        ),
+      ),
+    );
+  }
+
+  @override
   Future<void> start() async {
-    // Drive the animation off a periodic timer — cheap, predictable, and
-    // decoupled from the Flutter render ticker so the stream can be consumed
-    // off-screen during tests.
     _timer?.cancel();
     _timer = Timer.periodic(
       Duration(milliseconds: (1000 / fps).round()),
@@ -67,25 +78,18 @@ class StubPoseDetector implements PoseDetector {
     _timer = null;
   }
 
-  /// Mutable internal state needed to animate a squat cycle. We generate
-  /// keypoints in normalized 0..1 image space with the subject centered.
   void _emitFrame() {
     _frameIndex += 1;
-    // A squat cycle takes ~2s; sine wave gives us a smooth down-and-up.
-    _phase = (_frameIndex / fps) * math.pi; // half-cycle per second.
-    final depth = (math.sin(_phase) + 1) / 2; // 0 (stand) .. 1 (bottom).
+    _phase = (_frameIndex / fps) * math.pi;
+    final depth = (math.sin(_phase) + 1) / 2;
 
-    // Key vertical positions. Numbers picked to look roughly like a person.
     final headY = 0.12;
     final shoulderY = 0.25 + 0.05 * depth;
     final hipY = 0.55 + 0.08 * depth;
     final kneeY = 0.70 + 0.10 * depth;
     final ankleY = 0.90;
 
-    // Every 4 seconds, inject a "curved back" fault — shift the spine mid
-    // forward relative to the hip/shoulder line. The form analyzer will
-    // pick this up and fire a PoseEvent.
-    final bool faulted = (_frameIndex ~/ fps) % 4 == 3;
+    final faulted = (_frameIndex ~/ fps) % 4 == 3;
     final spineForwardBias = faulted ? 0.08 : 0.0;
 
     final keypoints = <Keypoint>[
@@ -106,7 +110,6 @@ class StubPoseDetector implements PoseDetector {
       Keypoint(id: KeypointId.rightKnee, x: 0.58, y: kneeY, confidence: 0.9),
       Keypoint(id: KeypointId.leftAnkle, x: 0.43, y: ankleY, confidence: 0.9),
       Keypoint(id: KeypointId.rightAnkle, x: 0.57, y: ankleY, confidence: 0.9),
-      // Spine mid derived from shoulders + hips, with optional faulted bias.
       Keypoint(
         id: KeypointId.spineMid,
         x: 0.50 + spineForwardBias,
