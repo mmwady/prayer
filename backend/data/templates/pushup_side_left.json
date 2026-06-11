@@ -1,0 +1,46 @@
+{
+  "exercise": "pushup",
+  "view": "side_left",
+  "version": "1.0",
+  "template_type": "synthetic_normalized",
+  "keypoints_format": "coco_17_plus_spine_mid",
+  "notes": "Demo-friendly side-left push-up reference. Video is not required; the mobile analyzer uses these keypoints locally.",
+  "frames": [
+    {"phase": "top", "keypoints": [
+      {"id":"leftShoulder","x":0.30,"y":0.42,"confidence":1.0}, {"id":"rightShoulder","x":0.27,"y":0.44,"confidence":0.92},
+      {"id":"leftElbow","x":0.31,"y":0.61,"confidence":1.0}, {"id":"rightElbow","x":0.28,"y":0.63,"confidence":0.86},
+      {"id":"leftWrist","x":0.32,"y":0.80,"confidence":1.0}, {"id":"rightWrist","x":0.29,"y":0.81,"confidence":0.90},
+      {"id":"leftHip","x":0.58,"y":0.43,"confidence":1.0}, {"id":"rightHip","x":0.55,"y":0.45,"confidence":0.92},
+      {"id":"leftKnee","x":0.76,"y":0.45,"confidence":0.95}, {"id":"rightKnee","x":0.73,"y":0.47,"confidence":0.82},
+      {"id":"leftAnkle","x":0.90,"y":0.48,"confidence":0.95}, {"id":"rightAnkle","x":0.87,"y":0.50,"confidence":0.80},
+      {"id":"spineMid","x":0.44,"y":0.425,"confidence":1.0}
+    ]},
+    {"phase": "descent", "keypoints": [
+      {"id":"leftShoulder","x":0.30,"y":0.52,"confidence":1.0}, {"id":"rightShoulder","x":0.27,"y":0.54,"confidence":0.92},
+      {"id":"leftElbow","x":0.34,"y":0.67,"confidence":1.0}, {"id":"rightElbow","x":0.31,"y":0.69,"confidence":0.86},
+      {"id":"leftWrist","x":0.32,"y":0.80,"confidence":1.0}, {"id":"rightWrist","x":0.29,"y":0.81,"confidence":0.90},
+      {"id":"leftHip","x":0.58,"y":0.53,"confidence":1.0}, {"id":"rightHip","x":0.55,"y":0.55,"confidence":0.92},
+      {"id":"leftKnee","x":0.76,"y":0.55,"confidence":0.95}, {"id":"rightKnee","x":0.73,"y":0.57,"confidence":0.82},
+      {"id":"leftAnkle","x":0.90,"y":0.58,"confidence":0.95}, {"id":"rightAnkle","x":0.87,"y":0.60,"confidence":0.80},
+      {"id":"spineMid","x":0.44,"y":0.525,"confidence":1.0}
+    ]},
+    {"phase": "bottom", "keypoints": [
+      {"id":"leftShoulder","x":0.30,"y":0.65,"confidence":1.0}, {"id":"rightShoulder","x":0.27,"y":0.67,"confidence":0.92},
+      {"id":"leftElbow","x":0.38,"y":0.74,"confidence":1.0}, {"id":"rightElbow","x":0.35,"y":0.76,"confidence":0.86},
+      {"id":"leftWrist","x":0.32,"y":0.80,"confidence":1.0}, {"id":"rightWrist","x":0.29,"y":0.81,"confidence":0.90},
+      {"id":"leftHip","x":0.58,"y":0.66,"confidence":1.0}, {"id":"rightHip","x":0.55,"y":0.68,"confidence":0.92},
+      {"id":"leftKnee","x":0.76,"y":0.68,"confidence":0.95}, {"id":"rightKnee","x":0.73,"y":0.70,"confidence":0.82},
+      {"id":"leftAnkle","x":0.90,"y":0.71,"confidence":0.95}, {"id":"rightAnkle","x":0.87,"y":0.73,"confidence":0.80},
+      {"id":"spineMid","x":0.44,"y":0.655,"confidence":1.0}
+    ]},
+    {"phase": "ascent", "keypoints": [
+      {"id":"leftShoulder","x":0.30,"y":0.52,"confidence":1.0}, {"id":"rightShoulder","x":0.27,"y":0.54,"confidence":0.92},
+      {"id":"leftElbow","x":0.34,"y":0.67,"confidence":1.0}, {"id":"rightElbow","x":0.31,"y":0.69,"confidence":0.86},
+      {"id":"leftWrist","x":0.32,"y":0.80,"confidence":1.0}, {"id":"rightWrist","x":0.29,"y":0.81,"confidence":0.90},
+      {"id":"leftHip","x":0.58,"y":0.53,"confidence":1.0}, {"id":"rightHip","x":0.55,"y":0.55,"confidence":0.92},
+      {"id":"leftKnee","x":0.76,"y":0.55,"confidence":0.95}, {"id":"rightKnee","x":0.73,"y":0.57,"confidence":0.82},
+      {"id":"leftAnkle","x":0.90,"y":0.58,"confidence":0.95}, {"id":"rightAnkle","x":0.87,"y":0.60,"confidence":0.80},
+      {"id":"spineMid","x":0.44,"y":0.525,"confidence":1.0}
+    ]}
+  ]
+}
