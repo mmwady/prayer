@@ -8,6 +8,12 @@ abstract class SequenceRepCounter {
   /// Evaluates the incoming frame in the context of the running sequence.
   /// Returns `true` if a completed repetition is detected.
   bool checkRepPattern(List<Keypoint> currentFrame);
+
+  /// Drops any in-progress repetition state.
+  ///
+  /// Controllers call this when form analysis detects an invalid variant so a
+  /// bad movement cannot later complete and increment the valid-rep counter.
+  void reset() {}
 }
 
 /// Hybrid repetition counter.
@@ -46,6 +52,18 @@ class DtwRepCounter implements SequenceRepCounter {
   /// Short templates are usually synthetic phase templates, not dense recorded
   /// sequences. DTW can be too strict there, so use the phase counter instead.
   bool get _usePhaseCounter => templateSequence.length < 20;
+
+  @override
+  void reset() {
+    _slidingWindow.clear();
+    _smoothedDepth = null;
+    _topDepth = null;
+    _bottomDepth = null;
+    _sawBottom = false;
+    _bottomFrames = 0;
+    _topFrames = 0;
+    _cooldownFrames = 0;
+  }
 
   @override
   bool checkRepPattern(List<Keypoint> currentFrame) {
