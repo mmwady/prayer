@@ -1,17 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // workout_screen.dart
 //
-// Distraction-free workout view.
+// Split workout view:
+//   top half    → skeleton / joints overlay
+//   bottom half → real uploaded video or live camera preview
 //
-// Visual stack (bottom → top):
-//   1. `CameraPreview`  — the live camera feed (or a black placeholder if
-//      we're running in an environment without a real camera).
-//   2. `ArOverlay`      — stick figure + faulty-joint pulse.
-//   3. `RepCounter`     — small HUD in a corner.
-//
-// Per the UX spec, the active screen shows NO menus or buttons. A long-press
-// anywhere exits — chosen because swipe-to-dismiss conflicts with some
-// Android gesture navigation.
+// This is better for demos because reviewers can compare the AI skeleton against
+// the original movement instead of seeing only floating joints.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
@@ -19,7 +14,6 @@ import 'package:provider/provider.dart';
 
 import '../config/env.dart';
 import '../services/audio_player.dart';
-import '../services/pose_detector.dart';
 import '../services/pose_detector_provider.dart';
 import '../services/ws_client.dart';
 import '../state/locale_provider.dart';
@@ -38,19 +32,11 @@ class WorkoutScreen extends StatefulWidget {
 
 class _WorkoutScreenState extends State<WorkoutScreen> {
   late final WorkoutController _controller;
-
-  // Tracks whether the user has loaded a video (or the stub is active).
-  // On web, the file picker requires a real user gesture — we can't call
-  // detector.start() from initState() because the browser will silently
-  // block the file dialog. So we split initialisation in two:
-  //   • initState()    → connects WS + loads templates
-  //   • _loadDetector() → called from an explicit tap, then starts the detector
   bool _videoLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    // Retrieve the locale string from the provider
     final localeCode = context.read<LocaleProvider>().localeCode;
 
     _controller = WorkoutController(
@@ -60,13 +46,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       audio: CoachingAudioPlayer(),
     );
 
-    // Connect WS + fetch templates immediately — these don't need a gesture.
-    // The actual detector (file picker on web) is started by _loadDetector().
     _controller.startWithoutDetector();
   }
 
-  /// Called when the user taps the "Load Video" button.
-  /// Wrapped in user-gesture context so the browser allows the file picker.
   Future<void> _loadDetector() async {
     await _controller.startDetector();
     if (mounted) setState(() => _videoLoaded = true);
@@ -83,90 +65,151 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     return ChangeNotifierProvider.value(
       value: _controller,
       child: Scaffold(
-        // Long-press exits the set — closes the screen AND the WS
-        // (via the controller's dispose).
+        backgroundColor: Colors.black,
         body: GestureDetector(
           onLongPress: () async {
             await _controller.finishSet();
             if (context.mounted) Navigator.of(context).pop();
           },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Layer 1: camera placeholder. A real implementation wires a
-              // `CameraController` + `CameraPreview` here; we use a black
-              // background so the AR overlay renders on an emulator.
-              Container(color: Colors.black),
-
-              // Layer 2: AR overlay driven by the controller's keypoints.
-              Consumer<WorkoutController>(
-                builder: (_, c, __) => ArOverlay(
-                  keypoints: c.keypoints,
-                  faultyJoints: c.faultyJoints,
-                ),
-              ),
-
-              // Layer 3: HUD. Positioned deliberately off-center so the
-              // subject's torso (where the AR stick figure lives) isn't
-              // occluded.
-              Positioned(
-                top: 48,
-                right: 24,
-                child: Consumer<WorkoutController>(
-                  builder: (_, c, __) => RepCounter(reps: c.repCount),
-                ),
-              ),
-
-              // Caption: shown small at the bottom so hearing-impaired users
-              // or those without sound can still read the coach's response.
-              Positioned(
-                left: 24,
-                right: 24,
-                bottom: 48,
-                child: Consumer<WorkoutController>(
-                  builder: (_, c, __) => AnimatedOpacity(
-                    opacity: c.lastCaption == null ? 0 : 1,
-                    duration: const Duration(milliseconds: 200),
-                    child: Text(
-                      c.lastCaption ?? '',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        shadows: [
-                          Shadow(blurRadius: 4, color: Colors.black),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // Layer 4 (web only): "Load Video" prompt.
-              // Shown until the user picks a file. This button MUST be the
-              // source of the detector.start() call because browsers require
-              // file-picker dialogs to originate from a direct user gesture.
-              // Once _videoLoaded is true, this layer disappears entirely.
-              if (!_videoLoaded)
-                Positioned.fill(
-                  child: ColoredBox(
-                    color: Colors.black54,
-                    child: Center(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 32, vertical: 18),
-                          textStyle: const TextStyle(fontSize: 18),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    Expanded(
+                      child: _Panel(
+                        title: 'AI skeleton',
+                        child: Consumer<WorkoutController>(
+                          builder: (_, c, __) => Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              const ColoredBox(color: Colors.black),
+                              ArOverlay(
+                                keypoints: c.keypoints,
+                                faultyJoints: c.faultyJoints,
+                              ),
+                            ],
+                          ),
                         ),
-                        icon: const Icon(Icons.video_file_outlined),
-                        label: Text(context.watch<LocaleProvider>().t('load_video')),
-                        onPressed: _loadDetector,
+                      ),
+                    ),
+                    const Divider(height: 1, color: Colors.white24),
+                    Expanded(
+                      child: _Panel(
+                        title: 'Original video',
+                        child: _videoLoaded
+                            ? _controller.detector.buildPreview()
+                            : _LoadVideoPrompt(onPressed: _loadDetector),
+                      ),
+                    ),
+                  ],
+                ),
+
+                Positioned(
+                  top: 20,
+                  right: 20,
+                  child: Consumer<WorkoutController>(
+                    builder: (_, c, __) => RepCounter(reps: c.repCount),
+                  ),
+                ),
+
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  bottom: 24,
+                  child: Consumer<WorkoutController>(
+                    builder: (_, c, __) => AnimatedOpacity(
+                      opacity: c.lastCaption == null ? 0 : 1,
+                      duration: const Duration(milliseconds: 200),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.55),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          child: Text(
+                            c.lastCaption ?? '',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Panel extends StatelessWidget {
+  const _Panel({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        child,
+        Positioned(
+          left: 12,
+          top: 12,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.55),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LoadVideoPrompt extends StatelessWidget {
+  const _LoadVideoPrompt({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+            textStyle: const TextStyle(fontSize: 18),
+          ),
+          icon: const Icon(Icons.video_file_outlined),
+          label: Text(context.watch<LocaleProvider>().t('load_video')),
+          onPressed: onPressed,
         ),
       ),
     );
