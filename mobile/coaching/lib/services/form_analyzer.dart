@@ -3,12 +3,10 @@
 //
 // Conservative on-device form analyzer.
 //
-// Design goals:
-// 1. Never stream video to the backend.
-// 2. Normalize pose geometry before comparing templates.
-// 3. Prefer angle/body-line rules for push-ups over raw x/y matching.
-// 4. Emit a PoseEvent only after the same issue is stable for several frames.
-// 5. Detect knee-supported push-ups as invalid for the full `pushup` exercise.
+// The backend owns exercise-specific thresholds in:
+//   backend/data/exercise_rules/<exercise>.json
+// The mobile app loads that JSON and injects it here through setExerciseRules().
+// This keeps the analyzer extensible while preserving fast on-device checks.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:math' as math;
@@ -34,10 +32,27 @@ class FormAnalyzer {
   final bool allowMirroredTemplate;
 
   final List<_TemplateFrame> _templateFrames = [];
+  Map<String, dynamic> _exerciseRules = const {};
   Map<String, _Point> _previousSmoothedPoints = {};
   String? _lastErrorSignature;
   int _sameErrorFrames = 0;
   int _cleanFrames = 0;
+
+  /// Injects rules loaded from `/api/v1/exercise-rules/<exercise>`.
+  ///
+  /// Expected shape:
+  /// {
+  ///   "analysis": {
+  ///     "rules": [
+  ///       {"id": "knee_supported_pushup", "enabled": true,
+  ///        "thresholds": {"bent_knee_max_deg": 150.0}}
+  ///     ]
+  ///   }
+  /// }
+  void setExerciseRules(Map<String, dynamic>? rules) {
+    _exerciseRules = rules ?? const {};
+    _resetTemporalState();
+  }
 
   void setTemplate(List<List<Keypoint>> template) {
     _templateFrames.clear();
@@ -113,43 +128,58 @@ class FormAnalyzer {
     required int repCount,
     required double now,
   }) {
-    final kneeSupport = _detectKneeSupportedPushup(current);
-    if (kneeSupport) {
+    if (_ruleEnabled('knee_supported_pushup') &&
+        _detectKneeSupportedPushup(current)) {
       return PoseEvent(
         exercise: exercise,
         error: 'knee_supported_pushup',
-        faultyJoints: const [
-          JointTag.leftKnee,
-          JointTag.rightKnee,
-          JointTag.leftHip,
-          JointTag.rightHip,
-        ],
+        faultyJoints: _faultyJointsForRule(
+          'knee_supported_pushup',
+          const [
+            JointTag.leftKnee,
+            JointTag.rightKnee,
+            JointTag.leftHip,
+            JointTag.rightHip,
+          ],
+        ),
         repCount: repCount,
         t: now,
       );
     }
 
-    final faulty = <String>{};
+    if (!_ruleEnabled('curved_back')) {
+      return null;
+    }
 
+    final faulty = <String>{};
     final bodyLineAngles = _availableAngles(current, const [
       'left_body_line_angle',
       'right_body_line_angle',
     ]);
     final worstBodyLine =
         bodyLineAngles.isEmpty ? null : bodyLineAngles.reduce(math.min);
-
     final hipOffset = _maxPushupHipLineOffset(current);
 
-    if ((worstBodyLine != null && worstBodyLine < 148.0) ||
-        (hipOffset != null && hipOffset > 0.20)) {
-      faulty.add(JointTag.spineMid);
-      faulty.add(JointTag.leftHip);
-      faulty.add(JointTag.rightHip);
+    final bodyLineMinDeg = _threshold(
+      'curved_back',
+      'body_line_min_deg',
+      148.0,
+    );
+    final hipLineOffsetMax = _threshold(
+      'curved_back',
+      'hip_line_offset_max',
+      0.20,
+    );
+
+    if ((worstBodyLine != null && worstBodyLine < bodyLineMinDeg) ||
+        (hipOffset != null && hipOffset > hipLineOffsetMax)) {
+      faulty.addAll(_faultyJointsForRule(
+        'curved_back',
+        const [JointTag.spineMid, JointTag.leftHip, JointTag.rightHip],
+      ));
     }
 
-    if (faulty.isEmpty) {
-      return null;
-    }
+    if (faulty.isEmpty) return null;
 
     return PoseEvent(
       exercise: exercise,
@@ -161,11 +191,6 @@ class FormAnalyzer {
   }
 
   /// Detects modified/knee push-ups when the requested exercise is full push-up.
-  ///
-  /// Full push-up expects the support line to run shoulder → hip → ankle.
-  /// Knee-supported push-up usually has:
-  /// - one/both knees bent clearly below a straight-leg angle, and/or
-  /// - shoulder → hip → knee looks straighter than shoulder → hip → ankle.
   bool _detectKneeSupportedPushup(_FrameFeatures current) {
     final kneeAngles = _availableAngles(current, const [
       'left_knee_angle',
@@ -190,27 +215,40 @@ class FormAnalyzer {
     final hasPushupArms = elbowAngles.isEmpty ||
         elbowAngles.any((angle) => angle >= 45.0 && angle <= 178.0);
 
-    final clearlyBentKnee =
-        kneeAngles.where((angle) => angle > 20.0 && angle < 150.0).length >= 1;
+    final bentKneeMin = _threshold(
+      'knee_supported_pushup',
+      'bent_knee_min_deg',
+      20.0,
+    );
+    final bentKneeMax = _threshold(
+      'knee_supported_pushup',
+      'bent_knee_max_deg',
+      150.0,
+    );
+    final kneeBodyLineMin = _threshold(
+      'knee_supported_pushup',
+      'knee_body_line_min_deg',
+      158.0,
+    );
+    final ankleBodyLineMax = _threshold(
+      'knee_supported_pushup',
+      'ankle_body_line_max_deg',
+      155.0,
+    );
 
-    final ankleLineBroken =
-        ankleBodyLines.isNotEmpty && ankleBodyLines.reduce(math.min) < 155.0;
+    final clearlyBentKnee = kneeAngles
+            .where((angle) => angle > bentKneeMin && angle < bentKneeMax)
+            .length >=
+        1;
 
-    final kneeLineStraight =
-        kneeBodyLines.isNotEmpty && kneeBodyLines.reduce(math.max) > 158.0;
+    final ankleLineBroken = ankleBodyLines.isNotEmpty &&
+        ankleBodyLines.reduce(math.min) < ankleBodyLineMax;
 
-    // Strong signal: the legs are bent, and the body line appears to terminate
-    // at the knee instead of the ankle.
-    if (hasPushupArms && clearlyBentKnee && kneeLineStraight) {
-      return true;
-    }
+    final kneeLineStraight = kneeBodyLines.isNotEmpty &&
+        kneeBodyLines.reduce(math.max) > kneeBodyLineMin;
 
-    // Backup signal for side views where ankles are visible but clearly not part
-    // of the straight support line.
-    if (hasPushupArms && clearlyBentKnee && ankleLineBroken) {
-      return true;
-    }
-
+    if (hasPushupArms && clearlyBentKnee && kneeLineStraight) return true;
+    if (hasPushupArms && clearlyBentKnee && ankleLineBroken) return true;
     return false;
   }
 
@@ -330,7 +368,8 @@ class FormAnalyzer {
       _sameErrorFrames = 1;
     }
 
-    return _sameErrorFrames >= framesToConfirm ? event : null;
+    final requiredFrames = _analysisInt('frames_to_confirm', framesToConfirm);
+    return _sameErrorFrames >= requiredFrames ? event : null;
   }
 
   void _registerCleanFrame() {
@@ -370,6 +409,51 @@ class FormAnalyzer {
     _sameErrorFrames = 0;
     _cleanFrames = 0;
     _previousSmoothedPoints = {};
+  }
+
+  Map<String, dynamic>? _analysisMap() {
+    final analysis = _exerciseRules['analysis'];
+    return analysis is Map<String, dynamic> ? analysis : null;
+  }
+
+  int _analysisInt(String key, int fallback) {
+    final value = _analysisMap()?[key];
+    return value is num ? value.toInt() : fallback;
+  }
+
+  Map<String, dynamic>? _rule(String ruleId) {
+    final rules = _analysisMap()?['rules'];
+    if (rules is! List) return null;
+
+    for (final item in rules) {
+      if (item is Map<String, dynamic> && item['id'] == ruleId) return item;
+    }
+    return null;
+  }
+
+  bool _ruleEnabled(String ruleId) {
+    final rule = _rule(ruleId);
+    if (rule == null) return true;
+    return rule['enabled'] != false;
+  }
+
+  double _threshold(String ruleId, String thresholdName, double fallback) {
+    final rule = _rule(ruleId);
+    final thresholds = rule?['thresholds'];
+    if (thresholds is Map<String, dynamic>) {
+      final value = thresholds[thresholdName];
+      if (value is num) return value.toDouble();
+    }
+    return fallback;
+  }
+
+  List<String> _faultyJointsForRule(String ruleId, List<String> fallback) {
+    final value = _rule(ruleId)?['faulty_joints'];
+    if (value is List) {
+      final joints = value.whereType<String>().toList();
+      if (joints.isNotEmpty) return joints;
+    }
+    return fallback;
   }
 
   List<double> _availableAngles(_FrameFeatures frame, List<String> names) {
