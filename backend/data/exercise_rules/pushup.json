@@ -23,8 +23,8 @@
         "enabled": true,
         "type": "body_line",
         "thresholds": {
-          "body_line_min_deg": 148.0,
-          "hip_line_offset_max": 0.20
+          "body_line_min_deg": 144.0,
+          "hip_line_offset_max": 0.24
         },
         "faulty_joints": ["spine_mid", "left_hip", "right_hip"]
       }
