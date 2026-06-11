@@ -1,22 +1,25 @@
 import 'dart:collection';
 import 'dart:math' as math;
+
 import '../models/keypoint.dart';
 
 /// Abstract strategy class for sequence-based rep counting.
-/// Adopts the Strategy Pattern to allow different recognition architectures
-/// (e.g., Dynamic Time Warping, TFLite sequence matching) to be swapped cleanly.
 abstract class SequenceRepCounter {
   /// Evaluates the incoming frame in the context of the running sequence.
   /// Returns `true` if a completed repetition is detected.
   bool checkRepPattern(List<Keypoint> currentFrame);
 }
 
-/// A concrete implementation of [SequenceRepCounter] using a sliding window
-/// and a (placeholder) Dynamic Time Warping (DTW) calculation.
+/// Hybrid repetition counter.
 ///
-/// DTW is suited for Action Recognition because it can align and compare
-/// temporal sequences of varying speeds (useful for slow vs fast repetitions),
-/// eliminating the need for hardcoded angle-based heuristic if/else statements.
+/// The original implementation used only DTW over a long sliding window. That
+/// works when the template is a long recorded sequence, but it becomes too strict
+/// for short synthetic demo templates such as push-up side-left/side-right.
+///
+/// This class now keeps DTW for long templates and automatically switches to a
+/// phase-based counter for short templates. The phase counter is intentionally
+/// conservative: it counts only after it sees a clear down phase followed by a
+/// return to the top phase.
 class DtwRepCounter implements SequenceRepCounter {
   DtwRepCounter({
     required this.templateSequence,
@@ -25,37 +28,44 @@ class DtwRepCounter implements SequenceRepCounter {
   });
 
   /// The pre-recorded perfect repetition to compare against.
-  /// You can record this once by logging the frames of a good squat,
-  /// then saving it as a JSON asset.
   final List<List<Keypoint>> templateSequence;
 
   final int windowSize;
   final double similarityThreshold;
   final Queue<List<Keypoint>> _slidingWindow = Queue<List<Keypoint>>();
 
+  // ── Phase-based fallback state ─────────────────────────────────────────
+  double? _smoothedDepth;
+  double? _topDepth;
+  double? _bottomDepth;
+  bool _sawBottom = false;
+  int _bottomFrames = 0;
+  int _topFrames = 0;
+  int _cooldownFrames = 0;
+
+  /// Short templates are usually synthetic phase templates, not dense recorded
+  /// sequences. DTW can be too strict there, so use the phase counter instead.
+  bool get _usePhaseCounter => templateSequence.length < 20;
+
   @override
   bool checkRepPattern(List<Keypoint> currentFrame) {
-    // 1. Maintain the sliding window buffer
+    if (_usePhaseCounter) {
+      return _checkPhaseBasedRep(currentFrame);
+    }
+
     _slidingWindow.addLast(currentFrame);
 
-    // Allow the buffer to fill up before we start processing similarities.
     if (_slidingWindow.length < windowSize) {
       return false;
     }
 
-    // Ensure we exactly maintain `windowSize` elements by popping the oldest frame.
     if (_slidingWindow.length > windowSize) {
       _slidingWindow.removeFirst();
     }
 
-    // Calculate the DTW similarity between the current window and the template.
-    final double similarity = _calculateDtwSimilarity(_slidingWindow.toList());
+    final similarity = _calculateDtwSimilarity(_slidingWindow.toList());
 
-    // 3. Complete the repetition
-    // If the similarity exceeds a high confidence threshold, confirm the rep.
     if (similarity > similarityThreshold) {
-      // Clear the buffer entirely to prevent the current sequence overlapping
-      // and double-counting the same repetition.
       _slidingWindow.clear();
       return true;
     }
@@ -63,10 +73,110 @@ class DtwRepCounter implements SequenceRepCounter {
     return false;
   }
 
-  /// Calculates the Euclidean distance between two individual frames.
+  /// Counts push-up-like repetitions from movement phases instead of exact
+  /// template-frame matching.
   ///
-  /// It pairs joints by their ID and calculates the physical distance
-  /// between them in the normalized coordinate space.
+  /// It uses shoulder vertical movement relative to the camera frame. During a
+  /// push-up, the shoulder line moves down toward the floor and then back up.
+  /// We do not count until the user has visited the bottom zone and returned to
+  /// the top zone for a couple of stable frames.
+  bool _checkPhaseBasedRep(List<Keypoint> frame) {
+    final depth = _shoulderDepth(frame);
+    if (depth == null) return false;
+
+    _smoothedDepth = _smoothedDepth == null
+        ? depth
+        : (_smoothedDepth! * 0.75) + (depth * 0.25);
+    final currentDepth = _smoothedDepth!;
+
+    _topDepth = _topDepth == null
+        ? currentDepth
+        : math.min(_topDepth!, currentDepth);
+    _bottomDepth = _bottomDepth == null
+        ? currentDepth
+        : math.max(_bottomDepth!, currentDepth);
+
+    final range = _bottomDepth! - _topDepth!;
+
+    // The user has not moved enough yet. This avoids counting camera jitter,
+    // breathing, or small body shifts as reps.
+    if (range < 0.045) {
+      return false;
+    }
+
+    final topThreshold = _topDepth! + (range * 0.35);
+    final bottomThreshold = _topDepth! + (range * 0.65);
+
+    if (_cooldownFrames > 0) {
+      _cooldownFrames -= 1;
+    }
+
+    if (currentDepth >= bottomThreshold) {
+      _bottomFrames += 1;
+      _topFrames = 0;
+    } else if (currentDepth <= topThreshold) {
+      _topFrames += 1;
+    } else {
+      // Middle zone: do not reset aggressively. Some users pause mid-rep.
+      _topFrames = 0;
+    }
+
+    if (_bottomFrames >= 2) {
+      _sawBottom = true;
+    }
+
+    if (_sawBottom && _topFrames >= 2 && _cooldownFrames == 0) {
+      _sawBottom = false;
+      _bottomFrames = 0;
+      _topFrames = 0;
+      _cooldownFrames = 10;
+
+      // Slowly re-open the range after each counted rep so the counter adapts
+      // if the user changes distance from the camera during the set.
+      final center = (_topDepth! + _bottomDepth!) / 2.0;
+      final halfRange = math.max(range * 0.45, 0.03);
+      _topDepth = center - halfRange;
+      _bottomDepth = center + halfRange;
+
+      return true;
+    }
+
+    return false;
+  }
+
+  double? _shoulderDepth(List<Keypoint> frame) {
+    final points = <KeypointId, Keypoint>{for (final point in frame) point.id: point};
+    final shoulders = <Keypoint>[];
+
+    final leftShoulder = points[KeypointId.leftShoulder];
+    final rightShoulder = points[KeypointId.rightShoulder];
+    final leftWrist = points[KeypointId.leftWrist];
+    final rightWrist = points[KeypointId.rightWrist];
+
+    if (leftShoulder != null && leftShoulder.confidence > 0.35) {
+      shoulders.add(leftShoulder);
+    }
+    if (rightShoulder != null && rightShoulder.confidence > 0.35) {
+      shoulders.add(rightShoulder);
+    }
+
+    // Require hands to be at least partially visible. Otherwise a standing or
+    // cropped pose could accidentally look like vertical push-up movement.
+    final visibleHands = [leftWrist, rightWrist]
+        .where((point) => point != null && point.confidence > 0.30)
+        .length;
+
+    if (shoulders.isEmpty || visibleHands == 0) {
+      return null;
+    }
+
+    final shoulderY = shoulders.map((point) => point.y).reduce((a, b) => a + b) /
+        shoulders.length;
+
+    return shoulderY;
+  }
+
+  /// Calculates the Euclidean distance between two individual frames.
   double _frameDistance(List<Keypoint> frameA, List<Keypoint> frameB) {
     final normalizedA = _normalizeFrame(frameA);
     final normalizedB = _normalizeFrame(frameB);
@@ -91,68 +201,39 @@ class DtwRepCounter implements SequenceRepCounter {
       commonJoints++;
     }
 
-    // Return average normalized skeleton distance per joint.
-    // If no joints match, return a heavy penalty (1000.0).
     return commonJoints >= 5 && totalWeight > 0.0
         ? math.sqrt(totalDistance / totalWeight)
         : 1000.0;
   }
 
   /// Core Dynamic Time Warping (DTW) algorithm.
-  ///
-  /// Finds the optimal alignment between two temporal sequences of varying speeds.
-  /// Returns a similarity score between 0.0 (completely different) and 1.0 (identical).
   double _calculateDtwSimilarity(List<List<Keypoint>> currentWindow) {
     final n = currentWindow.length;
     final m = templateSequence.length;
 
-    // Handle edge cases where templates might be missing
     if (n == 0 || m == 0) return 0.0;
 
-    // 1. Initialize a 2D DP (Dynamic Programming) matrix with infinity.
-    // dp[i][j] represents the minimum cost to align the first i frames of the
-    // current window with the first j frames of the template.
-    List<List<double>> dp = List.generate(
+    final dp = List.generate(
       n + 1,
       (_) => List.filled(m + 1, double.infinity),
     );
 
-    // Base case: 0 distance for two empty sequences.
     dp[0][0] = 0.0;
 
-    // 2. Fill the DP matrix
     for (int i = 1; i <= n; i++) {
       for (int j = 1; j <= m; j++) {
-        // Calculate the spatial distance between the two specific frames
-        final cost =
-            _frameDistance(currentWindow[i - 1], templateSequence[j - 1]);
-
-        // Core DTW equation: current cost + min of the three adjacent previous states
-        // (representing a match, an insertion, or a deletion in time).
+        final cost = _frameDistance(currentWindow[i - 1], templateSequence[j - 1]);
         final minPrev = math.min(
-          dp[i - 1][j - 1], // Match (diagonal)
-          math.min(
-            dp[i - 1][j], // Insertion (vertical)
-            dp[i][j - 1], // Deletion (horizontal)
-          ),
+          dp[i - 1][j - 1],
+          math.min(dp[i - 1][j], dp[i][j - 1]),
         );
         dp[i][j] = cost + minPrev;
       }
     }
 
-    // 3. The final element contains the total accumulated DTW distance.
     final totalDistance = dp[n][m];
-
-    // 4. Normalize the distance by the length of the path (n + m) to prevent
-    // longer sequences from having artificially high distances.
     final normalizedDistance = totalDistance / (n + m);
-
-    // 5. Convert distance to a similarity score [0, 1] using exponential decay.
-    // The constant '5.0' dictates how strictly we penalize distance; it can be
-    // tuned based on real-world testing.
-    final similarity = math.exp(-5.0 * normalizedDistance);
-
-    return similarity;
+    return math.exp(-5.0 * normalizedDistance);
   }
 
   Map<KeypointId, _NormalizedPoint> _normalizeFrame(List<Keypoint> frame) {
@@ -226,8 +307,10 @@ class DtwRepCounter implements SequenceRepCounter {
         leftHip != null &&
         rightHip != null) {
       candidates.add(
-        _distance(_midpoint(leftShoulder, rightShoulder),
-                _midpoint(leftHip, rightHip)) *
+        _distance(
+              _midpoint(leftShoulder, rightShoulder),
+              _midpoint(leftHip, rightHip),
+            ) *
             2.2,
       );
     }
