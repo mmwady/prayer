@@ -11,44 +11,46 @@ from fastapi.responses import JSONResponse
 v1_router = APIRouter(prefix="/api/v1", tags=["api_v1"])
 
 # Uvicorn is started from the backend root in this project, so this resolves to:
-# backend/data/templates
+# backend/data/templates and backend/data/exercise_rules
 DATA_DIR = Path("data")
 TEMPLATES_DIR = DATA_DIR / "templates"
+EXERCISE_RULES_DIR = DATA_DIR / "exercise_rules"
+
+
+def _read_json_dir(directory: Path) -> dict[str, Any]:
+    payloads: dict[str, Any] = {}
+
+    if not directory.exists():
+        return payloads
+
+    for json_filename in sorted(os.listdir(directory)):
+        if not json_filename.endswith(".json"):
+            continue
+
+        name = json_filename.replace(".json", "")
+        path = directory / json_filename
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                payloads[name] = json.load(f)
+        except Exception as exc:  # pragma: no cover - best-effort loading
+            print(f"Error reading {path}: {exc}")
+
+    return payloads
 
 
 def _read_templates() -> dict[str, Any]:
     """Read all JSON template files into a filename-keyed dictionary."""
+    return _read_json_dir(TEMPLATES_DIR)
 
-    combined_templates: dict[str, Any] = {}
 
-    if not TEMPLATES_DIR.exists():
-        return combined_templates
-
-    for json_filename in sorted(os.listdir(TEMPLATES_DIR)):
-        if not json_filename.endswith(".json"):
-            continue
-
-        template_name = json_filename.replace(".json", "")
-        json_path = TEMPLATES_DIR / json_filename
-
-        try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                combined_templates[template_name] = json.load(f)
-        except Exception as exc:  # pragma: no cover - best-effort template loading
-            print(f"Error reading template {json_filename}: {exc}")
-
-    return combined_templates
+def _read_exercise_rules() -> dict[str, Any]:
+    """Read all exercise rule files into a filename-keyed dictionary."""
+    return _read_json_dir(EXERCISE_RULES_DIR)
 
 
 def _extract_frame_points(frame: Any) -> list[dict[str, Any]] | None:
-    """Normalize either old raw frames or richer metadata frames.
-
-    Old generated template frame:
-        [{"id": "leftShoulder", "x": ..., ...}, ...]
-
-    New demo template frame:
-        {"phase": "top", "keypoints": [{...}, ...]}
-    """
+    """Normalize either old raw frames or richer metadata frames."""
 
     if isinstance(frame, list):
         return frame
@@ -81,12 +83,7 @@ def _flatten_frames(template: Any) -> list[list[dict[str, Any]]]:
 
 
 def _with_mobile_compatibility_templates(templates: dict[str, Any]) -> dict[str, Any]:
-    """Expose multi-view push-up templates under the existing `pushup` key.
-
-    The current Flutter controller already expects `templates[exercise]` to be a
-    plain list of frames. This compatibility layer lets the mobile app benefit
-    from multiple push-up views without requiring a Flutter-side migration first.
-    """
+    """Expose multi-view push-up templates under the existing `pushup` key."""
 
     compatible = dict(templates)
 
@@ -103,19 +100,7 @@ def _with_mobile_compatibility_templates(templates: dict[str, Any]) -> dict[str,
 
 @v1_router.get("/templates")
 async def get_all_templates():
-    """
-    Serve all exercise templates to the mobile app.
-
-    Backward-compatible response:
-    {
-      "version": 2,
-      "templates": {
-        "pushup": [[...], ...],
-        "pushup_side_left": {"frames": [...]},
-        "pushup_side_right": {"frames": [...]}
-      }
-    }
-    """
+    """Serve all exercise templates to the mobile app."""
 
     return JSONResponse(
         content={
@@ -150,5 +135,33 @@ async def get_exercise_templates(exercise: str):
                 for frame in _flatten_frames(data)
             ],
             "variant_count": len(grouped),
+        }
+    )
+
+
+@v1_router.get("/exercise-rules")
+async def get_all_exercise_rules():
+    """Serve all exercise rules to clients that can apply config-driven checks."""
+
+    return JSONResponse(
+        content={
+            "version": 1,
+            "exercise_rules": _read_exercise_rules(),
+        }
+    )
+
+
+@v1_router.get("/exercise-rules/{exercise}")
+async def get_exercise_rules(exercise: str):
+    """Serve rules for one exercise, for example pushup."""
+
+    normalized = exercise.lower().replace("-", "_")
+    rules = _read_exercise_rules().get(normalized, {})
+
+    return JSONResponse(
+        content={
+            "version": 1,
+            "exercise": normalized,
+            "rules": rules,
         }
     )
