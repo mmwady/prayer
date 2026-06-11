@@ -1,0 +1,45 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# mobile/pubspec.yaml
+#
+# Flutter manifest for the Real-Time AI Fitness Coaching app.
+#
+# Packages picked for concrete reasons (not just "popular"):
+#   • camera           — official Flutter plugin; gives us a CameraController
+#                        whose image stream is what a real pose model consumes.
+#   • web_socket_channel — stable WS client that works identically on
+#                        mobile + web, with both text and binary frames.
+#   • just_audio       — supports feeding a custom byte-stream source, which
+#                        is exactly what live TTS playback needs.
+#   • provider         — lightweight state management; avoids pulling in the
+#                        full Riverpod/Bloc weight for a boilerplate scaffold.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: coaching
+description: Real-Time AI Fitness Coaching — hybrid edge/cloud mobile app.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  camera: ^0.11.0
+  web_socket_channel: ^3.0.1
+  just_audio: ^0.9.40
+  provider: ^6.1.2
+  http: ^1.6.0
+  # On-device pose detection is swapped in here in production.
+  # The codebase defaults to a stub implementation — uncomment to enable:
+  google_mlkit_pose_detection: ^0.12.0
+  js: ^0.7.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

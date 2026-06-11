@@ -1,0 +1,49 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# backend/requirements.txt  —  development install (no Docker required)
+#
+# Usage:
+#   cd backend
+#   python -m venv .venv
+#   .venv\Scripts\activate          # Windows
+#   # source .venv/bin/activate     # macOS / Linux
+#   pip install -r requirements.txt
+#   cp ../.env.example ../.env      # fill in DEEPSEEK_API_KEY etc.
+#   uvicorn app.main:app --reload --port 8000
+#
+# Pinning strategy: lower-bounds only (same as pyproject.toml) so you always
+# get a compatible, up-to-date resolver result. If you need a reproducible
+# lock (CI, staging), run:
+#   pip-compile requirements.txt -o requirements.lock
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi>=0.111
+uvicorn[standard]>=0.30       # includes httptools + uvloop for perf
+python-multipart>=0.0.9
+mediapipe<=0.10.11            # Pinned to keep the legacy mp.solutions API working
+
+# ── WebSocket protocol backend ────────────────────────────────────────────────
+websockets>=12.0               # uvicorn --ws websockets + ElevenLabs provider
+
+# ── Data validation & configuration ──────────────────────────────────────────
+pydantic>=2.7
+pydantic-settings>=2.3         # reads .env into typed Settings
+
+# ── LangGraph / LangChain (conversational state machine) ─────────────────────
+langgraph>=0.2
+langchain-core>=0.2
+
+# ── LLM client (OpenAI-compatible — works with DeepSeek, Ollama, …) ───────────
+openai>=1.40
+
+# ── TTS: default (free, no key) ───────────────────────────────────────────────
+edge-tts>=6.1
+
+# ── HTTP client used by the ElevenLabs provider ───────────────────────────────
+httpx>=0.27
+
+# ── Development & testing ─────────────────────────────────────────────────────
+pytest>=8.2
+pytest-asyncio>=0.23           # async test support (asyncio_mode = auto)
+ruff>=0.5                      # linter / formatter
+mypy>=1.10                     # static type checker

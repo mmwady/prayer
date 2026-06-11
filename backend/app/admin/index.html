@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fitness Coaching - Template Admin</title>
+    <!-- Tailwind CSS (CDN for standalone usage) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#1e293b',
+                        dark: '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-row:hover {
+            background: rgba(51, 65, 85, 0.7);
+        }
+    </style>
+</head>
+<body class="text-gray-200 p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="mb-10 text-center">
+            <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                Exercise Template Dashboard
+            </h1>
+            <p class="text-gray-400 mt-2">Manage your AI coaching exercise templates</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Upload Panel -->
+            <div class="lg:col-span-1">
+                <div class="glass p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-xl font-semibold mb-4 text-white">Generate Template</h2>
+                    <form id="uploadForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Exercise Name</label>
+                            <input type="text" id="exerciseName" required
+                                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                placeholder="e.g. squat, pushup">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Raw Video (.mp4)</label>
+                            <input type="file" id="videoFile" accept="video/mp4" required
+                                class="w-full text-sm text-gray-400
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-600 file:text-white
+                                hover:file:bg-blue-500
+                                file:cursor-pointer transition-all">
+                        </div>
+                        <button type="submit" id="submitBtn"
+                            class="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 flex justify-center items-center">
+                            <span>Upload & Generate</span>
+                            <!-- Spinner icon hidden by default -->
+                            <svg id="spinner" class="animate-spin ml-2 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </form>
+                    <div id="uploadStatus" class="mt-4 text-sm hidden"></div>
+                </div>
+            </div>
+
+            <!-- Templates List Panel -->
+            <div class="lg:col-span-2">
+                <div class="glass p-6 rounded-2xl shadow-xl overflow-hidden">
+                    <h2 class="text-xl font-semibold mb-4 text-white flex justify-between items-center">
+                        <span>Stored Templates</span>
+                        <button onclick="fetchTemplates()" class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                            ⟳ Refresh
+                        </button>
+                    </h2>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="text-xs text-gray-400 uppercase bg-slate-800/50">
+                                <tr>
+                                    <th class="px-4 py-3 rounded-tl-lg">Exercise</th>
+                                    <th class="px-4 py-3">JSON Data</th>
+                                    <th class="px-4 py-3 text-right rounded-tr-lg">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="templatesTableBody" class="divide-y divide-slate-700/50">
+                                <!-- Populated dynamically via JS -->
+                                <tr>
+                                    <td colspan="3" class="px-4 py-4 text-center text-gray-500">Loading templates...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-slate-900 rounded-2xl shadow-2xl p-4 w-full max-w-3xl border border-slate-700 relative">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white bg-slate-800 rounded-full p-2 transition-colors">
+                ✕
+            </button>
+            <h3 id="modalTitle" class="text-lg font-semibold text-white mb-4 pl-2 capitalize">Video Player</h3>
+            <video id="videoPlayer" controls class="w-full rounded-lg bg-black">
+                <source id="videoSource" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const form = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const spinner = document.getElementById('spinner');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const tableBody = document.getElementById('templatesTableBody');
+        const videoModal = document.getElementById('videoModal');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoSource = document.getElementById('videoSource');
+        const modalTitle = document.getElementById('modalTitle');
+
+        // Form Submit Handler (Upload & Generate)
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const exerciseName = document.getElementById('exerciseName').value;
+            const videoFile = document.getElementById('videoFile').files[0];
+
+            if (!videoFile || !exerciseName) return;
+
+            const formData = new FormData();
+            formData.append('exercise_name', exerciseName);
+            formData.append('file', videoFile);
+
+            // UI State loading
+            setLoading(true);
+            uploadStatus.classList.remove('hidden', 'text-green-400', 'text-red-400');
+            uploadStatus.textContent = 'Processing MediaPipe pose data... This may take a moment.';
+            uploadStatus.classList.add('text-blue-400', 'block');
+
+            try {
+                const response = await fetch('/admin/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+
+                if (response.ok) {
+                    uploadStatus.textContent = `Success: ${result.message}`;
+                    uploadStatus.classList.replace('text-blue-400', 'text-green-400');
+                    form.reset();
+                    fetchTemplates(); // Refresh table
+                } else {
+                    throw new Error(result.detail || 'Upload failed');
+                }
+            } catch (error) {
+                uploadStatus.textContent = `Error: ${error.message}`;
+                uploadStatus.classList.replace('text-blue-400', 'text-red-400');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Fetch & Display Templates
+        async function fetchTemplates() {
+            try {
+                const response = await fetch('/admin/api/templates');
+                const data = await response.json();
+                renderTable(data.templates);
+            } catch (error) {
+                tableBody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-red-500">Failed to load templates.</td></tr>`;
+            }
+        }
+
+        // Render Table Data
+        function renderTable(templates) {
+            tableBody.innerHTML = '';
+            
+            if (!templates || templates.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="3" class="px-4 py-6 text-center text-gray-500 italic">No templates found. Upload one to get started!</td></tr>`;
+                return;
+            }
+
+            templates.forEach(t => {
+                const tr = document.createElement('tr');
+                tr.className = 'glass-row transition-colors border-b border-slate-700/50 last:border-0';
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-4 font-medium text-white capitalize">
+                        ${t.exercise}
+                    </td>
+                    <td class="px-4 py-4 text-gray-400">
+                        <a href="${t.json_url}" target="_blank" class="hover:text-blue-400 transition-colors flex items-center">
+                            📄 View JSON
+                        </a>
+                    </td>
+                    <td class="px-4 py-4 text-right space-x-2">
+                        ${t.video_url ? `
+                        <button onclick="openVideo('${t.exercise}', '${t.video_url}')" 
+                            class="px-3 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded border border-emerald-500/20 transition-colors text-xs font-medium">
+                            ▶ Play Video
+                        </button>` : ''}
+                        
+                        <button onclick="fillRegenerate('${t.exercise}')" 
+                            class="px-3 py-1 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded border border-blue-500/20 transition-colors text-xs font-medium">
+                            ⟳ Replace
+                        </button>
+
+                        <button onclick="deleteTemplate('${t.exercise}')" 
+                            class="px-3 py-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded border border-red-500/20 transition-colors text-xs font-medium">
+                            ✕ Trash
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Delete Action
+        async function deleteTemplate(name) {
+            if (!confirm(`Are you sure you want to completely delete the '${name}' template and its video?`)) return;
+            
+            try {
+                const response = await fetch(`/admin/api/templates/${name}`, { method: 'DELETE' });
+                if (response.ok) {
+                    fetchTemplates(); // Refresh UI
+                } else {
+                    const err = await response.json();
+                    alert(`Error deleting: ${err.detail}`);
+                }
+            } catch (error) {
+                alert(`Network error: ${error.message}`);
+            }
+        }
+
+        // Regenerate Action Helper (Fills form so user can upload new file over it)
+        function fillRegenerate(name) {
+            document.getElementById('exerciseName').value = name;
+            document.getElementById('videoFile').focus();
+            uploadStatus.classList.remove('hidden');
+            uploadStatus.classList.add('text-blue-400');
+            uploadStatus.textContent = 'Upload a new video to overwrite this template.';
+        }
+
+        // Modal Logic
+        function openVideo(name, url) {
+            modalTitle.textContent = `${name} - Source Video`;
+            videoSource.src = url;
+            videoPlayer.load();
+            videoModal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            videoModal.classList.add('hidden');
+            videoPlayer.pause();
+            videoSource.src = '';
+        }
+
+        // Utils
+        function setLoading(isLoading) {
+            submitBtn.disabled = isLoading;
+            submitBtn.classList.toggle('opacity-75', isLoading);
+            submitBtn.classList.toggle('cursor-not-allowed', isLoading);
+            if (isLoading) {
+                spinner.classList.remove('hidden');
+            } else {
+                spinner.classList.add('hidden');
+            }
+        }
+
+        // Initial Load
+        fetchTemplates();
+    </script>
+</body>
+</html>
