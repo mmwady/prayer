@@ -1,7 +1,6 @@
 # VPS deployment
 
-Deployed on 2026-10-05 through the SSH alias `iqtadi-vps`. GitHub deployment automation
-is intentionally deferred. This is a testing deployment with the stable URL https://vps-c79afd97.vps.ovh.ca.
+Deployed on 2026-10-05 through the SSH alias `iqtadi-vps`. Manual GitHub Actions deployment is available. This is a testing deployment with the stable URL https://vps-c79afd97.vps.ovh.ca.
 
 ## Layout and access
 
@@ -84,8 +83,7 @@ and deploy a new release directory atomically. Backend build context must contai
 `backend/app`, `backend/models`, `backend/pyproject.toml`, `backend/README.md` and
 `deploy/vps/Dockerfile`; do not include `.env` or `backend/data`. Server provisioning
 scripts under `deploy/vps` describe the **initial** installation; `prepare-server.sh`
-is not a general update/rollback command. GitHub automation will implement later release
-creation, verification, activation and rollback.
+is not a general update/rollback command. The manual GitHub workflow implements release creation, verification, activation and rollback.
 
 Public browser evidence is written under `output/vps` (git-ignored). It covers the six
 prayer routes, a real 16-frame local video, three-model results, simulated live-camera
