@@ -415,8 +415,13 @@ void main() {
 
   testWidgets('live screen requires explicit camera open and consent',
       (tester) async {
+    tester.view.physicalSize = const Size(1000, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final camera = FakeCamera(), socket = FakeSocket();
-    final controller = LiveController(camera: camera, api: api(socket, []));
+    final controller = LiveController(
+        camera: camera, api: api(socket, []), store: MemoryStore());
     await tester.pumpWidget(MaterialApp(
         home: Directionality(
             textDirection: TextDirection.rtl,
@@ -424,25 +429,47 @@ void main() {
                 definition: PrayerCatalog.of(PrayerType.demo),
                 controller: controller))));
     expect(camera.ready, false);
-    expect(find.text('تبديل الكاميرا الأمامية / الخلفية'), findsNothing);
+    expect(find.byTooltip('تبديل الكاميرا'), findsNothing);
     await tester.tap(find.text('فتح الكاميرا وضبط المكان'));
     await tester.pumpAndSettle();
     expect(
         find.text(
             'محاكاة تحليل — النتائج اصطناعية وليست تحليلًا فعليًا للكاميرا'),
         findsOneWidget);
-    await tester.scrollUntilVisible(
-        find.text('تبديل الكاميرا الأمامية / الخلفية'), 150);
-    await tester.tap(find.text('تبديل الكاميرا الأمامية / الخلفية'));
+    await tester.scrollUntilVisible(find.byTooltip('تبديل الكاميرا'), 150);
+    await tester.tap(find.byTooltip('تبديل الكاميرا'));
     await tester.pumpAndSettle();
     expect(camera.front, false);
-    await tester.tap(find.text('تبديل الكاميرا الأمامية / الخلفية'));
+    await tester.tap(find.byTooltip('تبديل الكاميرا'));
     await tester.pumpAndSettle();
     expect(camera.front, true);
     await tester.scrollUntilVisible(find.text('ابدأ التحليل المباشر'), 200);
     final button = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'ابدأ التحليل المباشر'));
     expect(button.onPressed, isNull);
+    await tester.scrollUntilVisible(find.byType(CheckboxListTile), 150);
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pump();
+    await tester.scrollUntilVisible(find.text('ابدأ التحليل المباشر'), -150);
+    await tester.tap(find.text('ابدأ التحليل المباشر'));
+    await tester.pump();
+    expect(find.text('5'), findsNWidgets(2));
+    expect(camera.streaming, false);
+    for (var remaining = 4; remaining >= 0; remaining--) {
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('$remaining'), findsNWidgets(2));
+      expect(camera.streaming, false);
+    }
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.runAsync(() async {
+      for (var attempt = 0; attempt < 100 && !camera.streaming; attempt++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    });
+    await tester.pump();
+    expect(camera.streaming, true, reason: controller.error);
+    unawaited(controller.cancel());
+    await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
   });

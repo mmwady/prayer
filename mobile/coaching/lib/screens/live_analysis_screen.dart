@@ -23,6 +23,49 @@ class _LiveAnalysisScreenState extends State<LiveAnalysisScreen>
     with WidgetsBindingObserver {
   late final LiveController controller;
   bool consent = false;
+  int? countdown;
+  Timer? countdownTimer;
+
+  void cancelCountdown() {
+    countdownTimer?.cancel();
+    countdownTimer = null;
+    countdown = null;
+  }
+
+  void startCountdown() {
+    if (countdown != null) return;
+    setState(() => countdown = 5);
+    countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() => countdown = countdown! - 1);
+      if (countdown == 0) {
+        timer.cancel();
+        // Keep zero visible briefly before replacing it with session progress.
+        countdownTimer = Timer(const Duration(milliseconds: 200), () {
+          if (!mounted) return;
+          setState(cancelCountdown);
+          unawaited(controller.start(widget.definition.prayerType.name,
+              consent: consent,
+              scenario: controller.config?['inference_provider'] == 'mock'
+                  ? 'normal'
+                  : null));
+        });
+      }
+    });
+  }
+
+  Widget startButton(LiveController c) => FilledButton.icon(
+      onPressed: countdown != null ||
+              (!c.api.isLocal && !consent) ||
+              c.phase == LivePhase.failed ||
+              !c.camera.ready ||
+              c.opening ||
+              (c.config?['inference_provider'] == 'mock' &&
+                  c.config?['mock_enabled'] != true)
+          ? null
+          : startCountdown,
+      icon: const Icon(Icons.play_arrow),
+      label: const Text('ابدأ التحليل المباشر'));
   @override
   void initState() {
     super.initState();
@@ -38,6 +81,7 @@ class _LiveAnalysisScreenState extends State<LiveAnalysisScreen>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
+      if (countdown != null) setState(cancelCountdown);
       if (controller.phase == LivePhase.streaming ||
           controller.phase == LivePhase.reconnecting) {
         controller.error =
@@ -53,6 +97,7 @@ class _LiveAnalysisScreenState extends State<LiveAnalysisScreen>
 
   @override
   void dispose() {
+    cancelCountdown();
     WidgetsBinding.instance.removeObserver(this);
     controller.dispose();
     super.dispose();
@@ -107,18 +152,55 @@ class _LiveAnalysisScreenState extends State<LiveAnalysisScreen>
                 ] else ...[
                   const AppNote(
                       'ثبّت الهاتف بحيث يظهر الجسم كاملًا أثناء الوقوف والركوع والسجود. انتظر ظهور «التحليل المباشر يعمل» قبل بدء الصلاة، وأبقِ التطبيق مفتوحًا. اضغط «إنهاء الصلاة» بعد الانتهاء.'),
-                  if (c.camera.ready && !c.opening)
+                  if (c.camera.ready)
                     AppCard(
-                        child:
-                            SizedBox(height: 360, child: c.camera.preview())),
-                  if (!c.busy) ...[
-                    if (c.camera.ready || c.opening)
-                      OutlinedButton.icon(
-                          onPressed: c.opening ? null : c.switchCamera,
-                          icon: const Icon(Icons.flip_camera_android_outlined),
-                          label: Text(c.opening
-                              ? 'جارٍ تجهيز الكاميرا…'
-                              : 'تبديل الكاميرا الأمامية / الخلفية')),
+                        child: SizedBox(
+                            height: 360,
+                            child: Stack(fit: StackFit.expand, children: [
+                              c.camera.preview(),
+                              if (!c.busy)
+                                Positioned(
+                                    top: 12,
+                                    right: 12,
+                                    child: IconButton.filledTonal(
+                                        tooltip: 'تبديل الكاميرا',
+                                        onPressed:
+                                            c.opening || countdown != null
+                                                ? null
+                                                : c.switchCamera,
+                                        icon: const Icon(Icons
+                                            .flip_camera_android_outlined))),
+                              if (countdown != null)
+                                Center(
+                                    child: Semantics(
+                                        liveRegion: true,
+                                        label: '$countdown',
+                                        child: ExcludeSemantics(
+                                            child: Stack(children: [
+                                          Text('$countdown',
+                                              style: TextStyle(
+                                                  fontSize: 144,
+                                                  height: 1.2,
+                                                  fontWeight: FontWeight.w700,
+                                                  foreground: Paint()
+                                                    ..style =
+                                                        PaintingStyle.stroke
+                                                    ..strokeWidth = 7
+                                                    ..color = Colors.black54)),
+                                          Text('$countdown',
+                                              style: TextStyle(
+                                                  fontSize: 144,
+                                                  height: 1.2,
+                                                  fontWeight: FontWeight.w700,
+                                                  foreground: Paint()
+                                                    ..style =
+                                                        PaintingStyle.stroke
+                                                    ..strokeWidth = 3
+                                                    ..color = Colors.white)),
+                                        ])))),
+                            ]))),
+                  if (!c.busy && c.camera.ready) startButton(c),
+                  if (!c.busy && countdown == null) ...[
                     if (c.api is LocalAnalysisService && c.api.jobId == null)
                       LocalAssessmentControls(
                           session: (c.api as LocalAnalysisService).session,
@@ -173,23 +255,9 @@ class _LiveAnalysisScreenState extends State<LiveAnalysisScreen>
                                   'أوافق على إرسال صور الكاميرا إلى الخادم أثناء الصلاة'),
                               subtitle: const Text(
                                   'لا يُسجل فيديو ولا صوت. تبدأ مشاركة الصور عند الضغط على ابدأ فقط. تحفظ صور معلقة مؤقتًا على الجهاز حتى يؤكد الخادم حفظها. يمكن حذف بيانات الجلسة.'))),
-                    FilledButton.icon(
-                        onPressed: (!c.api.isLocal && !consent) ||
-                                c.phase == LivePhase.failed ||
-                                !c.camera.ready ||
-                                c.opening ||
-                                (c.config?['inference_provider'] == 'mock' &&
-                                    c.config?['mock_enabled'] != true)
-                            ? null
-                            : () => c.start(widget.definition.prayerType.name,
-                                consent: consent,
-                                scenario:
-                                    c.config?['inference_provider'] == 'mock'
-                                        ? 'normal'
-                                        : null),
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('ابدأ التحليل المباشر')),
-                  ] else ...[
+                    if (!c.camera.ready) startButton(c),
+                  ],
+                  if (c.busy) ...[
                     AppCard(
                         child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
