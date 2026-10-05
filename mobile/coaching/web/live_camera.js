@@ -51,13 +51,17 @@
         store.delete(range);
       });
     },
-    async open() {
+    async open(front = true, requireDirection = false) {
       if (!navigator.mediaDevices?.getUserMedia) throw Error('CAMERA_REQUIRES_HTTPS');
+      const facing = front ? 'user' : 'environment';
       const stream = await navigator.mediaDevices.getUserMedia({audio: false,
-        video: {facingMode: 'user', width: {ideal: 640}, height: {ideal: 480}}});
+        video: {facingMode: requireDirection ? {exact: facing} : {ideal: facing},
+          width: {ideal: 640}, height: {ideal: 480}}});
       const video = document.createElement('video');
       video.muted = true; video.playsInline = true; video.autoplay = true;
-      video.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;transform:scaleX(-1)';
+      const mirrored = stream.getVideoTracks()[0].getSettings().facingMode === 'user' ||
+        (!stream.getVideoTracks()[0].getSettings().facingMode && front);
+      video.style.cssText = `width:100%;height:100%;object-fit:contain;background:#000;transform:scaleX(${mirrored ? -1 : 1})`;
       video.srcObject = stream;
       try { await video.play(); }
       catch (error) { stream.getTracks().forEach(t => t.stop()); throw error; }

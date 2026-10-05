@@ -46,6 +46,7 @@ class LiveController extends ChangeNotifier {
   AnalysisReport? report;
   String? error;
   bool awake = true, opening = false;
+  bool frontCamera = true;
   int captured = 0, uploaded = 0, processed = 0, dropped = 0, elapsedMs = 0;
   int _lastTimestamp = -1;
   bool _fatalPacket = false;
@@ -73,8 +74,31 @@ class LiveController extends ChangeNotifier {
   }
 
   Future<void> open() {
-    if (busy) return Future.value();
+    if (busy || _cancelling != null) return Future.value();
     return _opening ??= _open().whenComplete(() => _opening = null);
+  }
+
+  Future<void> switchCamera() {
+    if (busy || opening || !camera.ready || _cancelling != null) {
+      return Future.value();
+    }
+    return _opening = _switchCamera().whenComplete(() => _opening = null);
+  }
+
+  Future<void> _switchCamera() async {
+    opening = true;
+    error = null;
+    _emit();
+    try {
+      await camera.open(front: !frontCamera, requireDirection: true);
+      frontCamera = !frontCamera;
+    } catch (e) {
+      error =
+          'تعذر تبديل الكاميرا: $e. يمكنك إعادة فتح الكاميرا والمحاولة مجددًا.';
+    } finally {
+      opening = false;
+      _emit();
+    }
   }
 
   Future<void> _open() async {
@@ -89,7 +113,7 @@ class LiveController extends ChangeNotifier {
       if (!(config?['live_modes'] as List? ?? []).contains('buffered')) {
         throw StateError('المعالج الحالي لا يدعم أوضاع الالتقاط.');
       }
-      if (!_disposed) await camera.open();
+      if (!_disposed) await camera.open(front: frontCamera);
     } catch (e) {
       error = e.toString();
     } finally {

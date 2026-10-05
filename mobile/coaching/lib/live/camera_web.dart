@@ -7,7 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'camera_source.dart';
 
 @JS('iqtadiLive.open')
-external JSPromise<JSNumber> _open();
+external JSPromise<JSNumber> _open(JSBoolean front, JSBoolean requireDirection);
 @JS('iqtadiLive.video')
 external JSObject _video(JSNumber id);
 @JS('iqtadiLive.frame')
@@ -27,9 +27,10 @@ class WebLiveCamera implements LiveCamera {
   @override
   bool get ready => _id != null;
   @override
-  Future<void> open() async {
+  Future<void> open({bool front = true, bool requireDirection = false}) async {
     await close();
-    final id = (await _open().toDart).toDartInt;
+    final id =
+        (await _open(front.toJS, requireDirection.toJS).toDart).toDartInt;
     _id = id;
     _view = 'live-camera-$id';
     ui_web.platformViewRegistry

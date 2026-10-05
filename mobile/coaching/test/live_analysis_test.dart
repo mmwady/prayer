@@ -16,12 +16,20 @@ import 'video_analysis_test.dart' as fixtures;
 
 class FakeCamera implements LiveCamera {
   bool opened = false, streaming = false, awake = false;
+  bool front = true, failSwitch = false;
+  Completer<void>? opening;
   void Function(int, Uint8List)? callback;
   bool Function()? shouldCapture;
   @override
   bool get ready => opened;
   @override
-  Future<void> open() async => opened = true;
+  Future<void> open({bool front = true, bool requireDirection = false}) async {
+    await opening?.future;
+    if (requireDirection && failSwitch) throw StateError('camera unavailable');
+    this.front = front;
+    opened = true;
+  }
+
   @override
   Widget preview() => const ColoredBox(color: Colors.black);
   @override
@@ -147,6 +155,46 @@ Future<void> spinUntil(bool Function() condition) async {
 }
 
 void main() {
+  test(
+      'camera switching is serialized, preserves setup and blocks live capture',
+      () async {
+    final camera = FakeCamera(), socket = FakeSocket();
+    final operations = <String>[];
+    final controller =
+        LiveController(camera: camera, api: api(socket, operations));
+    await controller.switchCamera();
+    expect(camera.ready, false);
+    await controller.open();
+    final configRequests = operations.length;
+    camera.opening = Completer<void>();
+    final switching = controller.switchCamera();
+    expect(controller.opening, true);
+    await controller.switchCamera();
+    await controller.start('demo', consent: true);
+    expect(camera.streaming, false);
+    camera.opening!.complete();
+    await switching;
+    camera.opening = null;
+    expect(camera.front, false);
+    expect(controller.frontCamera, false);
+    expect(operations.length, configRequests);
+    await controller.switchCamera();
+    expect(camera.front, true);
+    camera.failSwitch = true;
+    await controller.switchCamera();
+    expect(controller.frontCamera, true);
+    expect(controller.opening, false);
+    expect(controller.error, contains('تعذر تبديل الكاميرا'));
+    expect(camera.ready, true);
+    camera.failSwitch = false;
+    await controller.start('demo', consent: true, scenario: 'normal');
+    await controller.switchCamera();
+    expect(camera.front, true);
+    expect(camera.streaming, true);
+    await controller.cancel();
+    controller.dispose();
+  });
+
   test('packet preserves JPEG and original time without exposing token', () {
     final frame = SampledFrame(8, 2345, Uint8List.fromList([255, 216, 4]));
     final bytes = LiveAnalysisClient.packet(frame);
@@ -376,12 +424,21 @@ void main() {
                 definition: PrayerCatalog.of(PrayerType.demo),
                 controller: controller))));
     expect(camera.ready, false);
+    expect(find.text('تبديل الكاميرا الأمامية / الخلفية'), findsNothing);
     await tester.tap(find.text('فتح الكاميرا وضبط المكان'));
     await tester.pumpAndSettle();
     expect(
         find.text(
             'محاكاة تحليل — النتائج اصطناعية وليست تحليلًا فعليًا للكاميرا'),
         findsOneWidget);
+    await tester.scrollUntilVisible(
+        find.text('تبديل الكاميرا الأمامية / الخلفية'), 150);
+    await tester.tap(find.text('تبديل الكاميرا الأمامية / الخلفية'));
+    await tester.pumpAndSettle();
+    expect(camera.front, false);
+    await tester.tap(find.text('تبديل الكاميرا الأمامية / الخلفية'));
+    await tester.pumpAndSettle();
+    expect(camera.front, true);
     await tester.scrollUntilVisible(find.text('ابدأ التحليل المباشر'), 200);
     final button = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'ابدأ التحليل المباشر'));

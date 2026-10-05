@@ -17,17 +17,21 @@ class NativeLiveCamera implements LiveCamera {
   bool get ready => _camera?.value.isInitialized ?? false;
 
   @override
-  Future<void> open() async {
+  Future<void> open({bool front = true, bool requireDirection = false}) async {
     if (!Platform.isAndroid) {
       throw UnsupportedError(
           'الكاميرا المباشرة متاحة حاليًا على Android والويب.');
     }
-    await close();
     final cameras = await availableCameras();
     if (cameras.isEmpty) throw StateError('لا توجد كاميرا متاحة.');
-    final description = cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.front,
+    final direction =
+        front ? CameraLensDirection.front : CameraLensDirection.back;
+    if (requireDirection && !cameras.any((c) => c.lensDirection == direction)) {
+      throw StateError('الكاميرا ${front ? 'الأمامية' : 'الخلفية'} غير متاحة.');
+    }
+    final description = cameras.firstWhere((c) => c.lensDirection == direction,
         orElse: () => cameras.first);
+    await close();
     final camera = CameraController(description, ResolutionPreset.medium,
         enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
     _camera = camera;

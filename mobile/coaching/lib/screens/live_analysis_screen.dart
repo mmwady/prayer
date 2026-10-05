@@ -107,11 +107,18 @@ class _LiveAnalysisScreenState extends State<LiveAnalysisScreen>
                 ] else ...[
                   const AppNote(
                       'ثبّت الهاتف بحيث يظهر الجسم كاملًا أثناء الوقوف والركوع والسجود. انتظر ظهور «التحليل المباشر يعمل» قبل بدء الصلاة، وأبقِ التطبيق مفتوحًا. اضغط «إنهاء الصلاة» بعد الانتهاء.'),
-                  if (c.camera.ready)
+                  if (c.camera.ready && !c.opening)
                     AppCard(
                         child:
                             SizedBox(height: 360, child: c.camera.preview())),
                   if (!c.busy) ...[
+                    if (c.camera.ready || c.opening)
+                      OutlinedButton.icon(
+                          onPressed: c.opening ? null : c.switchCamera,
+                          icon: const Icon(Icons.flip_camera_android_outlined),
+                          label: Text(c.opening
+                              ? 'جارٍ تجهيز الكاميرا…'
+                              : 'تبديل الكاميرا الأمامية / الخلفية')),
                     if (c.api is LocalAnalysisService && c.api.jobId == null)
                       LocalAssessmentControls(
                           session: (c.api as LocalAnalysisService).session,

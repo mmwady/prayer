@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 abstract class LiveCamera {
   bool get ready;
-  Future<void> open();
+  Future<void> open({bool front = true, bool requireDirection = false});
   Widget preview();
   Future<void> capture(
       double fps,
