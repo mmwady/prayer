@@ -110,7 +110,55 @@ AnalysisClient fakeApi(List<http.Request> requests,
           return jsonResponse({'status': 'COMPLETED', 'processed_frames': 4});
         }));
 
+class DeferredModelApi extends AnalysisClient
+    implements AnalysisPreparationProgress {
+  DeferredModelApi() : super(baseUrl: 'http://localhost');
+  final ready = Completer<Map<String, dynamic>>();
+  int calls = 0;
+  @override
+  bool get isLocal => true;
+  @override
+  Map<String, dynamic> get initializationProgress => {
+        'phase': 'downloading',
+        'asset': 'pose_landmarker_heavy.task',
+        'loaded': 1024,
+        'total': 2048,
+      };
+  @override
+  Future<Map<String, dynamic>> configuration() {
+    calls++;
+    return ready.future;
+  }
+}
+
 void main() {
+  testWidgets('file selection finishes while model progress remains visible',
+      (tester) async {
+    final api = DeferredModelApi();
+    final controller = AnalysisController(source: FakeVideo(), api: api);
+    await tester.pumpWidget(MaterialApp(
+        home: VideoAnalysisScreen(
+            definition: PrayerCatalog.of(PrayerType.fajr),
+            controller: controller)));
+    // Exercise the controller directly so this test is independent of list scrolling.
+    await controller.select();
+    await tester.pump();
+    expect(controller.video?.name, 'local.mp4');
+    expect(controller.preparingModels, isTrue);
+    expect(controller.config, isNull);
+    expect(find.text('جارٍ فتح الفيديو…'), findsNothing);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -600));
+    await tester.pump();
+    expect(find.textContaining('تحميل موديل الحركة'), findsOneWidget);
+    final preparation = controller.prepareModels();
+    expect(api.calls, 1);
+    api.ready.complete(config);
+    await preparation;
+    await tester.pump();
+    expect(controller.preparingModels, isFalse);
+    expect(controller.config, config);
+    await tester.pumpWidget(const SizedBox());
+  });
   test(
       'strict report version, synthetic labeling and backend results are preserved',
       () {

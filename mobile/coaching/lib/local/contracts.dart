@@ -145,6 +145,10 @@ class LocalFrameResult {
       preview ?? await previewLoader?.call();
 }
 
+abstract interface class InitializationProgressSource {
+  Map<String, dynamic> get initializationProgress;
+}
+
 abstract interface class LocalInference {
   Future<Map<String, dynamic>> initialize();
   Future<LocalFrameResult> analyze(Uint8List jpeg);

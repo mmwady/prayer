@@ -1,0 +1,16 @@
+[Unit]
+Description=Iqtadi temporary HTTPS test tunnel
+Wants=network-online.target
+After=network-online.target nginx.service docker.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/truncate -s 0 /var/log/iqtadi-tunnel.log
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate --protocol http2 --url http://127.0.0.1:8080 --logfile /var/log/iqtadi-tunnel.log
+ExecStartPost=/bin/bash /srv/iqtadi/deploy/sync-tunnel-url.sh
+Restart=always
+RestartSec=10
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

@@ -7,6 +7,8 @@ import 'report_engine.dart';
 
 @JS('iqtadiLocal.initialize')
 external JSPromise<JSObject> _initialize();
+@JS('iqtadiLocal.initializationProgress')
+external JSObject _initializationProgress();
 @JS('iqtadiLocal.analyze')
 external JSPromise<JSObject> _analyze(JSUint8Array bytes);
 @JS('iqtadiLocal.saveSession')
@@ -35,7 +37,11 @@ LocalSessionRepository createLocalRepository() => WebLocalRepository();
 Future<String> exportSnapshot(Map<String, dynamic> data) async =>
     (await _exportReport(_json(data)).toDart).toDart;
 
-class WebLocalInference implements LocalInference {
+class WebLocalInference
+    implements LocalInference, InitializationProgressSource {
+  @override
+  Map<String, dynamic> get initializationProgress =>
+      _map(_initializationProgress());
   @override
   Future<Map<String, dynamic>> initialize() async =>
       _map(await _initialize().toDart);

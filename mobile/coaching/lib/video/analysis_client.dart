@@ -32,6 +32,10 @@ class AnalysisApiError implements Exception {
 
 /// Processing/evidence contract. The application's prayer routes use a local
 /// implementation; the HTTP implementation remains an explicit compatibility tool.
+abstract interface class AnalysisPreparationProgress {
+  Map<String, dynamic> get initializationProgress;
+}
+
 abstract interface class AnalysisService {
   bool get isLocal;
   String? get jobId;

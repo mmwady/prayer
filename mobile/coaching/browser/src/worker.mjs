@@ -5,7 +5,7 @@ self.onmessage = async ({ data }) => {
   busy = true;
   try {
     let value;
-    if (data.type === 'init') { engine = new Engine(); value = await engine.initialize(data.base); }
+    if (data.type === 'init') { engine = new Engine(); value = await engine.initialize(data.base, progress => self.postMessage({ id: data.id, progress })); }
     else if (data.type === 'features') value = await engine.classify(new Float32Array(data.features), data.context);
     else if (data.type === 'analyze') value = await engine.analyze(data.blob ?? data.bitmap, data.diagnostic);
     else throw Error('Unknown worker operation');

@@ -31,6 +31,12 @@ class AnalysisController extends ChangeNotifier {
   bool _cancelled = false, _disposed = false, _running = false;
   Future<void>? _operation;
   bool get busy => _running;
+  bool preparingModels = false;
+  Future<void>? _preparation;
+  Timer? _progressTimer;
+  Map<String, dynamic> get modelProgress => api is AnalysisPreparationProgress
+      ? (api as AnalysisPreparationProgress).initializationProgress
+      : const {};
   void _emit() {
     if (!_disposed) notifyListeners();
   }
@@ -40,15 +46,47 @@ class AnalysisController extends ChangeNotifier {
     try {
       error = null;
       final picked = await source.pick();
-      if (picked != null) video = picked;
-      config = await api.configuration();
+      if (picked == null) return;
+      video = picked;
       phase = AnalysisPhase.selection;
+      _emit();
+      // Opening a local file must not wait for model downloads.
+      if (api.isLocal) {
+        unawaited(prepareModels());
+      } else {
+        await prepareModels();
+      }
     } catch (e) {
       error = api.isLocal
           ? 'تعذر فتح الفيديو أو تهيئة النماذج المحلية: $e'
           : 'تعذر فتح الفيديو أو الاتصال بالخادم: $e';
     }
     _emit();
+  }
+
+  Future<void> prepareModels() {
+    if (config != null) return Future.value();
+    return _preparation ??= _prepareModels();
+  }
+
+  Future<void> _prepareModels() async {
+    preparingModels = true;
+    error = null;
+    _emit();
+    final timer = _progressTimer =
+        Timer.periodic(const Duration(milliseconds: 250), (_) => _emit());
+    try {
+      config = await api.configuration();
+    } catch (e) {
+      error = api.isLocal
+          ? 'تعذر تجهيز النماذج المحلية. تحقق من الاتصال وأعد المحاولة: $e'
+          : 'تعذر الاتصال بالخادم: $e';
+    } finally {
+      timer.cancel();
+      preparingModels = false;
+      _preparation = null;
+      _emit();
+    }
   }
 
   Future<void> start(String prayer, {required bool consent, String? scenario}) {
@@ -177,6 +215,7 @@ class AnalysisController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _progressTimer?.cancel();
     unawaited(_release());
     super.dispose();
   }

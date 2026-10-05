@@ -6,21 +6,24 @@ import { letterbox, recoveryImage, canvasFor } from './image.mjs';
 import { pixelsFromSource } from './decode.mjs';
 
 export class Engine {
-  async initialize(base) {
+  async initialize(base, onProgress = () => {}) {
     this.base = base;
     this.manifest = await manifestAt(base);
     await purgeOldAssets(this.manifest.model_version);
-    this.preprocessing = JSON.parse(new TextDecoder().decode(await cachedAsset(base, 'preprocessing.json', this.manifest)));
+    const asset = name => cachedAsset(base, name, this.manifest, onProgress);
+    onProgress({ phase: 'preparing', asset: '', loaded: 0, total: 0 });
+    this.preprocessing = JSON.parse(new TextDecoder().decode(await asset('preprocessing.json')));
     // No SharedArrayBuffer/COOP dependency. Classifiers are small; portable single-thread WASM.
     ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false; ort.env.wasm.wasmPaths = new URL('vendor/ort/', base).href;
     const vision = await FilesetResolver.forVisionTasks(new URL('vendor/vision/', base).href);
     this.detector = await PoseLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetBuffer: new Uint8Array(await cachedAsset(base, 'pose_landmarker_heavy.task', this.manifest)), delegate: 'CPU' },
+      baseOptions: { modelAssetBuffer: new Uint8Array(await asset('pose_landmarker_heavy.task')), delegate: 'CPU' },
       runningMode: 'IMAGE', numPoses: 1, minPoseDetectionConfidence: .2, minPosePresenceConfidence: .2, minTrackingConfidence: .2,
       outputSegmentationMasks: false,
     });
     this.sessions = [];
-    for (const seed of SEEDS) this.sessions.push(await ort.InferenceSession.create(await cachedAsset(base, `main_seed_${seed}.onnx`, this.manifest), { executionProviders: ['wasm'] }));
+    for (const seed of SEEDS) this.sessions.push(await ort.InferenceSession.create(await asset(`main_seed_${seed}.onnx`), { executionProviders: ['wasm'] }));
+    onProgress({ phase: 'ready', asset: '', loaded: 0, total: 0 });
     return { model_version: this.manifest.model_version, classes: CLASSES };
   }
   async classify(features, context = {}) {

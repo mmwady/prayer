@@ -2,6 +2,20 @@
 
 ## Status
 
+2026-10-05 VPS testing deployment: complete Flutter Release Web served through
+public Nginx HTTPS at `vps-c79afd97.vps.ovh.ca` with automatic certificate renewal; the temporary tunnel is disabled. Docker backend uses Python
+3.11/CPU Torch and persistent `/srv/iqtadi/shared/data`. Administration is blocked.
+Hosted Web defaults to its own origin unless explicitly configured or overridden.
+Mosque Companion remains simulated, paid guidance disabled, SMTP unconfigured;
+GitHub automation deferred. Operations and verification: `docs/VPS_DEPLOYMENT.md`.
+Public Chrome acceptance passed: 16 real video frames, 23 simulated-camera frames,
+local reports, API/origin/admin checks; SQLite login session survived container
+restart. Four settings tests passed; analyzer has six existing infos. Physical
+camera/VPS reboot acceptance remains unverified. Stable-host HTTPS renewal, login
+and health checks passed. Video opening is independent of model preparation, with
+per-file download progress and retry; initialization no longer uses the inference
+deadline. Public video/camera acceptance passed with one pose-model download.
+
 2026-10-05 optional monitoring: backend-owned Argon2id/SMTP guardian accounts,
 family/classroom profiles, one-use QR/manual pairing and revocable child sessions
 are added under `/api/v1/accounts`. Flutter accounts are optional Provider/Navigator

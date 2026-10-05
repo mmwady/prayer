@@ -1,12 +1,12 @@
 export class RecognizerClient {
-  constructor(base = new URL('./', location.href).href) { this.base = base; this.id = 0; this.pending = new Map(); this.busy = false; }
+  constructor(base = new URL('./', location.href).href, onProgress = () => {}) { this.base = base; this.onProgress = onProgress; this.id = 0; this.pending = new Map(); this.busy = false; }
   async initialize() {
     try {
       if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined') throw Error('Worker/OffscreenCanvas unavailable');
       // MediaPipe's shipped WASM loader uses importScripts/ModuleFactory globals.
       // A classic bundled worker supports that loader across browser engines.
       this.worker = new Worker(new URL('worker.js', this.base));
-      this.worker.onmessage = ({ data }) => { const pending = this.pending.get(data.id); if (!pending) return; this.pending.delete(data.id); clearTimeout(pending.timer); data.error ? pending.reject(Error(data.error)) : pending.resolve(data.value); };
+      this.worker.onmessage = ({ data }) => { if (data.progress) { this.onProgress(data.progress); return; } const pending = this.pending.get(data.id); if (!pending) return; this.pending.delete(data.id); clearTimeout(pending.timer); data.error ? pending.reject(Error(data.error)) : pending.resolve(data.value); };
       this.worker.onerror = event => { for (const p of this.pending.values()) { clearTimeout(p.timer); p.reject(Error(event.message || 'Worker failure')); } this.pending.clear(); };
       this.info = await this.call('init', { base: this.base }); this.mode = 'worker';
     } catch (error) {
@@ -14,14 +14,16 @@ export class RecognizerClient {
       this.fallbackReason = error.message;
       // Safari/worker initialization fallback stays entirely on-device. Yield before each run.
       const { Engine } = await import('./engine.mjs');
-      this.engine = new Engine(); this.info = await this.engine.initialize(this.base); this.mode = 'main-thread-wasm';
+      this.engine = new Engine(); this.info = await this.engine.initialize(this.base, this.onProgress); this.mode = 'main-thread-wasm';
     }
     return { ...this.info, mode: this.mode, fallback_reason: this.fallbackReason };
   }
   call(type, data, transfer = []) {
     const id = ++this.id;
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.pending.delete(id); reject(Error('Inference timed out; restart recognition')); }, 120000);
+      // First downloads can exceed two minutes. Do not kill a healthy download
+      // and restart it in the fallback; keep the inference deadline unchanged.
+      const timer = type === 'init' ? null : setTimeout(() => { this.pending.delete(id); reject(Error('Inference timed out; restart recognition')); }, 120000);
       this.pending.set(id, { resolve, reject, timer });
       this.worker.postMessage({ id, type, ...data }, transfer);
     });

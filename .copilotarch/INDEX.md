@@ -19,7 +19,7 @@ form analyzer, rep counter) has been **deleted**, not merely disconnected.
 | Reference tooling | OpenCV + MediaPipe (`app/admin/prayer_references.py`, lazily imported) |
 | Recorded video | On-device Android native retriever / web canvas; local temporal and sequence reports; retained Python tooling |
 | Frontend (edge) | Flutter / Dart >= 3.4, provider, camera, Heavy MediaPipe Tasks + ONNX Runtime 1.23.2 (Web/native Android); retained ML Kit geometry trainer |
-| Deployment | `docker-compose.yml` (backend only, `env_file: ./backend/.env`); the Flutter app runs on device/emulator |
+| Deployment | Local `docker-compose.yml`; VPS Web/Nginx + Docker backend + stable OVH HTTPS in `deploy/vps/`; see `docs/VPS_DEPLOYMENT.md` |
 
 ## Primary Entry Points
 

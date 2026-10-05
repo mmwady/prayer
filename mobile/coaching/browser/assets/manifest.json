@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0.0",
-  "model_version": "IMCSPD-MLP-Attention-Hierarchy-v1-e5bdabe3dd0bd9a7",
+  "model_version": "IMCSPD-MLP-Attention-Hierarchy-v1-9732164b4e6ee21d",
   "assets": {
     "conversion_report.json": "803c3c5cb572988ddf68fc0cfe8f9c648870eb7410aa7811b607298f78190a53",
     "main_seed_2026.onnx": "51841428971212c2705a2109bb9c6d4a08f90cd556b4323892be07d2eef7fbfb",
@@ -12,17 +12,17 @@
   },
   "pipeline": {
     "src/app.mjs": "6fb54ff43611bbc713e2de5b6f047abf3e903e9c587d94b8f4e1e95f964142f8",
-    "src/assets.mjs": "611dee47e16450b3fab2ad63808bd8ea55ee0bd59f66eb6df4e483a357d251dd",
-    "src/bridge.mjs": "82addee4b8518612166cce165a3f76d346c86dd78d5f0ce99e691f11496b740b",
-    "src/client.mjs": "71f5fb9689df3cadd5c27ad6595364e6eb7b9dc50c704a0a7e6d0cb12c8b8541",
+    "src/assets.mjs": "47a5afd3acdb07217b7c4ee7a6472b344fc7d1c0acc2eb42c92ecf090264a28e",
+    "src/bridge.mjs": "a1addf964f7063c7eb49231d9639d6995f7f9b96d6b5051d2f2a32e1ab6f3b83",
+    "src/client.mjs": "3e7e61c2c24a2303be9e2b6b5631421ac83e9823aac97bcbc0f262466363d812",
     "src/core.mjs": "e6c5e64c3484a7e672987ff5f45bc69c2adce9340d6ad3c3ca5d58d7eda417f9",
     "src/decode.mjs": "a17bf1b56855c9614028f0f9c6249395c2046cad8fe52a03b3d2d5b0f6e33ff6",
-    "src/engine.mjs": "e6cda2f563639e6395533d8c434b1ae99f85ee512a920f1fbdd50bbc68d2f04b",
+    "src/engine.mjs": "8b43cd9deda75b2b976659501c13d2a3fbba86e500be340a586560e5778e989d",
     "src/image.mjs": "41107dd907043c244721cd9d821e60fddfc5cd8b517470de1b6acfb4c0d2131e",
     "src/sequence.mjs": "6a1df626f08efd8dbbf3cfcf37a84e933c0d00eab9a41b33fb57d3f852ac8a8d",
     "src/session.mjs": "c2c3b51fa50005b6b17eb84d29296704b523a1a12e7bb0a54ac357260c458bed",
     "src/storage.mjs": "9e3fac04dc35cf7c2673a82fb3ca50b6282dbdf0be4871b094573c297947a9f6",
-    "src/worker.mjs": "ea41c31fbf91ddcf3aa227b11dcd5fe8f04398026c4fa66971f062140d5ec770",
+    "src/worker.mjs": "00a013e4a4b3bb9fc47c29e95b2f1929121d8dde51f3b979242531c1295ff965",
     "scripts/mediapipe-presence.mjs": "307ca6fa94cd049c17b935cf2bc4e4c6988f9d98581ddfcf01ff53f43e797019",
     "package-lock.json": "a49183ac709b385602c5dc90a9c903bfc94dc82bc976271a45948fae2e090549"
   },

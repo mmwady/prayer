@@ -117,18 +117,19 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                               ],
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
-                                  onPressed: c.busy || picking
-                                      ? null
-                                      : () async {
-                                          setState(() {
-                                            picking = true;
-                                            consent = false;
-                                          });
-                                          await c.select();
-                                          if (mounted) {
-                                            setState(() => picking = false);
-                                          }
-                                        },
+                                  onPressed:
+                                      c.busy || picking || c.preparingModels
+                                          ? null
+                                          : () async {
+                                              setState(() {
+                                                picking = true;
+                                                consent = false;
+                                              });
+                                              await c.select();
+                                              if (mounted) {
+                                                setState(() => picking = false);
+                                              }
+                                            },
                                   icon: const Icon(Icons.folder_open),
                                   label: Text(picking
                                       ? 'جارٍ فتح الفيديو…'
@@ -185,6 +186,17 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                             subtitle: const Text(
                                 'يُرفع عدد محدود من إطارات JPEG، وتُحذف تلقائيًا بعد مدة الاحتفاظ أو بطلبك. الفيديو الأصلي يبقى على جهازك.'),
                           )),
+                        if (c.preparingModels) ...[
+                          const SizedBox(height: 12),
+                          _ModelPreparation(progress: c.modelProgress),
+                        ],
+                        if (c.video != null &&
+                            c.config == null &&
+                            !c.preparingModels)
+                          OutlinedButton.icon(
+                              onPressed: () => c.prepareModels(),
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('إعادة تجهيز الموديلات')),
                         FilledButton.icon(
                             onPressed: c.busy ||
                                     (!c.api.isLocal && !consent) ||
@@ -256,6 +268,40 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                   ]))),
         );
       });
+}
+
+class _ModelPreparation extends StatelessWidget {
+  const _ModelPreparation({required this.progress});
+  final Map<String, dynamic> progress;
+  @override
+  Widget build(BuildContext context) {
+    final downloading = progress['phase'] == 'downloading';
+    final loaded = (progress['loaded'] as num?)?.toDouble() ?? 0;
+    final total = (progress['total'] as num?)?.toDouble() ?? 0;
+    final ratio = total > 0 ? (loaded / total).clamp(0.0, 1.0) : null;
+    final asset = progress['asset'] as String? ?? '';
+    final model = asset.endsWith('.task')
+        ? 'موديل الحركة'
+        : asset.endsWith('.onnx')
+            ? 'موديل تصنيف الحركات'
+            : 'ملفات الموديلات';
+    return AppCard(
+        child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(downloading
+            ? 'تحميل $model${ratio == null ? '' : ' — ${(ratio * 100).toStringAsFixed(0)}٪'}'
+            : 'جارٍ تجهيز الموديلات على جهازك…'),
+        const SizedBox(height: 8),
+        LinearProgressIndicator(value: downloading ? ratio : null),
+        if (downloading)
+          Text(
+              'تم تحميل ${(loaded / 1048576).toStringAsFixed(1)}${total > 0 ? ' من ${(total / 1048576).toStringAsFixed(1)}' : ''} ميجابايت'),
+        const Text(
+            'التحميل الأول يحتاج إنترنت. تُحفظ الموديلات محليًا عند توفر مساحة؛ الفيديو يبقى على جهازك.'),
+      ],
+    ));
+  }
 }
 
 class AnalysisResults extends StatelessWidget {

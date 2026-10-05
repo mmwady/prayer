@@ -4,16 +4,29 @@ import '../video/analysis_report.dart';
 import '../video/video_source.dart';
 import '../live/live_client.dart';
 import 'session.dart';
+import 'contracts.dart';
 
 abstract interface class LocalResultsService implements AnalysisService {
   Future<void> deleteSaved();
   Future<String> export();
 }
 
-class LocalAnalysisService implements AnalysisService, LocalResultsService {
+class LocalAnalysisService
+    implements
+        AnalysisService,
+        LocalResultsService,
+        AnalysisPreparationProgress {
   LocalAnalysisService({LocalSession? session})
       : session = session ?? LocalSession();
   final LocalSession session;
+  @override
+  Map<String, dynamic> get initializationProgress {
+    final inference = session.inference;
+    return inference is InitializationProgressSource
+        ? (inference as InitializationProgressSource).initializationProgress
+        : const {};
+  }
+
   @override
   bool get isLocal => true;
   @override

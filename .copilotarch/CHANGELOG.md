@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-05: hosted Web model preparation
+
+- Stable OVH HTTPS with automatic renewal; temporary tunnel disabled.
+- Video selection no longer waits for model initialization. Added per-file download
+  percentage/bytes, separate preparation state and explicit retry.
+- Worker initialization has no two-minute inference deadline; active downloads no
+  longer restart in the main-thread fallback. Asset hashes and inference rules preserved.
+- 30 Flutter and seven JS tests passed; public real-video/simulated-camera acceptance
+  passed with worker inference and one pose-model download.
+
 ## 2026-10-05: actual phone report follow-up
 
 - Exported current Samsung M52 report and verified installed APK hash: older

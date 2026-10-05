@@ -6,7 +6,8 @@ import { LocalSessionStore } from './storage.mjs';
 import { thumbnailSize, canvasFor } from './image.mjs';
 
 const base = new URL('./',import.meta.url).href;
-const client = new RecognizerClient(base), storage = new LocalSessionStore();
+let initializationProgress = { phase: 'idle', asset: '', loaded: 0, total: 0 };
+const client = new RecognizerClient(base, value => { initializationProgress = value; }), storage = new LocalSessionStore();
 let initialization, storageInitialization, modelVersion;
 async function ensureStorage() {
   storageInitialization ??= (async () => {
@@ -84,6 +85,7 @@ async function exportReport(payload) {
   const text=JSON.stringify({...payload,evidence},null,2);downloadJson(text,payload.id);return text;
 }
 window.iqtadiLocal = Object.freeze({ initialize,analyze,estimatePose,report,
+  initializationProgress: () => ({ ...initializationProgress }),
   saveSession:async input=>{await ensureStorage();return storage.saveSession(input);},
   listSessions:async()=>{await ensureStorage();return storage.listSessions();},
   loadSession:async id=>{await ensureStorage();return storage.loadSession(id);},
