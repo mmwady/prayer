@@ -1,17 +1,22 @@
-# coaching
+# اقتدِ — Flutter application
 
-A new Flutter project.
+See the [project README](../../README.md) for the prayer architecture, run commands,
+Demo Rakah, tests, configuration and limitations.
 
-## Getting Started
+```powershell
+flutter pub get
+flutter run -d chrome
+flutter test
+```
 
-This project is a starting point for a Flutter application.
+All six prayer cards analyze recorded videos and live camera frames on-device,
+retain three classifier decisions, and save/export/delete local reports. Only
+Mosque Companion uses `BACKEND_URL`. References and static Arabic cues are local.
+See [local training and deployment](../../docs/LOCAL_TRAINING.md).
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Web uses a same-origin MediaPipe/ONNX WASM worker with a main-thread fallback.
+Android uses the Heavy MediaPipe and three unchanged ONNX models in a native CPU
+channel. Native iOS/desktop channel support and physical device acceptance remain
+unverified/unsupported; the Web app is available there. The separate geometry
+trainer and explicitly synthetic simulation are retained. Package name `coaching`
+is preserved for existing imports and platform identifiers.

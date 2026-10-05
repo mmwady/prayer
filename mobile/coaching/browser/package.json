@@ -1,0 +1,21 @@
+{
+  "name": "iqtadi-browser-recognizer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test --test-isolation=none test/*.test.mjs",
+    "verify:browser": "node scripts/verify-browser.mjs",
+    "serve": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.32",
+    "fast-png": "6.4.0",
+    "onnxruntime-web": "1.23.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "playwright": "1.56.1"
+  }
+}

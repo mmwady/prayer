@@ -18,24 +18,27 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="اقتدِ — تدريب وتحليل حركات الصلاة على جهازك. الصور والفيديوهات تبقى محليًا.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="coaching">
+  <meta name="apple-mobile-web-app-title" content="اقتدِ">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>coaching</title>
+  <title>اقتدِ</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- MediaPipe Pose -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
-  <!-- Our custom wrapper -->
+  <!-- Local inference initializes lazily when training starts. All assets are same-origin. -->
+  <script type="module" src="recognizer/bridge.js"></script>
+  <script src="iqtadi_offline.js"></script>
   <script src="mediapipe_wrapper.js"></script>
+  <script src="recorded_video.js"></script>
+  <!-- Bump this bridge version when its Dart interop contract changes. -->
+  <script src="live_camera.js?bridge=20261004-storage-1"></script>
 </head>
 <body>
   <!--

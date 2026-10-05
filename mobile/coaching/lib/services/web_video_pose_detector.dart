@@ -17,7 +17,7 @@ import 'package:flutter/material.dart';
 import '../models/keypoint.dart';
 import 'pose_detector.dart';
 
-class WebVideoPoseDetector implements PoseDetector {
+class WebVideoPoseDetector implements PoseDetector, PosePreviewGeometry {
   WebVideoPoseDetector({
     required this.inferenceCallback,
     this.fps = 30,
@@ -39,13 +39,21 @@ class WebVideoPoseDetector implements PoseDetector {
   Stream<List<Keypoint>> get stream => _controller.stream;
 
   @override
+  double get previewAspectRatio =>
+      _videoElement != null && _videoElement!.videoHeight > 0
+          ? _videoElement!.videoWidth / _videoElement!.videoHeight
+          : 1;
+  @override
+  bool get previewMirrored => false;
+
+  @override
   Widget buildPreview() {
     if (_videoElement == null) {
       return const ColoredBox(
         color: Colors.black,
         child: Center(
           child: Text(
-            'Load a video to show preview',
+            'لم يتم اختيار فيديو بعد',
             style: TextStyle(color: Colors.white70),
           ),
         ),
@@ -71,6 +79,7 @@ class WebVideoPoseDetector implements PoseDetector {
   }
 
   void _initVideoElement(html.File file) {
+    if (_controller.isClosed) return;
     final video = html.VideoElement()
       ..src = html.Url.createObjectUrlFromBlob(file)
       ..autoplay = true
@@ -85,7 +94,8 @@ class WebVideoPoseDetector implements PoseDetector {
     _videoElement = video;
 
     if (!_viewRegistered) {
-      ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) => video);
+      ui_web.platformViewRegistry
+          .registerViewFactory(_viewType, (int viewId) => video);
       _viewRegistered = true;
     }
 
@@ -100,7 +110,9 @@ class WebVideoPoseDetector implements PoseDetector {
     _timer = Timer.periodic(
       Duration(milliseconds: (1000 / fps).round()),
       (_) async {
-        if (_videoElement == null || _videoElement!.paused || _videoElement!.ended) {
+        if (_videoElement == null ||
+            _videoElement!.paused ||
+            _videoElement!.ended) {
           return;
         }
 
@@ -135,8 +147,9 @@ class WebVideoPoseDetector implements PoseDetector {
     }
   }
 
-  void dispose() {
-    stop();
-    _controller.close();
+  @override
+  Future<void> dispose() async {
+    await stop();
+    await _controller.close();
   }
 }

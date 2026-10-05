@@ -1,92 +1,111 @@
-"""Streaming DeepSeek client.
+"""DeepSeek client used to generate Arabic prayer guidance.
 
 Why the OpenAI SDK?
 -------------------
-DeepSeek, local vLLM, Ollama, and Together AI all expose
-the **OpenAI Chat Completions** wire format. Using `openai.AsyncOpenAI` means
-swapping providers is a base-URL + model-name change — no client rewrites.
+The DeepSeek API speaks the OpenAI Chat Completions wire format, so
+`openai.AsyncOpenAI` covers it — and any compatible endpoint (vLLM, Ollama,
+Together) — with only a base-URL and model-name change.
 
-Why streaming?
---------------
-Latency. The TTS layer downstream consumes text *as it arrives* — we don't
-wait for the full reply before starting speech synthesis. That's how we turn
-a ~2s LLM response into a perceived <500ms coaching cue.
+Thinking mode
+-------------
+`deepseek-flash` has thinking enabled by default at effort=high. Its
+chain-of-thought is billed as output and, with a small `max_tokens`, can
+consume the entire budget and leave `content` empty. A prayer cue is one short
+sentence, so thinking is disabled by default (`Settings.deepseek_thinking`).
+Note that thinking mode ignores `temperature`; the parameter is only
+meaningful in non-thinking mode.
 """
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterable
+from collections.abc import Iterable
 from typing import Any
 
 from openai import AsyncOpenAI
 
 from ..config import get_settings
 
+# Placeholder values that mean "no real credential was supplied".
+_UNCONFIGURED_KEYS = {"", "changeme"}
+
+
+class LLMNotConfigured(RuntimeError):
+    """Raised when the client has no usable API key.
+
+    Callers treat this as a soft failure and fall back to static content, so
+    the absence of a key degrades the feature instead of breaking the route.
+    """
+
 
 class DeepSeekClient:
     """Thin async wrapper around `openai.AsyncOpenAI`.
 
-    Deliberately narrow: the only public method is `astream`, which yields
-    text deltas. We don't expose the raw Chat Completions API because the
-    graph layer should stay ignorant of provider specifics.
+    Deliberately narrow: the only public method is `complete`, which returns
+    the model's reply text. The graph/prompt layer and the route stay ignorant
+    of provider specifics.
     """
 
     def __init__(self) -> None:
         settings = get_settings()
         # `AsyncOpenAI` reuses a single HTTPX connection pool; cheap to
-        # instantiate once per process. We accept defaults for retries/timeouts
-        # since upstream graph logic has its own cooldown/back-pressure.
+        # instantiate once per process.
         self._client = AsyncOpenAI(
             base_url=settings.deepseek_base_url,
             api_key=settings.deepseek_api_key,
+            timeout=settings.deepseek_timeout_s,
         )
+        self._api_key = settings.deepseek_api_key
         self._model = settings.deepseek_model
         self._max_tokens = settings.deepseek_max_tokens
         self._temperature = settings.deepseek_temperature
+        self._thinking = settings.deepseek_thinking
 
-    async def astream(
-        self,
-        messages: Iterable[dict[str, Any]],
-    ) -> AsyncIterator[str]:
-        """Yield token deltas for a given chat history.
+    @property
+    def model(self) -> str:
+        """The configured model name, reported back to clients."""
 
-        `messages` is any OpenAI-format list of `{"role": ..., "content": ...}`
-        dicts. The function is an async generator so the caller can iterate it
-        straight into the TTS pipeline with `async for`.
+        return self._model
 
-        Why not a generator function that returns `AsyncIterator[str]` more
-        explicitly? The `async def` + `yield` form is the idiomatic async
-        generator pattern in Python 3.11+ and is directly consumable by
-        `asyncio.as_completed` / `async for` loops.
+    def is_configured(self) -> bool:
+        """True when a real-looking credential is present."""
+
+        return self._api_key.strip().lower() not in _UNCONFIGURED_KEYS
+
+    async def complete(self, messages: Iterable[dict[str, Any]]) -> str:
+        """Return the model's reply text for an OpenAI-format chat history.
+
+        `messages` is a list of `{"role": ..., "content": ...}` dicts. The
+        return value is stripped; an empty string means the model produced no
+        usable content and the caller should fall back to static text.
         """
 
-        # `stream=True` flips the SDK into server-sent-events mode. Each
-        # chunk is a partial `ChatCompletionChunk` with a `.choices[0].delta`
-        # field whose `.content` may be None, "", or a fragment of text.
+        if not self.is_configured():
+            raise LLMNotConfigured(
+                "DEEPSEEK_API_KEY is not set; prayer guidance falls back to static text."
+            )
+
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=list(messages),
-            stream=True,
             max_tokens=self._max_tokens,
             temperature=self._temperature,
+            # `thinking` is a DeepSeek extension, so it must travel in
+            # `extra_body` rather than as a named SDK argument.
+            extra_body={
+                "thinking": {"type": "enabled" if self._thinking else "disabled"}
+            },
         )
 
-        async for chunk in response:
-            # A chunk can legitimately have no `choices` (e.g. the final
-            # usage-only frame some providers append). Guard against it.
-            if not chunk.choices:
-                continue
-            delta = chunk.choices[0].delta
-            # `delta.content` is the newly generated text fragment. Empty
-            # fragments (role-only first chunk, tool-call events) are skipped
-            # so downstream TTS doesn't get spurious empty pulses.
-            if delta and delta.content:
-                yield delta.content
+        # A response can legitimately carry no choices (e.g. some providers
+        # append a usage-only frame). Guard against it.
+        if not response.choices:
+            return ""
+
+        return (response.choices[0].message.content or "").strip()
 
 
-# Module-level singleton — reuse the connection pool across WebSocket
-# sessions. Constructed lazily so that tests can patch env vars before the
-# real client is built.
+# Module-level singleton — reuse the connection pool across requests.
+# Constructed lazily so tests can patch settings before the real client exists.
 _client: DeepSeekClient | None = None
 
 
@@ -97,3 +116,10 @@ def get_deepseek_client() -> DeepSeekClient:
     if _client is None:
         _client = DeepSeekClient()
     return _client
+
+
+def reset_deepseek_client() -> None:
+    """Drop the cached client so the next call rebuilds it from current settings."""
+
+    global _client
+    _client = None

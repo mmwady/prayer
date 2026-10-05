@@ -1,14 +1,16 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # docker-compose.yml
 #
-# One-command local bring-up for the FastAPI coaching backend.
+# One-command local bring-up for the Iqtadi prayer backend.
 #
 # Why only the backend?
 #   • The Flutter app always runs on a physical device or emulator — containers
 #     don't help there.
-#   • The LLM is accessed via an OpenAI-compatible HTTP endpoint (DashScope,
-#     Together, a local Ollama/vLLM, …). Swapping providers is purely an env-
-#     var change (DEEPSEEK_BASE_URL), so this file intentionally stays minimal.
+#   • Pose inference and station progression happen on device. The container
+#     only prepares prayer references and generates Arabic guidance text.
+#   • The LLM is accessed via an OpenAI-compatible HTTP endpoint (Together, a
+#     local Ollama/vLLM, …). Swapping providers is purely an env-var change
+#     (DEEPSEEK_BASE_URL), so this file intentionally stays minimal.
 # ─────────────────────────────────────────────────────────────────────────────
 version: "3.9"
 
@@ -19,14 +21,15 @@ services:
       dockerfile: Dockerfile
     # Explicit service name helps other compose files (prod overrides, etc.)
     container_name: coaching-backend
-    # Every setting lives in `.env` — keeps secrets out of source control.
+    # Application settings and secrets live in `backend/.env` — the same file
+    # uvicorn reads when run from `backend/`, so dev and Docker cannot drift.
     env_file:
-      - .env
+      - ./backend/.env
     ports:
       # Expose the uvicorn port so Flutter devices on the LAN can connect.
       - "${PORT:-8000}:8000"
-    # Auto-restart if the process crashes — important because long-lived
-    # WebSocket connections make stale containers noisy.
+    # Auto-restart if the process crashes — a restart is cheap and the service
+    # is stateless apart from the reference data directory.
     restart: unless-stopped
     # Health-check hits the lightweight `/healthz` route.
     healthcheck:

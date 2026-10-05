@@ -4,7 +4,6 @@
 // Web-specific factory for PoseDetector.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import 'dart:math' as math;
 import '../models/keypoint.dart';
 import 'pose_detector.dart';
 import 'web_video_pose_detector.dart';
@@ -39,18 +38,34 @@ Future<List<Keypoint>> _mediaPipeInference(dynamic videoContext) async {
 
       // Helper to map index
       Keypoint? createKeypoint(int index, KeypointId customId) {
-        if (index < results.length) {
-          final jsObject = results.toDart[index];
+        if (index <
+            (results.getProperty('length'.toJS) as JSNumber).toDartInt) {
+          final jsObject =
+              results.getProperty(index.toString().toJS) as JSObject;
           final x = (jsObject.getProperty('x'.toJS) as JSNumber).toDartDouble;
           final y = (jsObject.getProperty('y'.toJS) as JSNumber).toDartDouble;
-          final visibility = (jsObject.getProperty('visibility'.toJS) as JSNumber).toDartDouble;
-          
+          final visibility =
+              (jsObject.getProperty('visibility'.toJS) as JSNumber)
+                  .toDartDouble;
+
           if (visibility > 0.5) {
+            PosePoint3d? world;
+            if (jsObject.hasProperty('worldX'.toJS).toDart) {
+              world = PosePoint3d(
+                  (jsObject.getProperty('worldX'.toJS) as JSNumber)
+                      .toDartDouble,
+                  (jsObject.getProperty('worldY'.toJS) as JSNumber)
+                      .toDartDouble,
+                  (jsObject.getProperty('worldZ'.toJS) as JSNumber)
+                      .toDartDouble,
+                  Pose3dSpace.mediapipeWorldMeters);
+            }
             return Keypoint(
               id: customId,
               x: x,
               y: y,
               confidence: visibility,
+              position3d: world,
             );
           }
         }
@@ -92,21 +107,26 @@ Future<List<Keypoint>> _mediaPipeInference(dynamic videoContext) async {
       addIfNotNull(createKeypoint(28, KeypointId.rightAnkle));
 
       // Compute synthetic spineMid
-      if (leftShoulder != null && rightShoulder != null && leftHip != null && rightHip != null) {
+      if (leftShoulder != null &&
+          rightShoulder != null &&
+          leftHip != null &&
+          rightHip != null) {
         final midShoulderX = (leftShoulder.x + rightShoulder.x) / 2;
         final midShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
-        
+
         final midHipX = (leftHip.x + rightHip.x) / 2;
         final midHipY = (leftHip.y + rightHip.y) / 2;
 
-        keypoints.add(
-          Keypoint(
-            id: KeypointId.spineMid,
-            x: (midShoulderX + midHipX) / 2,
-            y: (midShoulderY + midHipY) / 2,
-            confidence: (leftShoulder.confidence + rightShoulder.confidence + leftHip.confidence + rightHip.confidence) / 4,
-          )
-        );
+        keypoints.add(Keypoint(
+          id: KeypointId.spineMid,
+          x: (midShoulderX + midHipX) / 2,
+          y: (midShoulderY + midHipY) / 2,
+          confidence: (leftShoulder.confidence +
+                  rightShoulder.confidence +
+                  leftHip.confidence +
+                  rightHip.confidence) /
+              4,
+        ));
       }
 
       return keypoints;

@@ -1,40 +1,38 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # mobile/pubspec.yaml
 #
-# Flutter manifest for the Real-Time AI Fitness Coaching app.
+# Flutter manifest for the Iqtadi prayer movement learning app.
 #
 # Packages picked for concrete reasons (not just "popular"):
 #   • camera           — official Flutter plugin; gives us a CameraController
 #                        whose image stream is what a real pose model consumes.
-#   • web_socket_channel — stable WS client that works identically on
-#                        mobile + web, with both text and binary frames.
-#   • just_audio       — supports feeding a custom byte-stream source, which
-#                        is exactly what live TTS playback needs.
-#   • provider         — lightweight state management; avoids pulling in the
-#                        full Riverpod/Bloc weight for a boilerplate scaffold.
+#   • google_mlkit_pose_detection — on-device pose inference on Android/iOS.
+#   • http             — reference download and Arabic guidance requests.
+#   • provider         — lightweight state management for the prayer controller.
+#   • js               — interop for the web MediaPipe wrapper.
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: coaching
-description: Real-Time AI Fitness Coaching — hybrid edge/cloud mobile app.
+description: Iqtadi — Arabic prayer movement learning with on-device pose detection.
 publish_to: "none"
 version: 0.1.0+1
 
 environment:
-  sdk: ">=3.3.0 <4.0.0"
+  sdk: ">=3.4.0 <4.0.0"
   flutter: ">=3.19.0"
 
 dependencies:
   flutter:
     sdk: flutter
   camera: ^0.11.0
-  web_socket_channel: ^3.0.1
-  just_audio: ^0.9.40
   provider: ^6.1.2
   http: ^1.6.0
-  # On-device pose detection is swapped in here in production.
-  # The codebase defaults to a stub implementation — uncomment to enable:
   google_mlkit_pose_detection: ^0.12.0
   js: ^0.7.2
+  shared_preferences: ^2.5.5
+  flutter_secure_storage: 10.0.0
+  qr_flutter: 4.1.0
+  mobile_scanner: 7.2.0
 
 dev_dependencies:
   flutter_test:
@@ -43,3 +41,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/prayer_positions/
+    - assets/branding/
+  fonts:
+    - family: IqtadiArabic
+      fonts:
+        - asset: assets/fonts/NotoSansArabic.ttf

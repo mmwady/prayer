@@ -7,7 +7,9 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Coaching</string>
+	<string>اقتدِ</string>
+	<key>NSCameraUsageDescription</key>
+	<string>تُستخدم الكاميرا لرصد حركات التدريب على الجهاز دون رفع الفيديو.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

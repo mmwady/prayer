@@ -1,0 +1,77 @@
+{
+  "model_version": "IMCSPD-MLP-Attention-Hierarchy-v1",
+  "winner": "exp1_full_head_attention",
+  "selection_metric": "validation macro-F1",
+  "classes": [
+    "1_Qiyam",
+    "2_Takbir",
+    "3_Qiyam_Recitation",
+    "4_Ruku",
+    "5_Sujud",
+    "6_Jalsa",
+    "7_Salam_Right",
+    "8_Salam_Left"
+  ],
+  "feature_dimension": 166,
+  "head_landmarks": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "arm_landmarks": [
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24
+  ],
+  "components": {
+    "main": [
+      "main_seed_2026.pt",
+      "main_seed_3407.pt",
+      "main_seed_8111.pt"
+    ]
+  },
+  "fusion_weights": {
+    "full_weight": 0.3416666666666666,
+    "head_weight": 0.35000000000000003,
+    "arm_weight": 0.3083333333333333
+  },
+  "hard_hierarchy": false,
+  "normalization": "hip midpoint origin; max(torso length, shoulder width) scale",
+  "recovery": [
+    "standard",
+    "autocontrast",
+    "contrast_1.15",
+    "rotate_minus_5",
+    "rotate_plus_5"
+  ],
+  "input_size": [
+    384,
+    512
+  ],
+  "deployment_seeds": [
+    2026,
+    3407,
+    8111
+  ]
+}

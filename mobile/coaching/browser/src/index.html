@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>اقتدِ — تحليل محلي</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<header><small>اقتدِ · Prayer Action Recognizer</small><h1>تأمل حركاتك على جهازك</h1><p>الصور ومعالم الجسم ومدخلات النماذج تبقى على جهازك. لا تُرسل إلى خادم.</p><p>الثقة تقدير للتصنيف، ولا تعني الحكم على صحة الصلاة أو قبولها.</p></header>
+<section class="panel"><p id="status" role="status">جارٍ تحميل النماذج المحلية…</p><p id="diagnostic" role="alert"></p>
+<div class="controls"><label class="button">اختر صورة<input id="upload" type="file" accept="image/jpeg,image/png,image/webp" disabled></label><label class="button">التقط صورة<input id="photo" type="file" accept="image/*" capture="environment" disabled></label><button id="start" disabled>افتح الكاميرا</button><button id="snapshot" disabled>حلّل صورة الكاميرا</button><button id="live" disabled>ابدأ التعرف المباشر</button><button id="stop" disabled>أوقف الكاميرا</button></div>
+<div class="settings"><label>ثقة الالتقاط التلقائي <input id="threshold" type="range" min="50" max="95" step="5" value="70"> <span id="threshold-value">70%</span></label><label>الصلاة <select id="prayer"><option value="demo">تدريب — ركعة واحدة</option><option value="fajr">الفجر</option><option value="dhuhr">الظهر</option><option value="asr">العصر</option><option value="maghrib">المغرب</option><option value="isha">العشاء</option></select></label></div>
+<p>يُلتقط الفعل بعد ثلاث نتائج متتالية تتجاوز الثقة المحددة. اختلاف النماذج يظل ظاهرًا.</p>
+<video id="camera" autoplay muted playsinline hidden></video><canvas id="preview" width="384" height="512" hidden></canvas>
+</section><section id="result" aria-live="polite"></section>
+<section class="panel"><h2>الحركات الملتقطة</h2><p>تبقى هذه الصور في ذاكرة الصفحة فقط؛ تُحفظ آخر النتائج الرقمية في هذه التبويبة.</p><div class="controls"><button id="clear">امسح النتائج المحلية</button><button id="report">اعرض تقرير الترتيب المحلي</button><button id="download">حمّل النتائج JSON</button></div><div id="captures" class="gallery"></div><div id="sequence"></div></section>
+</main><script type="module" src="app.js"></script></body></html>

@@ -1,30 +1,46 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:provider/provider.dart';
 import 'package:coaching/main.dart';
+import 'package:coaching/state/locale_provider.dart';
+import 'package:coaching/prayer/prayer_definition.dart';
+import 'package:coaching/screens/prayer_training_screen.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Arabic prayer picker opens recorded video selection',
+      (tester) async {
+    await tester.pumpWidget(ChangeNotifierProvider(
+        create: (_) => LocaleProvider(), child: const CoachingApp()));
+    expect(find.text('اقتدِ'), findsOneWidget);
+    expect(find.text('صلاة الفجر'), findsOneWidget);
+    expect(Directionality.of(tester.element(find.text('اقتدِ'))),
+        TextDirection.rtl);
+    await tester.scrollUntilVisible(find.text('ركعة تجريبية'), 250);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ركعة تجريبية'));
+    await tester.pumpAndSettle();
+    expect(find.text('اختيار فيديو محلي'), findsOneWidget);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('synthetic demo runs detector to classifier to engine to summary',
+      (tester) async {
+    var now = DateTime(2026);
+    await tester.pumpWidget(MaterialApp(
+        home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: PrayerTrainingScreen(
+                definition: PrayerCatalog.of(PrayerType.demo),
+                clock: () => now))));
+    await tester.tap(find.text('محاكاة للتجربة — دون كاميرا'));
     await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    for (var i = 0; i < 100; i++) {
+      now = now.add(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('تم إكمال التدريب'), findsOneWidget);
+    expect(find.text('الحركات المرصودة: 6 / 6'), findsOneWidget);
+    expect(find.text('ملخص محاكاة — ليس رصداً لحركاتك'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
   });
 }

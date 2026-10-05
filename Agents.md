@@ -1,8 +1,10 @@
 # Flutter project rules
 
-- Do not run `flutter analyze` directly from Codex unless explicitly requested.
-- Prefer manual code inspection for Dart/Flutter issues.
-- If validation is required, ask the user to run:
-  flutter analyze --no-pub
-- Do not run long-running Flutter commands in parallel.
+- Run `flutter analyze --no-pub` directly whenever Dart/Flutter validation is needed.
+  No permission, confirmation or "ask the user first" step is required — this applies
+  to every agent working in this repository, including Codex.
+- Manual code inspection is still useful, but it is not a substitute for the analyzer.
+- Long-running Flutter commands may run in parallel when that is useful. They share the
+  Flutter/Dart tool lock and build caches, so concurrent runs can wait on each other —
+  serialise only if you actually observe lock contention.
 - Keep changes minimal and limited to the requested files.

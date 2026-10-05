@@ -1,0 +1,5 @@
+# Use the existing working CPU Torch/MediaPipe environment; no training dependencies.
+onnx==1.20.1
+onnxruntime==1.23.2
+# Source environment measured during acceptance:
+# torch 2.14.1+cpu, numpy 2.4.4, mediapipe 0.10.10, Pillow 12.2.0

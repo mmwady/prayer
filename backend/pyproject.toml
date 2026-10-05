@@ -15,30 +15,33 @@ build-backend = "setuptools.build_meta"
 [project]
 name            = "coaching-backend"
 version         = "0.1.0"
-description     = "Real-time AI fitness coaching backend (FastAPI + LangGraph + DeepSeek)."
+description     = "Iqtadi prayer backend (FastAPI + DeepSeek guidance + reference authoring)."
 requires-python = ">=3.11"
-readme          = "../README.md"
+readme          = "README.md"
 
 dependencies = [
-    # Web framework + ASGI server for WebSockets.
+    # Web framework + ASGI server.
     "fastapi>=0.111",
     "uvicorn[standard]>=0.30",
-    # Async WebSocket protocol — uvicorn uses this when invoked with --ws websockets.
-    "websockets>=12.0",
     # Data validation & env-driven settings.
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
-    # LangGraph for stateful conversational orchestration.
-    "langgraph>=0.2",
-    "langchain-core>=0.2",
-    # OpenAI-compatible async client — talks to DeepSeek / vLLM /
-    # Ollama / Together etc. without provider-specific code.
+    "pwdlib[argon2]>=0.2,<1",
+    "email-validator>=2.2,<3",
+    "tzdata>=2024.1",
+    "Pillow>=10.4",
+    # OpenAI-compatible async client — reaches DeepSeek (and any compatible
+    # endpoint) without provider-specific code. Also provides httpx.
     "openai>=1.40",
-    # Default TTS engine: free, no key, Microsoft Edge voices.
-    "edge-tts>=6.1",
-    # Used by the ElevenLabs provider for streaming over WebSocket.
+    # FastAPI's TestClient and multipart upload parsing both need httpx.
     "httpx>=0.27",
-    "websockets>=12.0",
+    "python-multipart>=0.0.18",
+    # Reference-video extraction for the admin authoring route. Imported
+    # lazily so the guidance endpoints stay importable without them.
+    "mediapipe==0.10.11",
+    "numpy<2",
+    "torch>=2.4,<3",
+    "opencv-contrib-python>=4.8,<4.12",
 ]
 
 [project.optional-dependencies]
@@ -53,6 +56,9 @@ dev = [
 [tool.setuptools.packages.find]
 where    = ["."]
 include  = ["app*"]
+
+[tool.setuptools.package-data]
+"app.admin" = ["*.html"]
 
 # ─── Tooling defaults ───────────────────────────────────────────────────────
 [tool.ruff]

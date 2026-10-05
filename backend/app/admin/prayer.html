@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>اقتدِ — مراجع حركة الصلاة</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0b1320;color:#e8eef7;font:16px system-ui}main{max-width:1250px;margin:auto;padding:28px}h1{margin-bottom:8px}p{color:#b4c3d8;line-height:1.7}section{background:#142237;border:1px solid #2b405d;border-radius:16px;padding:22px;margin:20px 0}button,input,select{font:inherit;border-radius:8px;border:1px solid #435574;padding:10px;background:#20324b;color:inherit}button{cursor:pointer}button:hover{background:#335073}button:disabled{opacity:.45;cursor:wait}label{display:inline-block;margin:8px}input[type=range]{width:100%;padding:0}#status{white-space:pre-wrap;color:#80dfbf;min-height:28px}.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:20px}.viewer{position:relative}#frame{display:block;width:100%;border-radius:10px}#skeleton{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}table{width:100%;border-collapse:collapse}td,th{padding:12px 8px;text-align:right;border-bottom:1px solid #354761}#editor[hidden]{display:none}.thumb{width:90px;border-radius:6px}small{color:#acbed4}.actions{display:flex;gap:8px;flex-wrap:wrap}.warning{color:#ffc77c}@media(max-width:850px){.grid{grid-template-columns:1fr}main{padding:14px}table{font-size:13px}}
+</style>
+<main>
+<h1>مراجع حركة الصلاة</h1><p>ارفع فيديو ركعة كاملة، ثم حدّد مقاطع الوضعيات وراجع نقاط الجسم قبل تفعيل المرجع. اختَر فيديو واضحًا يظهر الجسم كاملًا.</p>
+<section><form id="upload"><label>اسم المرجع <input id="name" required maxlength="120"></label><label>زاوية التصوير <select id="view"><option value="side_left">الجانب الأيسر</option><option value="side_right">الجانب الأيمن</option><option value="front">أمام الجسم</option><option value="oblique_left">مائل 45° من اليسار تقريبًا</option><option value="oblique_right">مائل 45° من اليمين تقريبًا</option></select></label><label>فيديو MP4 <input id="file" type="file" accept="video/mp4" required></label><button>رفع واستخراج نقاط الجسم</button></form><small>الحد الأقصى 200 MB و18000 frame. المعالجة قد تستغرق عدة دقائق.</small></section>
+<div id="status" role="status" aria-live="polite"></div>
+<section><div class="actions"><select id="references" aria-label="المراجع المحفوظة"></select><button id="open">فتح المسودة</button><button id="refresh">تحديث القائمة</button></div><p id="active"></p></section>
+<section id="editor" hidden>
+<h2 id="title"></h2><div class="grid"><div>
+<div class="viewer"><img id="frame" alt="الصورة المختارة من الفيديو"><canvas id="skeleton"></canvas></div>
+<input id="timeline" type="range" min="0" step="1" value="0" aria-label="اختيار frame">
+<div class="actions"><button id="previous">الصورة السابقة</button><button id="next">الصورة التالية</button><label><input id="overlay" type="checkbox" checked> إظهار joints</label></div><p id="frameInfo"></p>
+</div><div>
+<p>اختر الوضعية، ثم استخدم شريط الصور لتحديد البداية والنهاية والصورة الممثلة. اترك الانتقالات بين المقاطع.</p>
+<label>الوضعية <select id="station"></select></label>
+<div class="actions"><button id="start">تحديد البداية</button><button id="end">تحديد النهاية</button><button id="representative">اختيار الصورة الممثلة</button><button id="exclude">استبعاد / استعادة الصورة</button><button id="clear">مسح تحديد الوضعية</button></div>
+<p id="selection"></p><p class="warning">لا تُفعّل المرجع قبل مراجعة الاستخراج. إطار ضعيف الثقة لا يثبت صحة مواضع المفاصل، وزوايا التصوير المختلفة تحتاج مراجع مناسبة.</p>
+</div></div>
+<table><thead><tr><th>الوضعية</th><th>البداية / النهاية</th><th>الصورة الممثلة</th><th>المستبعدة</th></tr></thead><tbody id="segments"></tbody></table>
+<p class="actions"><button id="save">حفظ المسودة</button><button id="activate">حفظ وتفعيل المرجع</button></p><small>التفعيل يتطلب ست وضعيات بالترتيب، وثلاث صور صالحة على الأقل لكل وضعية. تعديل المسودة لا يغيّر النسخة المفعلة حتى إعادة التفعيل.</small>
+</section></main>
+<script>
+const $=id=>document.getElementById(id);
+const keys=['standing','ruku','standing_after_ruku','sujood_first','sitting','sujood_second'];
+const names=['قيام','ركوع','اعتدال بعد الركوع','سجود أول','جلوس بين السجدتين','سجود ثانٍ'];
+const bones=[['leftShoulder','rightShoulder'],['leftShoulder','leftElbow'],['leftElbow','leftWrist'],['rightShoulder','rightElbow'],['rightElbow','rightWrist'],['leftShoulder','leftHip'],['rightShoulder','rightHip'],['leftHip','rightHip'],['leftHip','leftKnee'],['leftKnee','leftAnkle'],['rightHip','rightKnee'],['rightKnee','rightAnkle']];
+let data=null,segments={},dirty=false,busy=false;
+keys.forEach((key,i)=>$('station').add(new Option(names[i],key)));
+async function api(url,options={}){const response=await fetch(url,options);const result=await response.json();if(!response.ok)throw Error(typeof result.detail==='string'?result.detail:JSON.stringify(result.detail));return result;}
+function status(message){$('status').textContent=message;}
+async function run(task){if(busy)return;busy=true;document.querySelectorAll('button,input,select').forEach(b=>b.disabled=true);try{await task();}catch(e){status('تعذر إكمال العملية: '+e.message);}finally{busy=false;document.querySelectorAll('button,input,select').forEach(b=>b.disabled=false);}}
+async function refresh(){const result=await api('/admin/api/prayer-references');$('references').replaceChildren();result.references.forEach(r=>$('references').add(new Option(`${r.name} — نسخة ${r.revision}`,r.id)));if(data)$('references').value=data.id;$('active').textContent=result.active?`المرجع المفعّل: ${result.active.id} — النسخة ${result.active.revision}`:'لم يتم تفعيل مرجع بعد.';}
+function load(result){data=result;segments=Object.fromEntries(result.segments.map(s=>[s.station,s]));dirty=false;$('editor').hidden=false;$('title').textContent=result.name;$('timeline').max=result.frame_count-1;$('timeline').value=0;render();showFrame();}
+function index(){return Number($('timeline').value);}
+function frameUrl(i){return `/admin/api/prayer-references/${data.id}/frames/${i}`;}
+function draw(){const canvas=$('skeleton'),img=$('frame');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);if(!data||!$('overlay').checked)return;const points=data.frames[index()].keypoints,map=Object.fromEntries(points.map(p=>[p.id,p]));ctx.lineWidth=Math.max(2,canvas.width/300);ctx.strokeStyle='#63f5b5';bones.forEach(([a,b])=>{const p=map[a],q=map[b];if(!p||!q||Math.min(p.confidence,q.confidence)<.65)return;ctx.beginPath();ctx.moveTo(p.x*canvas.width,p.y*canvas.height);ctx.lineTo(q.x*canvas.width,q.y*canvas.height);ctx.stroke();});points.forEach(p=>{ctx.fillStyle=p.confidence>=.65?'#63f5b5':'#ff9f57';ctx.beginPath();ctx.arc(p.x*canvas.width,p.y*canvas.height,Math.max(3,canvas.width/180),0,Math.PI*2);ctx.fill();});}
+function showFrame(){if(!data)return;$('frame').src=frameUrl(index());const f=data.frames[index()];$('frameInfo').textContent=`الصورة ${f.index} — ${f.time_s.toFixed(2)} ثانية — ${f.usable?'نقاط الجسم قابلة للاستخدام':'نقاط غير كافية للمقارنة'}`;draw();renderSelection();}
+function renderSelection(){const s=segments[$('station').value];$('selection').textContent=s?`البداية: ${s.start_frame??'لم تحدد'} / النهاية: ${s.end_frame??'لم تحدد'} / الصورة الممثلة: ${s.representative_frame??'لم تحدد'}${(s.excluded_frames||[]).includes(index())?' — الصورة الحالية مستبعدة':''}`:'لم تحدد هذه الوضعية بعد.';}
+function render(){$('segments').replaceChildren();keys.forEach((key,i)=>{const s=segments[key],tr=document.createElement('tr');[names[i],s?`${s.start_frame??'—'} / ${s.end_frame??'—'}`:'لم تحدد'].forEach(t=>{const td=document.createElement('td');td.textContent=t;tr.append(td);});const td=document.createElement('td');if(s?.representative_frame!=null){const img=document.createElement('img');img.className='thumb';img.src=frameUrl(s.representative_frame);img.alt=names[i];img.onclick=()=>{$('timeline').value=s.representative_frame;showFrame();};td.append(img);}tr.append(td);const excluded=document.createElement('td');excluded.textContent=s?.excluded_frames.length||0;tr.append(excluded);$('segments').append(tr);});renderSelection();}
+function mark(field){if(!data)return;const key=$('station').value;segments[key]??={station:key,excluded_frames:[]};segments[key][field]=index();dirty=true;render();}
+async function save(){const list=keys.filter(k=>segments[k]).map(k=>segments[k]);if(list.some(s=>s.start_frame==null||s.end_frame==null||s.representative_frame==null))throw Error('حدد البداية والنهاية والصورة الممثلة لكل مقطع قبل الحفظ');data=await api(`/admin/api/prayer-references/${data.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({segments:list})});dirty=false;await refresh();status('تم حفظ المسودة.');}
+$('upload').onsubmit=e=>{e.preventDefault();if(dirty&&!confirm('هناك تعديلات غير محفوظة. فتح فيديو جديد؟'))return;run(async()=>{const form=new FormData();form.append('name',$('name').value);form.append('view',$('view').value);form.append('file',$('file').files[0]);status('جارٍ رفع الفيديو واستخراج نقاط الجسم…');load(await api('/admin/api/prayer-references',{method:'POST',body:form}));await refresh();status('تم استخراج الصور. حدّد مقاطع الوضعيات الآن.');});};
+$('open').onclick=()=>{if(!$('references').value)return;if(dirty&&!confirm('فتح مرجع آخر مع وجود تعديلات غير محفوظة؟'))return;run(async()=>load(await api('/admin/api/prayer-references/'+$('references').value)));};
+$('refresh').onclick=()=>run(refresh);$('timeline').oninput=showFrame;$('frame').onload=draw;$('overlay').onchange=draw;$('station').onchange=renderSelection;
+$('previous').onclick=()=>{$('timeline').value=Math.max(0,index()-1);showFrame();};$('next').onclick=()=>{$('timeline').value=Math.min(data.frame_count-1,index()+1);showFrame();};
+$('start').onclick=()=>mark('start_frame');$('end').onclick=()=>mark('end_frame');$('representative').onclick=()=>mark('representative_frame');
+$('exclude').onclick=()=>{const s=segments[$('station').value];if(!s)return status('حدد المقطع أولًا.');const i=index();if(s.start_frame==null||s.end_frame==null||i<s.start_frame||i>s.end_frame)return status('اختر صورة داخل المقطع.');s.excluded_frames=s.excluded_frames.includes(i)?s.excluded_frames.filter(f=>f!==i):[...s.excluded_frames,i];dirty=true;render();};
+$('clear').onclick=()=>{delete segments[$('station').value];dirty=true;render();};$('save').onclick=()=>run(save);$('activate').onclick=()=>run(async()=>{await save();await api(`/admin/api/prayer-references/${data.id}/activate`,{method:'POST'});await refresh();status('تم تفعيل المرجع وإتاحته عبر API.');});
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});run(refresh);
+</script>
+</html>

@@ -43,23 +43,37 @@ class Keypoint {
     required this.x,
     required this.y,
     required this.confidence,
+    this.position3d,
   });
 
   final KeypointId id;
   final double x; // 0..1 from image left.
   final double y; // 0..1 from image top.
   final double confidence; // 0..1.
+  /// Providers must preserve their coordinate space; ML Kit depth is not metric 3D.
+  final PosePoint3d? position3d;
 
   /// Cheap immutability helper for the pose detector stubs, which animate a
   /// canned skeleton by perturbing a few coordinates per frame.
-  Keypoint copyWith({double? x, double? y, double? confidence}) {
+  Keypoint copyWith(
+      {double? x, double? y, double? confidence, PosePoint3d? position3d}) {
     return Keypoint(
       id: id,
       x: x ?? this.x,
       y: y ?? this.y,
       confidence: confidence ?? this.confidence,
+      position3d: position3d ?? this.position3d,
     );
   }
+}
+
+enum Pose3dSpace { mediapipeWorldMeters, mlkitImagePixels }
+
+class PosePoint3d {
+  const PosePoint3d(this.x, this.y, this.z, this.space);
+  final double x, y, z;
+  final Pose3dSpace space;
+  bool get isFinite => x.isFinite && y.isFinite && z.isFinite;
 }
 
 /// The bone graph — pairs of [KeypointId]s to connect with line segments in

@@ -1,0 +1,6 @@
+streamlit>=1.57,<2
+torch>=2.4,<3
+mediapipe>=0.10.20,<1
+numpy>=1.26,<3
+Pillow>=10,<13
+streamlit-webrtc>=0.78,<1

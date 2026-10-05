@@ -8,18 +8,18 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
 import '../models/keypoint.dart' as custom;
 import 'pose_detector.dart' as base_detector;
+import 'camera_pose_geometry.dart';
 
-class MobilePoseDetector implements base_detector.PoseDetector {
+class MobilePoseDetector
+    implements base_detector.PoseDetector, base_detector.PosePreviewGeometry {
   MobilePoseDetector({this.fps = 30});
 
   final int fps;
@@ -31,13 +31,26 @@ class MobilePoseDetector implements base_detector.PoseDetector {
   final PoseDetector _mlKitPoseDetector = PoseDetector(
     options: PoseDetectorOptions(
       mode: PoseDetectionMode.stream,
-      model: PoseDetectionModel.base,
+      model: PoseDetectionModel.accurate,
     ),
   );
 
   bool _isProcessingFrame = false;
   Timer? _fpsLimiterTimer;
   bool _canProcessNextFrame = true;
+  bool _stopping = false;
+  Completer<void>? _frameDone;
+  Future<void>? _stopOperation;
+  Size _imageSize = const Size(640, 480);
+  int _rotation = 90;
+  bool _front = true;
+
+  @override
+  double get previewAspectRatio => _rotation == 90 || _rotation == 270
+      ? _imageSize.height / _imageSize.width
+      : _imageSize.width / _imageSize.height;
+  @override
+  bool get previewMirrored => _front;
 
   @override
   Stream<List<custom.Keypoint>> get stream => _controller.stream;
@@ -50,7 +63,7 @@ class MobilePoseDetector implements base_detector.PoseDetector {
         color: Colors.black,
         child: Center(
           child: Text(
-            'Camera is starting...',
+            'جارٍ تشغيل الكاميرا…',
             style: TextStyle(color: Colors.white70),
           ),
         ),
@@ -61,7 +74,7 @@ class MobilePoseDetector implements base_detector.PoseDetector {
       color: Colors.black,
       child: Center(
         child: AspectRatio(
-          aspectRatio: controller.value.aspectRatio,
+          aspectRatio: previewAspectRatio,
           child: CameraPreview(controller),
         ),
       ),
@@ -70,42 +83,50 @@ class MobilePoseDetector implements base_detector.PoseDetector {
 
   @override
   Future<void> start() async {
+    _stopping = false;
+    _stopOperation = null;
     late final List<CameraDescription> cameras;
     try {
       cameras = await availableCameras();
     } on MissingPluginException catch (e) {
       debugPrint('MobilePoseDetector camera plugin unavailable: $e');
-      return;
+      rethrow;
     } on CameraException catch (e) {
       debugPrint('MobilePoseDetector camera discovery failed: $e');
-      return;
+      rethrow;
     }
 
     if (cameras.isEmpty) {
       debugPrint('MobilePoseDetector found no available cameras.');
-      return;
+      throw StateError('No camera available');
     }
 
     final frontCamera = cameras.firstWhere(
       (c) => c.lensDirection == CameraLensDirection.front,
       orElse: () => cameras.first,
     );
+    _front = frontCamera.lensDirection == CameraLensDirection.front;
+    _rotation = frontCamera.sensorOrientation;
 
     _cameraController = CameraController(
       frontCamera,
-      ResolutionPreset.low,
+      ResolutionPreset.medium,
       enableAudio: false,
-      imageFormatGroup:
-          Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
     );
 
     try {
       await _cameraController!.initialize();
+      await _cameraController!
+          .lockCaptureOrientation(DeviceOrientation.portraitUp);
+      _imageSize = _cameraController!.value.previewSize ?? _imageSize;
     } on CameraException catch (e) {
       debugPrint('MobilePoseDetector camera initialization failed: $e');
       await _cameraController?.dispose();
       _cameraController = null;
-      return;
+      rethrow;
     }
 
     _fpsLimiterTimer?.cancel();
@@ -116,26 +137,34 @@ class MobilePoseDetector implements base_detector.PoseDetector {
 
     try {
       await _cameraController!.startImageStream((CameraImage image) async {
-        if (_isProcessingFrame || !_canProcessNextFrame) return;
+        if (_stopping || _isProcessingFrame || !_canProcessNextFrame) return;
 
         _isProcessingFrame = true;
+        _frameDone = Completer<void>();
         _canProcessNextFrame = false;
 
         try {
           final inputImage = _inputImageFromCameraImage(image, frontCamera);
-          if (inputImage == null) return;
+          if (inputImage == null) {
+            throw StateError('Unsupported camera image format');
+          }
 
           final poses = await _mlKitPoseDetector.processImage(inputImage);
-          if (poses.isNotEmpty) {
+          if (_stopping || _cameraController == null) return;
+          if (poses.length == 1) {
             final mappedKeypoints = _mapKeypoints(poses.first.landmarks);
             if (!_controller.isClosed) {
               _controller.add(mappedKeypoints);
             }
+          } else if (!_controller.isClosed) {
+            _controller.add(const <custom.Keypoint>[]);
           }
         } catch (e) {
           debugPrint('MobilePoseDetector inference error: $e');
+          if (!_stopping && !_controller.isClosed) _controller.addError(e);
         } finally {
           _isProcessingFrame = false;
+          _frameDone?.complete();
         }
       });
     } on CameraException catch (e) {
@@ -144,47 +173,54 @@ class MobilePoseDetector implements base_detector.PoseDetector {
       _fpsLimiterTimer = null;
       await _cameraController?.dispose();
       _cameraController = null;
+      rethrow;
     }
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stop() => _stopOperation ??= _stop();
+
+  Future<void> _stop() async {
+    _stopping = true;
     _fpsLimiterTimer?.cancel();
     _fpsLimiterTimer = null;
 
-    if (_cameraController != null && _cameraController!.value.isStreamingImages) {
+    if (_cameraController != null &&
+        _cameraController!.value.isStreamingImages) {
       await _cameraController!.stopImageStream();
     }
+    await _frameDone?.future;
     await _cameraController?.dispose();
     _cameraController = null;
   }
 
-  void dispose() {
-    stop();
-    _mlKitPoseDetector.close();
-    _controller.close();
+  @override
+  Future<void> dispose() async {
+    await stop();
+    await _mlKitPoseDetector.close();
+    await _controller.close();
   }
 
   InputImage? _inputImageFromCameraImage(
     CameraImage image,
     CameraDescription camera,
   ) {
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in image.planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    final bytes = allBytes.done().buffer.asUint8List();
-
     final imageSize = Size(image.width.toDouble(), image.height.toDouble());
-    final rotation = InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
-        InputImageRotation.rotation270deg;
-    final format = InputImageFormatValue.fromRawValue(image.format.raw) ??
-        (Platform.isAndroid ? InputImageFormat.nv21 : InputImageFormat.bgra8888);
-
-    if (image.planes.isEmpty) return null;
+    _imageSize = imageSize;
+    final rotation =
+        InputImageRotationValue.fromRawValue(camera.sensorOrientation);
+    final format = InputImageFormatValue.fromRawValue(image.format.raw);
+    if (rotation == null ||
+        format == null ||
+        image.planes.length != 1 ||
+        (Platform.isAndroid && format != InputImageFormat.nv21) ||
+        (Platform.isIOS && format != InputImageFormat.bgra8888)) {
+      return null;
+    }
+    _rotation = camera.sensorOrientation;
 
     return InputImage.fromBytes(
-      bytes: bytes,
+      bytes: image.planes.first.bytes,
       metadata: InputImageMetadata(
         size: imageSize,
         rotation: rotation,
@@ -197,8 +233,8 @@ class MobilePoseDetector implements base_detector.PoseDetector {
   List<custom.Keypoint> _mapKeypoints(
     Map<PoseLandmarkType, PoseLandmark> landmarks,
   ) {
-    final w = _cameraController!.value.previewSize?.width ?? 480;
-    final h = _cameraController!.value.previewSize?.height ?? 640;
+    final w = _imageSize.width;
+    final h = _imageSize.height;
 
     custom.Keypoint? createKeypoint(
       PoseLandmarkType mlkitType,
@@ -206,11 +242,19 @@ class MobilePoseDetector implements base_detector.PoseDetector {
     ) {
       final landmark = landmarks[mlkitType];
       if (landmark != null && landmark.likelihood > 0.5) {
+        final point = uprightCameraPoint(
+            landmark.x, landmark.y, w, h, _rotation,
+            alreadyRotated: Platform.isAndroid);
         return custom.Keypoint(
           id: customId,
-          x: landmark.x / w,
-          y: landmark.y / h,
+          x: point.$1,
+          y: point.$2,
           confidence: landmark.likelihood,
+          position3d: custom.PosePoint3d(
+              point.$1 * ((_rotation == 90 || _rotation == 270) ? h : w),
+              point.$2 * ((_rotation == 90 || _rotation == 270) ? w : h),
+              landmark.z,
+              custom.Pose3dSpace.mlkitImagePixels),
         );
       }
       return null;
@@ -218,35 +262,67 @@ class MobilePoseDetector implements base_detector.PoseDetector {
 
     final keypoints = <custom.Keypoint>[];
 
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.nose, custom.KeypointId.nose));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.leftEye, custom.KeypointId.leftEye));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.rightEye, custom.KeypointId.rightEye));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.leftEar, custom.KeypointId.leftEar));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.rightEar, custom.KeypointId.rightEar));
+    _addIfNotNull(keypoints,
+        createKeypoint(PoseLandmarkType.nose, custom.KeypointId.nose));
+    _addIfNotNull(keypoints,
+        createKeypoint(PoseLandmarkType.leftEye, custom.KeypointId.leftEye));
+    _addIfNotNull(keypoints,
+        createKeypoint(PoseLandmarkType.rightEye, custom.KeypointId.rightEye));
+    _addIfNotNull(keypoints,
+        createKeypoint(PoseLandmarkType.leftEar, custom.KeypointId.leftEar));
+    _addIfNotNull(keypoints,
+        createKeypoint(PoseLandmarkType.rightEar, custom.KeypointId.rightEar));
 
-    final leftShoulder =
-        createKeypoint(PoseLandmarkType.leftShoulder, custom.KeypointId.leftShoulder);
-    final rightShoulder =
-        createKeypoint(PoseLandmarkType.rightShoulder, custom.KeypointId.rightShoulder);
-    final leftHip = createKeypoint(PoseLandmarkType.leftHip, custom.KeypointId.leftHip);
-    final rightHip = createKeypoint(PoseLandmarkType.rightHip, custom.KeypointId.rightHip);
+    final leftShoulder = createKeypoint(
+        PoseLandmarkType.leftShoulder, custom.KeypointId.leftShoulder);
+    final rightShoulder = createKeypoint(
+        PoseLandmarkType.rightShoulder, custom.KeypointId.rightShoulder);
+    final leftHip =
+        createKeypoint(PoseLandmarkType.leftHip, custom.KeypointId.leftHip);
+    final rightHip =
+        createKeypoint(PoseLandmarkType.rightHip, custom.KeypointId.rightHip);
 
     _addIfNotNull(keypoints, leftShoulder);
     _addIfNotNull(keypoints, rightShoulder);
     _addIfNotNull(keypoints, leftHip);
     _addIfNotNull(keypoints, rightHip);
 
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.leftElbow, custom.KeypointId.leftElbow));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.rightElbow, custom.KeypointId.rightElbow));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.leftWrist, custom.KeypointId.leftWrist));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.rightWrist, custom.KeypointId.rightWrist));
+    _addIfNotNull(
+        keypoints,
+        createKeypoint(
+            PoseLandmarkType.leftElbow, custom.KeypointId.leftElbow));
+    _addIfNotNull(
+        keypoints,
+        createKeypoint(
+            PoseLandmarkType.rightElbow, custom.KeypointId.rightElbow));
+    _addIfNotNull(
+        keypoints,
+        createKeypoint(
+            PoseLandmarkType.leftWrist, custom.KeypointId.leftWrist));
+    _addIfNotNull(
+        keypoints,
+        createKeypoint(
+            PoseLandmarkType.rightWrist, custom.KeypointId.rightWrist));
 
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.leftKnee, custom.KeypointId.leftKnee));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.rightKnee, custom.KeypointId.rightKnee));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.leftAnkle, custom.KeypointId.leftAnkle));
-    _addIfNotNull(keypoints, createKeypoint(PoseLandmarkType.rightAnkle, custom.KeypointId.rightAnkle));
+    _addIfNotNull(keypoints,
+        createKeypoint(PoseLandmarkType.leftKnee, custom.KeypointId.leftKnee));
+    _addIfNotNull(
+        keypoints,
+        createKeypoint(
+            PoseLandmarkType.rightKnee, custom.KeypointId.rightKnee));
+    _addIfNotNull(
+        keypoints,
+        createKeypoint(
+            PoseLandmarkType.leftAnkle, custom.KeypointId.leftAnkle));
+    _addIfNotNull(
+        keypoints,
+        createKeypoint(
+            PoseLandmarkType.rightAnkle, custom.KeypointId.rightAnkle));
 
-    if (leftShoulder != null && rightShoulder != null && leftHip != null && rightHip != null) {
+    if (leftShoulder != null &&
+        rightShoulder != null &&
+        leftHip != null &&
+        rightHip != null) {
       final midShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
       final midHipY = (leftHip.y + rightHip.y) / 2;
       final midShoulderX = (leftShoulder.x + rightShoulder.x) / 2;

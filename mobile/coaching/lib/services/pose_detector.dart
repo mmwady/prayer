@@ -33,6 +33,14 @@ abstract class PoseDetector {
 
   Future<void> start();
   Future<void> stop();
+
+  Future<void> dispose() => stop();
+}
+
+/// Optional preview geometry, shared by the live feed and its overlay.
+abstract class PosePreviewGeometry {
+  double get previewAspectRatio;
+  bool get previewMirrored;
 }
 
 /// Canned animation useful when no real camera/video source is available.
@@ -56,7 +64,7 @@ class StubPoseDetector implements PoseDetector {
       color: Colors.black,
       child: Center(
         child: Text(
-          'No live video source',
+          'لا يوجد مصدر فيديو مباشر',
           style: TextStyle(color: Colors.white70),
         ),
       ),
@@ -78,6 +86,12 @@ class StubPoseDetector implements PoseDetector {
     _timer = null;
   }
 
+  @override
+  Future<void> dispose() async {
+    await stop();
+    await _controller.close();
+  }
+
   void _emitFrame() {
     _frameIndex += 1;
     _phase = (_frameIndex / fps) * math.pi;
@@ -94,16 +108,39 @@ class StubPoseDetector implements PoseDetector {
 
     final keypoints = <Keypoint>[
       Keypoint(id: KeypointId.nose, x: 0.50, y: headY, confidence: 0.95),
-      Keypoint(id: KeypointId.leftEye, x: 0.47, y: headY - 0.01, confidence: 0.9),
-      Keypoint(id: KeypointId.rightEye, x: 0.53, y: headY - 0.01, confidence: 0.9),
+      Keypoint(
+          id: KeypointId.leftEye, x: 0.47, y: headY - 0.01, confidence: 0.9),
+      Keypoint(
+          id: KeypointId.rightEye, x: 0.53, y: headY - 0.01, confidence: 0.9),
       Keypoint(id: KeypointId.leftEar, x: 0.44, y: headY, confidence: 0.8),
       Keypoint(id: KeypointId.rightEar, x: 0.56, y: headY, confidence: 0.8),
-      Keypoint(id: KeypointId.leftShoulder, x: 0.40, y: shoulderY, confidence: 0.95),
-      Keypoint(id: KeypointId.rightShoulder, x: 0.60, y: shoulderY, confidence: 0.95),
-      Keypoint(id: KeypointId.leftElbow, x: 0.36, y: shoulderY + 0.08, confidence: 0.9),
-      Keypoint(id: KeypointId.rightElbow, x: 0.64, y: shoulderY + 0.08, confidence: 0.9),
-      Keypoint(id: KeypointId.leftWrist, x: 0.34, y: shoulderY + 0.16, confidence: 0.85),
-      Keypoint(id: KeypointId.rightWrist, x: 0.66, y: shoulderY + 0.16, confidence: 0.85),
+      Keypoint(
+          id: KeypointId.leftShoulder, x: 0.40, y: shoulderY, confidence: 0.95),
+      Keypoint(
+          id: KeypointId.rightShoulder,
+          x: 0.60,
+          y: shoulderY,
+          confidence: 0.95),
+      Keypoint(
+          id: KeypointId.leftElbow,
+          x: 0.36,
+          y: shoulderY + 0.08,
+          confidence: 0.9),
+      Keypoint(
+          id: KeypointId.rightElbow,
+          x: 0.64,
+          y: shoulderY + 0.08,
+          confidence: 0.9),
+      Keypoint(
+          id: KeypointId.leftWrist,
+          x: 0.34,
+          y: shoulderY + 0.16,
+          confidence: 0.85),
+      Keypoint(
+          id: KeypointId.rightWrist,
+          x: 0.66,
+          y: shoulderY + 0.16,
+          confidence: 0.85),
       Keypoint(id: KeypointId.leftHip, x: 0.43, y: hipY, confidence: 0.95),
       Keypoint(id: KeypointId.rightHip, x: 0.57, y: hipY, confidence: 0.95),
       Keypoint(id: KeypointId.leftKnee, x: 0.42, y: kneeY, confidence: 0.9),

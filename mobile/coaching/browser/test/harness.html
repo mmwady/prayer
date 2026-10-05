@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Local parity harness</title></head><body><p>Offline browser acceptance harness</p><script type="module">
+import { RecognizerClient } from '../../web/recognizer/client.js';
+window.client = new RecognizerClient(new URL('../../web/recognizer/', location.href).href);
+window.ready = client.initialize();
+</script></body></html>

@@ -19,10 +19,11 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# `ffmpeg` isn't strictly required today, but edge-tts returns MP3 and some
-# downstream audio tooling expects it to be present. Keep it small.
+# `libgl1` and `libglib2.0-0` are the shared libraries OpenCV and MediaPipe need
+# for reference-video extraction; `curl`/`ca-certificates` keep TLS probes and
+# the healthcheck working. Keep the layer small.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
+ && apt-get install -y --no-install-recommends ca-certificates curl libgl1 libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/*
 
 # Non-root user. UID/GID 10001 is outside typical host ranges — avoids clashes
@@ -33,6 +34,7 @@ WORKDIR /app
 
 # ─── Dependency layer (cached when only source changes) ─────────────────────
 COPY pyproject.toml ./
+COPY README.md ./
 # `pip install .` reads pyproject.toml; `--no-deps false` (default) resolves
 # the full tree. We use a temporary venv-free install straight into site-pkgs.
 RUN pip install --upgrade pip \
@@ -40,6 +42,8 @@ RUN pip install --upgrade pip \
 
 # ─── Application source ─────────────────────────────────────────────────────
 COPY app ./app
+COPY models ./models
+RUN mkdir -p /app/data/prayer_references && chown -R app:app /app/data
 
 # Drop privileges AFTER pip install (pip needs /usr/local write access).
 USER app
@@ -50,4 +54,4 @@ EXPOSE 8000
 # `--ws websockets` pins the protocol backend (avoids the older `wsproto`).
 CMD ["uvicorn", "app.main:app", \
      "--host", "0.0.0.0", "--port", "8000", \
-     "--proxy-headers", "--ws", "websockets"]
+     "--proxy-headers"]

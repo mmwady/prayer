@@ -1,22 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../config/translations.dart';
-
+/// Locale state for the Arabic-first prayer app.
+///
+/// Arabic is the only supported locale, so RTL is always on. `main.dart` reads
+/// [isRtl] to build the root [Directionality]; keeping it behind a
+/// [ChangeNotifier] leaves room for a future locale switch without touching the
+/// widget tree.
 class LocaleProvider extends ChangeNotifier {
-  String _localeCode = 'en';
+  String get localeCode => 'ar';
 
-  String get localeCode => _localeCode;
-
-  bool get isRtl => _localeCode == 'ar';
-
-  void setLocale(String code) {
-    if (code == _localeCode) return;
-    _localeCode = code;
-    notifyListeners();
-  }
-
-  /// Helper to get a string using the active locale.
-  String t(String key) {
-    return Translations.get(key, _localeCode);
-  }
+  bool get isRtl => true;
 }

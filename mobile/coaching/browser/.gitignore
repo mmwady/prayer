@@ -1,0 +1,12 @@
+node_modules/
+.cache/
+test/fixtures/images/
+test/fixtures/pixels.json
+# Generated fixtures can contain user-video landmarks/features. Recreate locally.
+test/fixtures/image_reference.json
+test/fixtures/features.json
+test/fixtures/landmarks.json
+# Generated fixtures can contain user-video landmarks/features. Recreate locally.
+test/fixtures/image_reference.json
+test/fixtures/features.json
+test/fixtures/landmarks.json

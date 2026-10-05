@@ -7,7 +7,7 @@
 #   .venv\Scripts\activate          # Windows
 #   # source .venv/bin/activate     # macOS / Linux
 #   pip install -r requirements.txt
-#   cp ../.env.example ../.env      # fill in DEEPSEEK_API_KEY etc.
+#   cp ../.env.example .env         # then fill in DEEPSEEK_API_KEY
 #   uvicorn app.main:app --reload --port 8000
 #
 # Pinning strategy: lower-bounds only (same as pyproject.toml) so you always
@@ -19,28 +19,27 @@
 # ── Web framework ─────────────────────────────────────────────────────────────
 fastapi>=0.111
 uvicorn[standard]>=0.30       # includes httptools + uvloop for perf
-python-multipart>=0.0.9
-mediapipe<=0.10.11            # Pinned to keep the legacy mp.solutions API working
-
-# ── WebSocket protocol backend ────────────────────────────────────────────────
-websockets>=12.0               # uvicorn --ws websockets + ElevenLabs provider
+python-multipart>=0.0.18      # multipart upload parsing for reference videos
 
 # ── Data validation & configuration ──────────────────────────────────────────
 pydantic>=2.7
 pydantic-settings>=2.3         # reads .env into typed Settings
+pwdlib[argon2]>=0.2,<1        # Argon2 password hashing
+email-validator>=2.2,<3      # account email validation
+tzdata>=2024.1               # IANA zones on Windows
+Pillow>=10.4                  # bounded JPEG validation and EXIF orientation
 
-# ── LangGraph / LangChain (conversational state machine) ─────────────────────
-langgraph>=0.2
-langchain-core>=0.2
-
-# ── LLM client (OpenAI-compatible — works with DeepSeek, Ollama, …) ───────────
+# ── LLM client (OpenAI-compatible — DeepSeek prayer guidance, Ollama, …) ─────
 openai>=1.40
 
-# ── TTS: default (free, no key) ───────────────────────────────────────────────
-edge-tts>=6.1
-
-# ── HTTP client used by the ElevenLabs provider ───────────────────────────────
+# ── HTTP client (FastAPI TestClient + openai transport) ──────────────────────
 httpx>=0.27
+
+# ── Reference-video extraction (admin authoring route) ───────────────────────
+mediapipe==0.10.11             # pinned to keep the mp.solutions API working
+numpy<2
+torch>=2.4,<3                 # local prayer-action TorchScript ensemble (CPU)
+opencv-contrib-python>=4.8,<4.12
 
 # ── Development & testing ─────────────────────────────────────────────────────
 pytest>=8.2

@@ -5,8 +5,14 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+pytest-of-*/
 .mypy_cache/
 .ruff_cache/
+pip-build-tracker-*/
+pip-ephem-wheel-cache-*/
+pip-install-*/
+pip-metadata-*/
+pip-unpack-*/
 
 # ─── Flutter / Dart ──────────────────────────────────────────────────────────
 mobile/.dart_tool/
@@ -22,8 +28,12 @@ mobile/android/.gradle/
 # ─── Secrets & local env ─────────────────────────────────────────────────────
 .env
 .env.local
+.env.*
+!.env.example
+!.env.*.example
 *.pem
 *.key
+backend/tools/cloudflared.exe
 
 # ─── Editors ─────────────────────────────────────────────────────────────────
 .vscode/
@@ -31,3 +41,23 @@ mobile/android/.gradle/
 *.swp
 .DS_Store
 Thumbs.db
+backend/data/prayer_references/
+backend/data/prayer_analyses/
+backend/data/mosque_companion.sqlite3*
+backend/data/accounts*.sqlite3*
+backend/data/account_mail_outbox/
+output/accounts/mail/
+output/accounts/seed-mail/
+output/accounts/*.sqlite3*
+docs/demo/*.mp4
+
+# Local diagnostics, reports, screenshots and user-derived evidence
+/output/
+*.log
+
+# Duplicate import archives; extracted model/source directories are retained
+/deployment_bundle.zip
+/PrayerActionRecognizer_UI.zip
+
+# Generated browser distribution; rebuild with browser/build.ps1
+/mobile/coaching/web/recognizer/
