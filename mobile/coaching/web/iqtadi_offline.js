@@ -2,7 +2,15 @@
 // predictions and Mosque Companion API responses are never placed in this cache.
 (() => {
   let state={ready:false,state:'preparing',completed:0,total:0,version:null},registration;
-  const publish=value=>{state={...state,...value};window.dispatchEvent(new CustomEvent('iqtadi-offline-status',{detail:state}));};
+  // The active worker always reports the cache it is serving. While a downloaded
+  // newer version waits for activation that answer would hide the update from the
+  // user, so a pending registration outranks any 'ready' report.
+  const updatePending=()=>!!(registration?.waiting&&registration.active);
+  const publish=value=>{
+    state={...state,...value};
+    if(updatePending()&&state.state==='ready')state={...state,state:'update_available'};
+    window.dispatchEvent(new CustomEvent('iqtadi-offline-status',{detail:state}));
+  };
   window.iqtadiOffline=Object.freeze({status:()=>({...state}),
     applyUpdate:async()=>{
       if(!registration?.waiting)return false;
@@ -30,5 +38,8 @@
       if(next.state==='redundant')publish({state:'failed',ready:false,warning:'Offline download did not complete. Inference can still run online.'});
     });});
     const ready=await navigator.serviceWorker.ready;ready.active?.postMessage({type:'OFFLINE_STATUS'});
+    // A navigation-triggered update check is throttled by the browser, which can
+    // leave a deployed version unnoticed for a long time. Ask for one explicitly.
+    value.update?.().catch(()=>{});
   }).catch(error=>publish({state:'unavailable',warning:error.message}));
 })();
