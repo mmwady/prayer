@@ -135,3 +135,30 @@ No email or paid service call is made.
 - Existing offline users can use "تطبيق التحديث" when the app reports an available update;
   otherwise close/reopen or refresh the page. First model downloads still depend on network
   speed; download progress is per file, not an estimate of the entire initialization time.
+
+## Manual GitHub Actions deployment
+
+Open GitHub Actions -> Deploy Iqtadi to VPS -> Run workflow, select main and:
+- web: Flutter Web only (default); backend/data are left running.
+- backend: Docker backend only; current Web remains active.
+- both: build/validate both, then activate together with rollback on failed smoke checks.
+
+This workflow has only workflow_dispatch; pushing a commit does not deploy.
+It uses VPS_HOST, VPS_USER, VPS_PORT, VPS_SSH_KEY and VPS_KNOWN_HOSTS repository
+secrets. The SSH key must be unencrypted and the server user must support sudo -n.
+Host-key checking is mandatory. No secret files or personal databases are uploaded.
+Flutter 3.41.2/Node 24 builds match the validated app runtime. JSON model asset bytes
+are preserved by .gitattributes so Windows/Linux checkout cannot invalidate hashes.
+
+Each run uploads to /srv/iqtadi/incoming/gha-RUN-ATTEMPT-COMMIT, verifies all Web
+hashes, and activates /srv/iqtadi/releases/ID with an atomic current symlink switch.
+Backend updates build on the VPS, test startup with isolated empty data, stop the old
+container for a consistent data snapshot, and reuse the existing environment/data mount.
+A brief backend interruption occurs during this swap. Failed public health, manifest
+or administration checks trigger restoration of previous Web/image/data. Rollback
+failures are reported explicitly. Snapshots/releases are retained; no automated pruning.
+The selected commit/target appear in the workflow summary and last-deployment.txt.
+
+Three isolated deployment tests exercise web-only activation, combined-release rollback
+and rejection of invalid static hashes. These test the script with simulated Docker/HTTP;
+they do not claim a real production failure was injected.

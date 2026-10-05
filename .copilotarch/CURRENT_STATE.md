@@ -7,7 +7,7 @@ public Nginx HTTPS at `vps-c79afd97.vps.ovh.ca` with automatic certificate renew
 3.11/CPU Torch and persistent `/srv/iqtadi/shared/data`. Administration is blocked.
 Hosted Web defaults to its own origin unless explicitly configured or overridden.
 Mosque Companion remains simulated, paid guidance disabled, SMTP unconfigured;
-GitHub automation deferred. Operations and verification: `docs/VPS_DEPLOYMENT.md`.
+Manual GitHub Actions deployment (web/backend/both, main only) is available; automatic push deployment remains disabled. Operations and verification: `docs/VPS_DEPLOYMENT.md`.
 Public Chrome acceptance passed: 16 real video frames, 23 simulated-camera frames,
 local reports, API/origin/admin checks; SQLite login session survived container
 restart. Four settings tests passed; analyzer has six existing infos. Physical

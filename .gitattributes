@@ -1,0 +1,3 @@
+# Model asset hashes cover exact bytes, including JSON line endings.
+mobile/coaching/browser/assets/*.json -text
+deploy/vps/*.sh text eol=lf

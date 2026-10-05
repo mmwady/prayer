@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-05: manual VPS deployment workflow
+
+- Added Run workflow for web/backend/both on main with strict SSH host verification.
+- Web hash preflight/atomic activation; isolated backend health preflight and stopped-container
+  data snapshots; previous web/image/data rollback on failed public smoke checks.
+- Three isolated deployment regressions pass; Actions syntax passes actionlint.
+- Preserved exact model JSON bytes across Windows/Linux Git checkouts.
+
 ## 2026-10-05: hosted Web model preparation
 
 - Stable OVH HTTPS with automatic renewal; temporary tunnel disabled.

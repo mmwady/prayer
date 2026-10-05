@@ -1,0 +1,111 @@
+name: Deploy Iqtadi to VPS
+run-name: Deploy ${{ inputs.target }} by @${{ github.actor }}
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What should be deployed?
+        required: true
+        default: web
+        type: choice
+        options: [web, backend, both]
+permissions:
+  contents: read
+concurrency:
+  group: iqtadi-vps-deployment
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      TARGET: ${{ inputs.target }}
+      RELEASE_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: inputs.target != 'backend'
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mobile/coaching/browser/package-lock.json
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        if: inputs.target != 'backend'
+        with:
+          flutter-version: '3.41.2'
+          channel: stable
+          cache: true
+      - name: Validate and build Flutter Web
+        if: inputs.target != 'backend'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd mobile/coaching/browser
+          npm ci
+          node --test --test-isolation=none test/assets.test.mjs test/initialization.test.mjs test/download_progress.test.mjs
+          npm run build
+          cd ..
+          flutter pub get
+          # Existing informational lints do not block deployment; errors/warnings do.
+          flutter analyze --no-pub --no-fatal-infos
+          flutter test --no-pub test/video_analysis_test.dart test/local_analysis_test.dart test/backend_settings_test.dart
+          flutter build web --release --no-pub --pwa-strategy=none --no-web-resources-cdn
+          bash ../../deploy/vps/package-web.sh
+          tar -czf "$GITHUB_WORKSPACE/web.tar.gz" -C build/web .
+      - name: Package backend source
+        if: inputs.target != 'web'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q backend/app
+          tar --exclude=__pycache__ -czf backend.tar.gz backend/app backend/models backend/pyproject.toml backend/README.md deploy/vps/Dockerfile deploy/vps/run-backend.sh
+      - name: Validate release rollback logic
+        run: python3 -m unittest discover -s deploy/vps -p 'test_deploy_release.py' -v
+      - name: Configure SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in VPS_HOST VPS_USER VPS_PORT VPS_SSH_KEY VPS_KNOWN_HOSTS; do
+            test -n "${!name}" || { echo "Missing secret: $name"; exit 1; }
+          done
+          [[ "$VPS_HOST" =~ ^[a-zA-Z0-9.:-]+$ && "$VPS_USER" =~ ^[a-zA-Z0-9_-]+$ && "$VPS_PORT" =~ ^[0-9]+$ ]]
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > ~/.ssh/iqtadi_deploy
+          printf '%s\n' "$VPS_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/iqtadi_deploy ~/.ssh/known_hosts
+          ssh-keygen -y -P '' -f ~/.ssh/iqtadi_deploy >/dev/null
+          cat > ~/.ssh/config <<EOF
+          Host iqtadi-deploy
+            HostName $VPS_HOST
+            User $VPS_USER
+            Port $VPS_PORT
+            IdentityFile ~/.ssh/iqtadi_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+            ConnectTimeout 20
+          EOF
+      - name: Upload and deploy with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote="/srv/iqtadi/incoming/$RELEASE_ID"
+          ssh iqtadi-deploy "sudo -n mkdir -p '$remote' && sudo -n chown \$(id -u):\$(id -g) '$remote'"
+          scp deploy/vps/deploy-release.sh deploy/vps/verify-web.py "iqtadi-deploy:$remote/"
+          if [[ "$TARGET" != backend ]]; then scp web.tar.gz "iqtadi-deploy:$remote/"; fi
+          if [[ "$TARGET" != web ]]; then scp backend.tar.gz "iqtadi-deploy:$remote/"; fi
+          ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=20 iqtadi-deploy "sudo -n bash '$remote/deploy-release.sh' '$RELEASE_ID' '$TARGET'"
+          echo "### Deployed $TARGET" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo 'URL: https://vps-c79afd97.vps.ovh.ca' >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove runner SSH credentials
+        if: always()
+        shell: bash
+        run: rm -f ~/.ssh/iqtadi_deploy ~/.ssh/known_hosts ~/.ssh/config
