@@ -2,9 +2,11 @@
 
 Arabic-first prayer training with the existing Flutter interface. Images, local
 videos, camera recognition, three-model classification, sequence reports,
-references, Arabic cues and session history run on-device. **Only Mosque
-Companion uses a backend.** Reports describe observed movement coverage; they do
-not judge religious validity, intention, recitation or acceptance.
+references, Arabic cues and session history run on-device. Mosque Companion and
+optional accounts/family/classroom monitoring use the backend. Monitoring sends
+only final scalar results, never images, landmarks or model tensors. Reports
+describe observed movement coverage; they do not judge religious validity,
+intention, recitation or acceptance.
 
 ## Project in 60 seconds
 
@@ -22,8 +24,9 @@ Web uses a same-origin WASM worker with an on-device main-thread fallback.
 Android uses a native CPU channel and bundles the same models. Existing six
 prayer cards and report layouts are retained; the separate local geometry
 trainer and clearly labelled synthetic demo remain available in source.
-Native iOS/desktop inference is unsupported; physical mobile acceptance remains
-unverified. See [deployment and platform limits](docs/LOCAL_TRAINING.md).
+Native iOS/desktop inference is unsupported. Selected Android CPU and recorded-video
+flows have been tested on a Samsung M52; live-camera and other-device acceptance
+remain incomplete. See the measured results below.
 
 ## Core concepts and main blocks
 
@@ -37,6 +40,7 @@ unverified. See [deployment and platform limits](docs/LOCAL_TRAINING.md).
 | Existing UI | Video/live progress, per-rakah evidence and all individual decisions | `lib/screens/{video,live}_analysis_screen.dart` |
 | References and cues | Local reviewed reference JSON and static Arabic guidance | `lib/prayer/local_reference_*`, `lib/services/prayer_guidance_client.dart` |
 | Mosque Companion | Existing optional backend demo integration | `backend/app/mosque/`, `lib/mosque/` |
+| Accounts and monitoring | Guardian login, child pairing and scalar-result synchronization | `backend/app/accounts/`, `lib/accounts/` |
 
 Paths beginning `lib/`, `android/` and `browser/` are under `mobile/coaching/`.
 Model weights/class order are unchanged. [Exact mathematical contract](docs/BROWSER_INFERENCE_SPEC.md).
@@ -72,104 +76,175 @@ invalidate incompatible cached sessions.
 | Change report layout | `lib/screens/video_analysis_screen.dart`, `lib/local/prediction_cards.dart` |
 | Change design | `lib/ui/app_theme.dart`, `ui_kit.dart` |
 | Configure Mosque Companion backend | `lib/config/env.dart`, its settings drawer, `backend/app/mosque/` |
+| Change accounts or monitoring | `lib/accounts/`, `backend/app/accounts/`, `docs/ACCOUNTS.md` |
 
 Recommended reading: exact inference contract → local service/session →
 browser bridge or native channel → raw report engine → existing results UI.
 
-## Run, test and deploy
+## Run from a fresh checkout (Windows / PowerShell)
 
-No Python backend process is required for prayer training. With the existing
-export environment and installed locked dependencies:
+Prerequisites: Git, Flutter with a compatible Dart SDK (the package requires Dart
+`>=3.4.0 <4.0.0`), Node.js/npm, and Python 3.11. Android builds also need the
+Android SDK and a JDK compatible with the project's Gradle setup. Use
+`flutter doctor` to check the installed platform tools.
+
+The Python environment prepares and validates model assets during the build;
+no Python server is required for local prayer inference at runtime.
 
 ```powershell
-.\mobile\coaching\browser\build.ps1 -SkipInstall
+git clone https://github.com/mmwady/prayer.git
+cd prayer
+py -3.11 -m venv backend/.venv
+.\backend\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+.\backend\.venv\Scripts\python.exe -m pip install -r mobile/coaching/browser/tools/requirements-export.txt
 cd mobile/coaching
-flutter test --no-pub --concurrency=1
-flutter analyze --no-pub
+flutter pub get
+cd ../..
+.\mobile\coaching\browser\build.ps1
 ```
 
-Publish `mobile/coaching/build/web` atomically over HTTPS. On first use download
-the static app/model assets and wait for the offline-ready notice. About127MB is
-currently cached; no image/landmark/feature request is sent. New updates require
-explicit activation. Android bundles its models; device runtime remains
-unverified until tested on a connected phone.
+The private repository requires GitHub access. The build script installs locked
+npm dependencies, generates synthetic parity fixtures, exports/checks ONNX
+models, runs browser tests and Flutter analysis, builds release Web assets, and
+creates the offline cache manifest. Use `-SkipInstall` only after npm dependencies
+have already been installed. Model bundles are included in the repository;
+`mobile/coaching/web/recognizer/` and `mobile/coaching/build/` are generated locally.
+The commands above describe the current build scripts; a new-machine dependency
+installation has not been revalidated as part of this documentation update.
 
-[Build/MIME/HTTPS details](docs/BROWSER_DEPLOYMENT.md),
-[local training architecture](docs/LOCAL_TRAINING.md),
-[measured acceptance](docs/LOCAL_TRAINING_ACCEPTANCE.md),
-[references/provenance](docs/LOCAL_REFERENCES.md).
+### Web
 
-## Retained backend tooling
+After the build, serve the complete Flutter distribution from repository root:
 
-Only Mosque Companion is a default online feature:
-[run the Mosque demo](docs/MOSQUE_COMPANION.md). `BACKEND_URL` configures that
-feature. Existing prayer-analysis/reference/guidance backend modules remain
-available for development compatibility and regression tests. They are not
-selected by the default prayer UI and are not required for inference.
+```powershell
+node mobile/coaching/browser/scripts/serve.mjs mobile/coaching/build/web 8780
+```
 
-The sections below document that retained legacy server tooling and its
-historical validation. The current client runtime and acceptance are described
-above and in `LOCAL_TRAINING_ACCEPTANCE.md`.
+Open `http://127.0.0.1:8780/` for the Flutter app, or
+`http://127.0.0.1:8780/recognizer/` for the standalone image recognizer. Keep the
+terminal running. For interactive development after generating recognizer assets:
 
-## API and security
+```powershell
+cd mobile/coaching
+flutter run -d chrome --web-port 8781
+```
 
-Under `/api/v1/prayer-analyses`: create, upload `/{id}/frames`, finalize
-`/{id}/complete`, poll `/{id}`, retrieve `/{id}/report`, fetch
-`/{id}/evidence/{evidence_id}`, delete `/{id}`, and public `/config`.
-Creation requires explicit consent. Every job operation requires its bearer token.
+Publish the complete `mobile/coaching/build/web` directory over HTTPS. After any
+later Flutter production build, regenerate its offline manifest:
 
-[Full API schemas/lifecycle](docs/VIDEO_ANALYSIS.md) and
-[32-keypoint/model contracts](docs/REAL_MODEL_INTEGRATION.md).
-Public deployment requires HTTPS, stronger authentication, creation rate limits
-and restricted CORS. Admin routes are loopback-only without `PRAYER_ADMIN_TOKEN`;
-with a token every admin request requires its bearer header. Put the old admin
-page behind an authenticated gateway that supplies the header before exposing it.
-Do not expose default loopback admin through a proxy.
+```powershell
+cd mobile/coaching
+flutter build web --release --no-pub --pwa-strategy=none --no-web-resources-cdn
+node browser/scripts/build-offline.mjs
+```
 
-## Tests and current limits
+First Web use downloads the app/model assets (about 127 MB in the documented
+build). Wait for the offline-ready notice before disconnecting. Updates require
+explicit activation; clearing browser storage can require another download.
+Camera access requires HTTPS or localhost. Prayer inference and local history
+work offline; connected account features and Mosque Companion require a server.
+See [hosting/MIME details](docs/BROWSER_DEPLOYMENT.md).
+
+### Android
+
+After the initial setup, connect an Android device with USB debugging enabled
+or start an emulator:
+
+```powershell
+cd mobile/coaching
+flutter devices
+flutter run -d <android-device-id>
+# Or build an installable local APK:
+flutter build apk --release --no-pub
+```
+
+Replace `<android-device-id>` with an ID from `flutter devices`. The APK is at
+`mobile/coaching/build/app/outputs/flutter-apk/app-release.apk`. Gradle packages
+models from `mobile/coaching/browser/assets/`; they are required even without a
+backend. Current release builds use the existing debug signing configuration
+for local testing; store publication needs production signing.
+
+## Optional backend features
+
+Prayer recognition, reports, references and static Arabic cues remain local.
+The server provides optional accounts/monitoring and the explicitly simulated
+Mosque Companion. Run it from repository root in a separate terminal:
+
+```powershell
+Copy-Item .env.example backend/.env
+# Edit backend/.env before enabling connected features.
+.\backend\start_backend.bat
+```
+
+Copy the template only when creating a new environment; preserve any existing
+local configuration. Health check: `http://127.0.0.1:8000/healthz`.
+For Docker, configure `backend/.env`, then run `docker compose up --build`.
+Docker runs the backend; the Flutter app is built/run separately.
+
+Configure the server address in the app's settings drawer or at build/run time:
+
+```powershell
+cd mobile/coaching
+flutter run -d <android-device-id> --dart-define=BACKEND_URL=http://10.0.2.2:8000
+```
+
+`10.0.2.2` reaches the host from an Android emulator. A physical phone uses the
+computer's reachable LAN address; its `127.0.0.1` points to the phone itself.
+For Web accounts, prefer a same-origin HTTPS reverse proxy and exact allowed
+origins. Configure SMTP/email verification, public URL and cookie settings as
+explained in [accounts and monitoring](docs/ACCOUNTS.md). Development email mode
+writes private local `.eml` files; it does not deliver real email. Restart the
+app after changing its account backend address.
+
+To run the Mosque demo, use `.\backend\start_mosque_demo.ps1` from repository
+root and set the app's backend address to `http://127.0.0.1:8011` on the host
+(or the corresponding emulator/LAN address). This script enables the demo
+explicitly; routes and notifications remain simulated.
+[Full demo instructions](docs/MOSQUE_COMPANION.md).
+
+Legacy prayer-analysis, live-streaming, reference-authoring and optional LLM
+advisory APIs remain for compatibility/development. Default prayer screens do
+not use them. See the [backend README](backend/README.md),
+[legacy video API](docs/VIDEO_ANALYSIS.md) and
+[reference authoring guide](docs/prayer-reference-admin.md). No provider key or
+paid LLM request is needed for the local app or standard automated tests.
+
+## Tests and current verification limits
+
+After dependency setup and browser fixture generation:
 
 ```powershell
 cd backend
-.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -q
 cd ../mobile/coaching
 flutter analyze --no-pub
-flutter test --no-pub
-flutter build web --no-pub
-flutter build apk --debug --no-pub
+flutter test --no-pub --concurrency=1
+cd browser
+npm.cmd test
 ```
 
-Automated tests require no camera, model weights or paid service. They cover job
-ownership, lifecycle/limits/cleanup, temporal confidence, all prayer configurations,
-ambiguous/missing/repeated/out-of-order sequences, reports, client state and UI.
-Real model accuracy and native-device orientation still need separate acceptance.
-Jobs are single-instance/in-memory; decode positions are approximate; codecs depend
-on the target platform. Conservative global alignment may leave multiple rakahs
-unconfirmed when repeated postures permit several equally plausible assignments.
-Live camera JPEG streaming uses a dedicated authenticated WebSocket and the same
-backend report engine. No voice, TTS or LLM report generation is used.
-Choose **التحليل الدقيق** to retain every sampled image (temporary device storage,
-backend disk queue, report after all inference), or **التحليل السريع** to adapt
-capture rate to processing capacity. Storage/frame limits stop capture explicitly;
-the app does not evict captured images to hide backlog. See [live camera guide](docs/LIVE_CAMERA.md).
+Automated tests use synthetic fixtures/fake providers; they do not establish
+real camera or general model accuracy. Separate model smoke/parity tools require
+the bundled weights and export dependencies. Source-video acceptance fixtures,
+logs, screenshots and reports under `output/` are local evidence excluded from
+Git, so a fresh clone does not include those runs' raw artifacts.
 
-Verified October 3, 2026: 56 backend tests and 54 Flutter tests passed; release web
-build and Android debug APK assembly passed. `flutter analyze --no-pub` reports
-six pre-existing informational findings, with no errors/warnings or findings in
-new code. Actual browser tests extracted/uploaded 52 frames and rendered complete
-and review-required Fajr reports. After a host CanvasKit shader failure, the optional
-`?software=1` renderer displayed the report but evidence images remained blank in
-the embedded browser; images had rendered in the earlier default-renderer run.
-Chrome rendered the home screen, but its extension blocked file upload because
-file URL access was disabled. No Android device runtime test was possible.
+Documented acceptance includes 100 real-image CPU parity cases on Samsung M52 /
+Android 13, plus a subsequent 256-frame Fajr replay with optional normalization
+and Ruku gating: 16/16 stations and 2/2 rakahs, still `REVIEW_REQUIRED` with
+residual classifier errors. These are bounded results, not a claim of general
+prayer accuracy. See [Android CPU acceptance](docs/ANDROID_LOCAL_PERFORMANCE.md)
+and [quality options and phone replay](docs/LOCAL_QUALITY_OPTIONS.md).
 
-## Preserved local training and reference tooling
+Quality corrections are independent and off by default; the recommended preset
+enables normalization and Ruku gating, retaining raw predictions and uncertainty.
+Native iOS/desktop inference is unsupported. Physical live-camera, remaining
+source-video and other-device acceptance are incomplete. Mosque Companion is a
+demo; production routing/notifications are not implemented. Accounts require
+configured email delivery and appropriate HTTPS/cookie/origin deployment.
 
-`التجربة المحلية السابقة` retains the earlier on-device trainer, labelled offline
-simulation, calibration, detector/overlay and relevant tests. Administrative
-reference videos remain separate from user analysis imagery. The active-reference
-and optional guidance APIs remain available. [Local training details](docs/LEGACY_LOCAL_TRAINING.md)
-are historical; their no-upload/admin statements are superseded for the new mode.
-[Reference authoring guide](docs/prayer-reference-admin.md).
-
-On October 3, 2026, recorded-video analysis became the primary home flow and
-backend-owned sequence reports were added; earlier local training remains isolated.
+The earlier geometry trainer and labelled synthetic simulation remain in source.
+[Historical trainer documentation](docs/LEGACY_LOCAL_TRAINING.md) describes that
+separate workflow. Current local architecture is in
+[LOCAL_TRAINING.md](docs/LOCAL_TRAINING.md); newer account behavior is described
+in [ACCOUNTS.md](docs/ACCOUNTS.md).
