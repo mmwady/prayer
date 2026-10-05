@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import '../browser/recognizer_screen.dart';
 
 import '../prayer/prayer_definition.dart';
 import '../ui/app_theme.dart';
@@ -8,7 +6,6 @@ import '../ui/ui_kit.dart';
 import '../ui/brand_header.dart';
 import 'video_analysis_screen.dart';
 import '../mosque/screen.dart';
-import 'local_prayer_references_screen.dart';
 import 'local_sessions_screen.dart';
 import '../local/offline_notice.dart';
 import '../accounts/screen.dart';
@@ -47,19 +44,6 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: AppSpacing.sm),
                   const OfflineNotice(),
                   const AccountEntry(),
-                  if (kIsWeb)
-                    AppCard(
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const BrowserRecognizerScreen())),
-                      child: const ListTile(
-                        leading: Icon(Icons.privacy_tip_outlined,
-                            color: AppColors.accent),
-                        title: Text('تحليل الصور والكاميرا على جهازك'),
-                        subtitle:
-                            Text('ثلاثة نماذج محلية • الصور لا تُرسل إلى خادم'),
-                        trailing: Icon(Icons.chevron_left),
-                      ),
-                    ),
                   AppCard(
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => const MosqueCompanionScreen())),
@@ -101,15 +85,6 @@ class HomeScreen extends StatelessWidget {
                           title: Text('تقاريري على الجهاز'),
                           subtitle:
                               Text('مراجعة وتصدير وحذف جلسات التدريب المحلية'),
-                          trailing: Icon(Icons.chevron_left))),
-                  AppCard(
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const LocalPrayerReferencesScreen())),
-                      child: const ListTile(
-                          leading: Icon(Icons.menu_book_outlined),
-                          title: Text('المراجع المحلية'),
-                          subtitle: Text(
-                              'إدارة ملفات المعايرة المراجعة على هذا الجهاز'),
                           trailing: Icon(Icons.chevron_left))),
                   const AppNote(
                     'التدريب والصور والتقارير على جهازك. المتابعة الاختيارية تزامن النتائج النهائية فقط؛ ورفيق المسجد يستخدم الخادم. التطبيق لا يقيّم صحة الصلاة ولا قبولها.',
