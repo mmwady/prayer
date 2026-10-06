@@ -21,7 +21,7 @@ class Env {
   /// BACKEND_URL=http://10.0.2.2:8000; for a device use the host LAN address.
   static const String defaultBackendUrl = String.fromEnvironment(
     'BACKEND_URL',
-    defaultValue: 'http://127.0.0.1:8000',
+    defaultValue: 'https://vps-c79afd97.vps.ovh.ca',
   );
   static String? _override;
 

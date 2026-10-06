@@ -10,7 +10,7 @@ import '../ui/app_theme.dart';
 import '../ui/ui_kit.dart';
 import '../ui/brand_header.dart';
 import 'video_analysis_screen.dart';
-import 'local_prayer_references_screen.dart';
+import 'prayer_illustrations_screen.dart';
 import '../mosque/screen.dart';
 import 'local_sessions_screen.dart';
 import '../local/offline_notice.dart';
@@ -128,12 +128,13 @@ class HomeScreen extends StatelessWidget {
                                   : Icons.chevron_right))),
                   AppCard(
                       onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const LocalPrayerReferencesScreen())),
+                          builder: (_) => const PrayerIllustrationsScreen())),
                       child: ListTile(
                           leading: const Icon(Icons.menu_book_outlined),
-                          title: Text(localized(context, 'المراجع المحلية')),
+                          title: Text(
+                              localized(context, 'التعليم المنظم خطوة بخطوة')),
                           subtitle: Text(localized(context,
-                              'إدارة ملفات المعايرة المراجعة على هذا الجهاز')),
+                              'الصور الاسترشادية لحركات الصلاة بالترتيب')),
                           trailing: Icon(
                               Directionality.of(context) == TextDirection.rtl
                                   ? Icons.chevron_left
