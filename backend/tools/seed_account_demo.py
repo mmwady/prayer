@@ -62,7 +62,7 @@ def main():
                         hour=[3, 10, 13, 16, 18][index], minute=0, second=0, microsecond=0
                     )
                     db.execute(
-                        "INSERT INTO attempts VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        "INSERT INTO attempts (id,child_id,client_attempt_id,prayer,performed_at,valid,sequence_valid,uncertain,on_time,confidence,rakats_expected,rakats_completed,analysis_version,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                         (
                             str(uuid.uuid4()),
                             child,

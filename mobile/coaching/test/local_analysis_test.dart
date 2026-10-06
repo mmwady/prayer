@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:coaching/local/analysis_service.dart';
+import 'package:coaching/accounts/sync_adapter.dart';
 import 'package:coaching/local/assessment_options.dart';
 import 'package:coaching/local/contracts.dart';
 import 'package:coaching/local/prediction_cards.dart';
@@ -231,6 +232,47 @@ Map<String, dynamic> _projectReport(Map<String, dynamic> report) => {
     };
 
 void main() {
+  for (final live in [false, true]) {
+    test(
+        'movement score in ${live ? 'live camera' : 'local video'} is saved, exported and synchronized without changing uncertainty',
+        () async {
+      Map<String, dynamic>? summary;
+      PrayerSyncAdapter.binding = 'paired-child';
+      PrayerSyncAdapter.sink = (owner, result) async {
+        summary = result;
+      };
+      addTearDown(() {
+        PrayerSyncAdapter.binding = null;
+        PrayerSyncAdapter.sink = null;
+      });
+      final repository = _MemoryRepository();
+      final session =
+          LocalSession(inference: _FakeInference(), repository: repository);
+      if (live) {
+        final api = LocalLiveAnalysisService(session: session);
+        await api.createLive('fajr', 4, null);
+        await api.connect();
+        await api.sendFrame(_frame(0));
+        await api.finishLive(250);
+        await api.disconnect();
+      } else {
+        await session.create('fajr');
+        await session.add(_frame(0));
+        await session.complete();
+      }
+      final report = session.report;
+      expect(report.movementsExpected, 16);
+      expect(report.movementScore, 100 * report.movementsDetected / 16);
+      expect(summary!['movement_score'], report.movementScore);
+      expect(summary!['movements_detected'], report.movementsDetected);
+      expect(summary!['movements_expected'], 16);
+      expect(summary!['uncertain'], true);
+      expect(summary!['valid'], false);
+      final exported = jsonDecode(await session.export()) as Map;
+      expect(exported['report']['movement_score'], report.movementScore);
+      session.close();
+    });
+  }
   test('fixed report settings and raw decisions survive save/export', () async {
     final repository = _MemoryRepository();
     final session =

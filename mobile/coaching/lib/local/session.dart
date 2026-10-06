@@ -183,6 +183,7 @@ class LocalSession {
       'sample_fps': 4
     });
     if (token != generation) return;
+    data.addAll(AnalysisReport.fromJson(data).movementSummary);
     data['captured_actions'] = List<Map<String, dynamic>>.from(captures);
     final missing = images.keys.toSet();
     if (data['raw_assessment'] is Map) {
@@ -258,6 +259,7 @@ class LocalSession {
           'rakats_expected': data['expected_rakahs'],
           'rakats_completed': data['observed_rakahs'],
           'analysis_version': info!['model_version'],
+          ...AnalysisReport.fromJson(data).movementSummary,
         });
       } catch (_) {
         data['storage_warning'] =

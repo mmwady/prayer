@@ -132,6 +132,22 @@ class DeferredModelApi extends AnalysisClient
 }
 
 void main() {
+  test('movement percentage counts detected expected stations only', () {
+    final data = fixture();
+    data['overall_result'] = 'REVIEW_REQUIRED';
+    data['rakahs'][1]['stations'][0]['status'] = 'UNCONFIRMED';
+    data['unexpected_movements'] = [
+      {'pose': 'ruku'}
+    ];
+    final report = AnalysisReport.fromJson(data);
+    expect(report.movementsExpected, 2);
+    expect(report.movementsDetected, 1);
+    expect(report.movementScore, 50);
+    expect(report.overallResult, 'REVIEW_REQUIRED');
+    data['rakahs'] = [];
+    expect(AnalysisReport.fromJson(data).movementScore, 0);
+  });
+
   testWidgets('file selection finishes while model progress remains visible',
       (tester) async {
     final api = DeferredModelApi();

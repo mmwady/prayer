@@ -60,6 +60,18 @@ class AccountStore:
               key TEXT PRIMARY KEY, count INTEGER NOT NULL, resets_at REAL NOT NULL);
             """)
 
+            db.execute("BEGIN IMMEDIATE")
+            # Version 2: nullable counters preserve old attempts without inventing scores.
+            columns = {r["name"] for r in db.execute("PRAGMA table_info(attempts)")}
+            for name, kind in [
+                ("movements_detected", "INTEGER"),
+                ("movements_expected", "INTEGER"),
+                ("movement_score", "REAL"),
+            ]:
+                if name not in columns:
+                    db.execute(f"ALTER TABLE attempts ADD COLUMN {name} {kind}")
+            db.execute("INSERT OR IGNORE INTO account_schema VALUES(2)")
+
     @contextmanager
     def transaction(self):
         db = sqlite3.connect(self.path, timeout=15)

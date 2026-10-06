@@ -2,6 +2,12 @@
 
 ## Status
 
+2026-10-06 movement completion score: shared video/live report and local history/export
+store detected/expected station counts and percentage. Paired scalar sync stores
+schema-v2 nullable fields; guardian day/week views and leaderboard tie-breaking use
+best attempt per prayer/day. Existing uncertainty and points remain independent.
+This change is local and has not been deployed. Validation is recorded in docs/ACCOUNTS.md.
+
 2026-10-05 VPS testing deployment: complete Flutter Release Web served through
 public Nginx HTTPS at `vps-c79afd97.vps.ovh.ca` with automatic certificate renewal; the temporary tunnel is disabled. Docker backend uses Python
 3.11/CPU Torch and persistent `/srv/iqtadi/shared/data`. Administration is blocked.

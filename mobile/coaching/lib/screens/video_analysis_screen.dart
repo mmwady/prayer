@@ -549,6 +549,15 @@ class AnalysisResults extends StatelessWidget {
         if (report.storageWarning != null)
           StatusBanner(text: report.storageWarning!, tone: Tone.attention),
         MetricTile(
+            label: 'نسبة اكتمال الحركات',
+            value: '${report.movementScore.toStringAsFixed(1)}٪',
+            icon: Icons.percent,
+            tone: Tone.ready),
+        AppNote(
+            '${report.movementsDetected} من ${report.movementsExpected} حركة متوقعة تم رصدها'
+            '${report.overallResult == 'REVIEW_REQUIRED' ? ' • النتيجة تحتاج مراجعة' : ''}.'),
+        const SizedBox(height: 12),
+        MetricTile(
             label: 'عدد الركعات المرصودة',
             value: '${report.observedRakahs} من ${report.expectedRakahs}',
             icon: Icons.format_list_numbered,

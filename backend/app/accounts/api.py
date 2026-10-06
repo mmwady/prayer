@@ -23,6 +23,7 @@ from .auth import (
     passwords,
 )
 from .domain import RAKATS, PrayerTimeService, progress
+from ..analysis.domain import stations
 from .store import AccountStore, digest
 
 router = APIRouter(prefix="/api/v1/accounts", tags=["optional accounts"])
@@ -487,6 +488,9 @@ class AttemptBody(Body):
     rakats_expected: int = Field(ge=2, le=4)
     rakats_completed: int = Field(ge=0, le=4)
     analysis_version: str = Field(min_length=1, max_length=100)
+    movements_detected: int | None = Field(default=None, ge=0, strict=True)
+    movements_expected: int | None = Field(default=None, gt=0, strict=True)
+    movement_score: float | None = Field(default=None, ge=0, le=100, allow_inf_nan=False)
 
     @model_validator(mode="after")
     def check(self):
@@ -505,6 +509,19 @@ class AttemptBody(Body):
             or self.rakats_completed != self.rakats_expected
         ):
             raise ValueError("Inconsistent final result")
+        values = (self.movements_detected, self.movements_expected, self.movement_score)
+        if any(v is not None for v in values):
+            if any(v is None for v in values):
+                raise ValueError("All movement score fields are required together")
+            expected = sum(len(row) for row in stations(self.prayer))
+            if self.movements_expected != expected or self.movements_detected > expected:
+                raise ValueError("Invalid movement counts")
+            if self.valid and self.movements_detected != expected:
+                raise ValueError("Observed completion requires all expected movements")
+            score = round(100 * self.movements_detected / expected, 2)
+            if abs(self.movement_score - score) > 0.000001:
+                raise ValueError("Movement score must match detected / expected counts")
+            self.movement_score = score
         return self
 
 
@@ -530,7 +547,7 @@ def attempt(body: AttemptBody, child=Depends(device), database=Depends(store)):
         timing = PrayerTimeService(group["timezone"], json.loads(group["schedule"]))
         key = str(uuid.uuid4())
         db.execute(
-            "INSERT INTO attempts VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO attempts (id,child_id,client_attempt_id,prayer,performed_at,valid,sequence_valid,uncertain,on_time,confidence,rakats_expected,rakats_completed,analysis_version,created_at,movements_detected,movements_expected,movement_score) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 key,
                 child["child_id"],
@@ -546,6 +563,9 @@ def attempt(body: AttemptBody, child=Depends(device), database=Depends(store)):
                 body.rakats_completed,
                 body.analysis_version,
                 datetime.now(timezone.utc).isoformat(),
+                body.movements_detected,
+                body.movements_expected,
+                body.movement_score,
             ),
         )
     return {"id": key, "duplicate": False}
@@ -569,7 +589,13 @@ def dashboard(
             children.append(dict(row) | progress(attempts, timing, today))
         board = sorted(
             children,
-            key=lambda c: (-c["weekly_points"], -c["weekly_on_time_prayers"], c["name"], c["id"]),
+            key=lambda c: (
+                -c["weekly_points"],
+                -(c["weekly_movement_score"] if c["weekly_movement_score"] is not None else -1),
+                -c["weekly_on_time_prayers"],
+                c["name"],
+                c["id"],
+            ),
         )
         return {
             "date": today.isoformat(),

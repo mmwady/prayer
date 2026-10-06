@@ -212,3 +212,13 @@ and the bilingual translation dictionary. There is no WebSocket wire protocol.
 - Backend: `app/mosque/api.py` (contracts/demo gate), `domain.py` (matching/privacy/lifecycle), `store.py` (SQLite transactions), `providers.py` (interfaces and synthetic network), `seed.py` (U01–U11).
 - Tests: `backend/tests/test_mosque_companion.py`, Flutter `test/mosque_companion_test.dart`. Live local HTTP runner: `backend/tools/verify_mosque_demo.py`.
 - Run: `backend/start_mosque_demo.ps1`; instructions, accounts, scenarios, env and limitations: `docs/MOSQUE_COMPANION.md`.
+
+## Movement completion score and guardian leaderboard
+
+- Report metric: `mobile/coaching/lib/video/analysis_report.dart`; shared result UI:
+  `screens/video_analysis_screen.dart`; stored/exported and synced by `local/session.dart`.
+- Scalar offline queue: `accounts/controller.dart`; guardian percentage views: `accounts/screen.dart`.
+- API validation/schema-v2 migration: `backend/app/accounts/{api,store}.py`;
+  best-per-prayer/day weighted coverage and leaderboard: `accounts/{domain,api}.py`.
+- Focused account, report and local-session tests cover ratio, persistence, offline
+  retries, legacy migration and uncertainty preservation. See `docs/ACCOUNTS.md`.

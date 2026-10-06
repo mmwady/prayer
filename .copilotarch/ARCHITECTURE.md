@@ -260,3 +260,15 @@ PrayerController (discrete event) -> PrayerGuidanceClient -> POST /api/v1/prayer
 - Map display/route geometry and times are explicitly synthetic. Source-verified centers are independent from unverified proposed meeting points; entrance/dropoff remain null.
 - Replaceable `Clock`, `MosqueProvider`, `RouteProvider`, `Notifications` and Flutter `LocationService`; matching configuration is centralized in `MatchConfig`. Existing prayer AI is not used by this feature.
 - Production authentication, real routing/entrances, approved helper identity and distributed operation remain pending. See `docs/MOSQUE_COMPANION.md`.
+
+## Movement coverage score
+
+- `AnalysisReport` derives DETECTED / all expected station rows; `LocalSession.complete`
+  stores scalar counts/percentage locally and in exports, then enqueues them through
+  optional account sync. Shared video/live rendering uses the same metric.
+- Accounts schema v2 adds nullable counts/score; v1 history and old queued payloads
+  remain compatible. API verifies totals using analysis station definitions.
+- Guardian day/week coverage uses best scored attempt per prayer/day and weighted
+  movement totals; points remain primary, coverage breaks leaderboard ties.
+- Coverage never means posture/religious correctness or clears REVIEW_REQUIRED.
+  Missing historical scores remain unavailable; demo/synthetic results never sync.

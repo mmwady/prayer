@@ -35,6 +35,22 @@ class AnalysisReport {
       (raw['captured_actions'] as List? ?? const [])
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
+
+  /// Coverage of expected report stations, never a posture or validity verdict.
+  int get movementsExpected =>
+      rakahs.fold(0, (sum, rakah) => sum + rakah.stations.length);
+  int get movementsDetected => rakahs.fold(
+      0,
+      (sum, rakah) =>
+          sum + rakah.stations.where((s) => s.status == 'DETECTED').length);
+  double get movementScore => movementsExpected == 0
+      ? 0
+      : (10000 * movementsDetected / movementsExpected).round() / 100;
+  Map<String, dynamic> get movementSummary => {
+        'movements_detected': movementsDetected,
+        'movements_expected': movementsExpected,
+        'movement_score': movementScore,
+      };
   final int expectedRakahs, observedRakahs;
   final bool synthetic;
   final List<RakahReport> rakahs;

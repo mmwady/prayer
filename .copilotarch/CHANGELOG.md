@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-06: movement completion score
+
+- Shared video/live results show observed station coverage; local history/export and
+  paired scalar sync retain detected/expected counts and percentage.
+- Additive accounts schema v2 preserves old rows/queue payloads. Guardian daily/week
+  percentages use best attempt per prayer/day; coverage breaks equal-point ranks.
+- Coverage preserves raw decisions and review states; no posture/validity verdict.
+
 ## 2026-10-05: manual VPS deployment workflow
 
 - Added Run workflow for web/backend/both on main with strict SSH host verification.

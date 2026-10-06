@@ -396,3 +396,150 @@ def test_rate_limit_invalid_codes_commits(env):
         ).status_code
         == 429
     )
+
+
+def test_movement_score_persists_and_retries_without_success_points(env):
+    client, _, database = env
+    owner, group, child = setup_child(env)
+    _, session = pair(env, owner, child)
+    headers = {**HEADERS, "Authorization": "Bearer " + session["session_token"]}
+    payload = attempt_payload() | {
+        "valid": False,
+        "sequence_valid": False,
+        "uncertain": True,
+        "movements_detected": 12,
+        "movements_expected": 16,
+        "movement_score": 75.0,
+    }
+    assert client.post(BASE + "/attempts", headers=headers, json=payload).status_code == 200
+    assert client.post(BASE + "/attempts", headers=headers, json=payload).json()["duplicate"]
+    with database.transaction() as db:
+        row = dict(db.execute("SELECT * FROM attempts WHERE child_id=?", (child,)).fetchone())
+        assert (row["movements_detected"], row["movements_expected"], row["movement_score"]) == (
+            12,
+            16,
+            75,
+        )
+        assert db.execute("SELECT count(*) FROM attempts").fetchone()[0] == 1
+    report = client.get(BASE + f"/groups/{group}/progress", headers=owner).json()["children"][0]
+    assert report["movement_score"] == report["weekly_movement_score"] == 75
+    assert report["movement_results"]["fajr"]["uncertain"] is True
+    assert report["points"] == 0 and report["states"]["fajr"] == "UNCERTAIN"
+    # Older queued summaries remain valid and have no fabricated score.
+    assert (
+        client.post(BASE + "/attempts", headers=headers, json=attempt_payload("legacy")).status_code
+        == 200
+    )
+    with database.transaction() as db:
+        assert (
+            db.execute(
+                "SELECT movement_score FROM attempts WHERE client_attempt_id='legacy'"
+            ).fetchone()[0]
+            is None
+        )
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        {"movements_detected": 17},
+        {"movements_expected": 15},
+        {"movement_score": 80},
+        {"movement_score": None},
+        {"movements_detected": -1},
+        {"movements_detected": 12.5},
+    ],
+)
+def test_movement_counts_and_percentage_are_validated(patch):
+    from pydantic import ValidationError
+    from app.accounts.api import AttemptBody
+
+    payload = attempt_payload() | {
+        "valid": False,
+        "sequence_valid": False,
+        "uncertain": True,
+        "movements_detected": 12,
+        "movements_expected": 16,
+        "movement_score": 75,
+    }
+    AttemptBody.model_validate(payload)
+    with pytest.raises(ValidationError):
+        AttemptBody.model_validate(payload | patch)
+
+
+def test_weekly_score_weights_movements_and_uses_best_attempt_per_prayer_day():
+    timing = PrayerTimeService("UTC", {})
+    base = {"valid": False, "sequence_valid": False, "uncertain": True, "on_time": None}
+    rows = [
+        base
+        | {
+            "prayer": prayer,
+            "performed_at": stamp,
+            "movements_detected": detected,
+            "movements_expected": expected,
+        }
+        for prayer, stamp, detected, expected in [
+            ("fajr", "2026-10-05T04:00:00+00:00", 12, 16),
+            ("fajr", "2026-10-05T05:00:00+00:00", 10, 16),
+            ("dhuhr", "2026-10-05T12:00:00+00:00", 24, 29),
+            ("fajr", "2026-10-04T04:00:00+00:00", 8, 16),
+        ]
+    ]
+    p = progress(rows, timing, date(2026, 10, 5))
+    assert (p["movements_detected"], p["movements_expected"], p["movement_score"]) == (36, 45, 80)
+    assert (
+        p["weekly_movements_detected"],
+        p["weekly_movements_expected"],
+        p["weekly_movement_score"],
+    ) == (44, 61, 72.13)
+    assert p["weekly_points"] == 0 and p["valid_prayers"] == 0
+    assert progress([], timing, date(2026, 10, 5))["weekly_movement_score"] is None
+
+
+def test_leaderboard_uses_score_to_break_equal_points(env):
+    client, _, _ = env
+    owner, group, child = setup_child(env)
+    second = client.post(
+        BASE + f"/groups/{group}/children", headers=owner, json={"name": "Ziad", "age": 10}
+    ).json()["id"]
+    for index, (child_id, detected) in enumerate([(child, 8), (second, 12)]):
+        _, session = pair(env, owner, child_id)
+        payload = attempt_payload(str(index)) | {
+            "valid": False,
+            "sequence_valid": False,
+            "uncertain": True,
+            "movements_detected": detected,
+            "movements_expected": 16,
+            "movement_score": detected * 100 / 16,
+        }
+        assert (
+            client.post(
+                BASE + "/attempts",
+                headers={**HEADERS, "Authorization": "Bearer " + session["session_token"]},
+                json=payload,
+            ).status_code
+            == 200
+        )
+    board = client.get(BASE + f"/groups/{group}/progress", headers=owner).json()["leaderboard"]
+    assert [r["id"] for r in board] == [second, child]
+    assert [r["weekly_points"] for r in board] == [0, 0]
+
+
+def test_schema_v2_preserves_v1_attempts_and_is_idempotent(tmp_path):
+    import sqlite3
+    from app.accounts.store import AccountStore
+
+    path = str(tmp_path / "legacy.sqlite3")
+    with sqlite3.connect(path) as db:
+        db.execute(
+            "CREATE TABLE attempts (id TEXT PRIMARY KEY, child_id TEXT, client_attempt_id TEXT, prayer TEXT, performed_at TEXT, valid INTEGER, sequence_valid INTEGER, uncertain INTEGER, on_time INTEGER, confidence REAL, rakats_expected INTEGER, rakats_completed INTEGER, analysis_version TEXT, created_at TEXT)"
+        )
+        db.execute(
+            "INSERT INTO attempts VALUES('old','child','old','fajr','2026-10-05T04:00:00+00:00',1,1,0,NULL,NULL,2,2,'legacy','2026-10-05')"
+        )
+    AccountStore(path)
+    with AccountStore(path).transaction() as db:
+        row = dict(db.execute("SELECT * FROM attempts").fetchone())
+        assert row["id"] == "old" and row["valid"] == 1
+        assert row["movement_score"] is None and row["movements_detected"] is None
+        assert db.execute("SELECT max(version) FROM account_schema").fetchone()[0] == 2

@@ -409,12 +409,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             .first)),
                                     title: Text(child['name']),
                                     subtitle: Text(
-                                        '${child['valid_prayers']}/5 • ${child['points']} نقطة اليوم • سلسلة ${child['streak']} أيام مكتملة')),
+                                        '${child['valid_prayers']}/5 • ${child['points']} نقطة اليوم • سلسلة ${child['streak']} أيام مكتملة\n${_movementSummary(child)}')),
                                 Wrap(spacing: 8, runSpacing: 8, children: [
                                   for (final prayer in _prayers.entries)
                                     Tooltip(
                                         message:
-                                            _state(child['states'][prayer.key]),
+                                            '${_state(child['states'][prayer.key])}${_prayerScore(child, prayer.key)}',
                                         child: Chip(
                                             label: Row(
                                                 mainAxisSize: MainAxisSize.min,
@@ -451,6 +451,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       child: const Text('الأسبوع')),
                                 ])
                               ])),
+                        const AppNote(
+                            'نسبة اكتمال الحركات = المرصودة ÷ المتوقعة. أفضل محاولة لكل صلاة في اليوم؛ الترتيب بالنقاط ثم النسبة عند التعادل. النسبة لا تلغي الحاجة للمراجعة.'),
                         const SectionTitle('ترتيب الأسبوع — آخر 7 أيام',
                             icon: Icons.emoji_events_outlined),
                         for (final child in dashboard!['leaderboard'])
@@ -460,13 +462,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   trailing:
                                       Text('${child['weekly_points']} نقطة'),
                                   subtitle: Text(
-                                      '${child['weekly_valid_prayers']} صلاة مؤكدة • ${child['weekly_on_time_prayers']} في الوقت • سلسلة ${child['streak']} أيام'))),
+                                      '${child['weekly_valid_prayers']} صلاة مؤكدة • ${child['weekly_on_time_prayers']} في الوقت • سلسلة ${child['streak']} أيام\n${_movementSummary(child, weekly: true)}'))),
                         const AppNote(
                             'اضغط مطولًا على رمز الصلاة لمعرفة الحالة. الأخضر: مكتملة في الوقت، الساعة: متأخرة، النجمة: التوقيت غير معروف، علامة السؤال: تحتاج مراجعة، الساعة الرملية: لم ينتهِ الوقت / لم يحدد. سلسلة الأيام: خمس صلوات مؤكدة يوميًا.'),
                       ] else if (!loading)
                         const AppNote(
                             'ابدأ بإضافة أسرة أو فصل، ثم الطفل، ثم اربط جهازه. تجربة الصلاة المحلية تظل متاحة للجميع.'),
                     ]))));
+  }
+
+  static String _movementSummary(Map result, {bool weekly = false}) {
+    final prefix = weekly ? 'weekly_' : '';
+    final score = result['${prefix}movement_score'];
+    if (score is! num) return 'نسبة اكتمال الحركات غير متاحة';
+    return 'اكتمال الحركات ${score.toStringAsFixed(1)}٪ • '
+        '${result['${prefix}movements_detected']} من ${result['${prefix}movements_expected']} حركة';
+  }
+
+  static String _prayerScore(Map child, String prayer) {
+    final result = (child['movement_results'] as Map?)?[prayer];
+    return result is Map ? '\n${_movementSummary(result)}' : '';
   }
 
   static const _prayers = {
@@ -739,7 +754,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ListTile(
                           title: Text(d['date']),
                           subtitle: Text(
-                              '${d['valid_prayers']}/5 • ${d['on_time_prayers']} في الوقت'),
+                              '${d['valid_prayers']}/5 • ${d['on_time_prayers']} في الوقت\n${_movementSummary(d)}'),
                           trailing: Text('${d['points']} نقطة'))
                   ]))),
               actions: [

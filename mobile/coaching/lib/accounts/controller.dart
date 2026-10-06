@@ -211,7 +211,10 @@ class AccountController extends ChangeNotifier {
       'confidence',
       'rakats_expected',
       'rakats_completed',
-      'analysis_version'
+      'analysis_version',
+      'movements_detected',
+      'movements_expected',
+      'movement_score'
     };
     final payload = {
       for (final e in result.entries)

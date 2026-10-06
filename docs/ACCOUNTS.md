@@ -66,6 +66,12 @@ No existing migration framework is present, so there is no Alembic migration or
 destructive schema change. Back up this database; reverting the optional router
 can leave it safely in place. Future schema changes must version the schema.
 
+Schema version 2 adds nullable `movements_detected`, `movements_expected` and
+`movement_score` to attempts under a serialized additive migration. Existing
+rows retain null scores, and older queued summaries without these fields remain
+accepted. The API checks the expected station count for the selected prayer and
+recomputes the percentage before saving it; counts and percentage must agree.
+
 ## Dependencies
 
 Backend: `pwdlib[argon2]` for mature Argon2id password hashing,
@@ -180,6 +186,30 @@ completion time, not an unverifiable original recording date; the UI discloses
 this. Automatic astronomical calculation methods and verified video capture
 timestamps are deferred. No schedule default is fabricated.
 
+### Movement completion percentage (2026-10-06)
+
+The shared video/live report shows `100 * DETECTED stations / expected stations`,
+rounded to two decimals in stored data and one decimal in the UI. Opening Takbir,
+intermediate/final sittings and both Salam directions are included when expected.
+Totals: Fajr 16, Dhuhr/Asr/Isha 29, Maghrib 23, Demo 10. Unconfirmed stations and
+unexpected/repeated events add no detected movements. This measures observed
+sequence coverage, not posture correctness or religious validity. A 100% score
+can still require review; existing uncertainty and success-point rules remain.
+
+New local reports/exports store all three scalar fields. Optional paired-account
+sync sends them through the existing persistent offline allowlist/queue. Demo and
+synthetic results do not synchronize. Historical local reports derive the visible
+percentage from their station rows; historical server attempts with no counters
+show unavailable, rather than an invented zero or 100%.
+
+Guardian daily prayer tooltips and day/week summaries expose movement coverage.
+For each prayer/day, only its best scored attempt contributes; weekly coverage is
+`100 * sum(detected) / sum(expected)` across those recorded attempts in the last
+seven local calendar days. Missing/unscored prayers are excluded from this ratio;
+existing prayer-count/point indicators show participation. Leaderboards sort by
+weekly points, then movement percentage, then on-time prayers and stable name/id.
+Repeated uploads/attempts cannot multiply points or movement totals.
+
 ## Running locally and deploying
 
 Install backend dependencies in its venv, then use the existing FastAPI startup.
@@ -231,3 +261,18 @@ co-teacher invites); no dedicated retired-profile recovery UI; finite sessions
 require re-login/re-pairing; standalone image recognizer does not synchronize;
 browser cache must finish its first online setup before offline inference; queue
 uses existing local preferences rather than an encrypted result database.
+
+### Movement score verification (2026-10-06)
+
+- Focused Flutter report/local-session/account/video/live tests pass; analyzer has
+  only the six existing informational lints. Backend account suite: 33 tests pass;
+  touched Python files pass Ruff. Release Web build/offline packaging passed.
+- Real Chrome, local FastAPI and an isolated accounts SQLite DB: 16 actual video
+  frames analyzed by MediaPipe/three ONNX models, 2/16 stations (12.5%),
+  REVIEW_REQUIRED retained. The scalar score persisted offline and reached the
+  guardian dashboard after reconnect. QR/manual pairing, authenticated ownership,
+  responsive 320/390/1024 views and guest analysis were verified.
+- Browser evidence: `output/accounts/web-acceptance.json`, `web-offline-result.png`
+  and `web-dashboard-320.png`. Test email stayed in the local development outbox;
+  no real email or paid provider call was made. Physical camera/device acceptance
+  and publication of this feature are not claimed.

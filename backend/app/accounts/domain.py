@@ -53,6 +53,7 @@ class PrayerTimeService:
 
 def daily(attempts, day, timing, now):
     states, valid, on_time = {}, 0, 0
+    movement_results = {}
     for prayer in PRAYERS:
         rows = [
             a
@@ -60,6 +61,27 @@ def daily(attempts, day, timing, now):
             if a["prayer"] == prayer
             and timing.day_for(datetime.fromisoformat(a["performed_at"]), prayer) == day
         ]
+        scored = [
+            a
+            for a in rows
+            if a.get("movements_expected") and a.get("movements_detected") is not None
+        ]
+        if scored:
+            best = max(
+                scored,
+                key=lambda a: (
+                    a["movements_detected"] / a["movements_expected"],
+                    a["performed_at"],
+                ),
+            )
+            movement_results[prayer] = {
+                "movements_detected": best["movements_detected"],
+                "movements_expected": best["movements_expected"],
+                "movement_score": round(
+                    100 * best["movements_detected"] / best["movements_expected"], 2
+                ),
+                "uncertain": bool(best["uncertain"]),
+            }
         correct = [a for a in rows if a["valid"] and a["sequence_valid"] and not a["uncertain"]]
         if correct:
             valid += 1
@@ -79,6 +101,8 @@ def daily(attempts, day, timing, now):
             w = timing.window(day, prayer)
             states[prayer] = "PENDING" if w is None or now < w[1] else "NO_ATTEMPT"
     completed = valid == 5
+    detected = sum(r["movements_detected"] for r in movement_results.values())
+    expected = sum(r["movements_expected"] for r in movement_results.values())
     return {
         "date": day.isoformat(),
         "states": states,
@@ -86,6 +110,10 @@ def daily(attempts, day, timing, now):
         "on_time_prayers": on_time,
         "points": valid * 5 + on_time * 2 + (3 if completed else 0),
         "completed": completed,
+        "movement_results": movement_results,
+        "movements_detected": detected,
+        "movements_expected": expected,
+        "movement_score": round(100 * detected / expected, 2) if expected else None,
     }
 
 
@@ -103,8 +131,13 @@ def progress(attempts, timing, day, now=None):
     while cursor >= earliest and daily(attempts, cursor, timing, now)["completed"]:
         streak += 1
         cursor -= timedelta(days=1)
+    detected = sum(d["movements_detected"] for d in week)
+    expected = sum(d["movements_expected"] for d in week)
     return {
         **today,
+        "weekly_movements_detected": detected,
+        "weekly_movements_expected": expected,
+        "weekly_movement_score": round(100 * detected / expected, 2) if expected else None,
         "weekly_points": sum(d["points"] for d in week),
         "weekly_valid_prayers": sum(d["valid_prayers"] for d in week),
         "weekly_on_time_prayers": sum(d["on_time_prayers"] for d in week),

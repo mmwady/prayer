@@ -25,6 +25,9 @@ Map<String, dynamic> result(String id) => {
       'rakats_expected': 2,
       'rakats_completed': 1,
       'analysis_version': 'existing-local-model',
+      'movements_detected': 12,
+      'movements_expected': 16,
+      'movement_score': 75.0,
     };
 Future<void> settleAsync() async {
   for (var i = 0; i < 5; i++) {
@@ -83,6 +86,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString(queueKey), isNot(contains('landmarks')));
     expect(c.queue.single['payload']['uncertain'], isTrue);
+    expect(c.queue.single['payload']['movement_score'], 75.0);
     c.dispose();
     c = controller(transport());
     await c.initialize();
@@ -98,6 +102,9 @@ void main() {
     expect(requests, hasLength(2));
     expect(requests[0], requests[1]);
     expect(requests.first.keys, isNot(contains('image')));
+    expect(requests.first['movements_detected'], 12);
+    expect(requests.first['movements_expected'], 16);
+    expect(requests.first['movement_score'], 75.0);
     c.dispose();
   });
   test('unpaired devices, demo and wrong child binding do not enqueue',
