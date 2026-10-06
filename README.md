@@ -158,7 +158,7 @@ on the device; connected features receive only allowlisted scalar summaries.
 ### Demo accounts and sample scenarios
 
 Run the isolated seed command documented below. All demo accounts use
-`IqtadiDemo!2026`:
+`eqtadi1234`:
 
 | Purpose | Email |
 |---|---|
@@ -314,7 +314,7 @@ $env:ACCOUNT_SECURE_COOKIES = 'false'
 .\.venv\Scripts\python.exe -m uvicorn tools.account_demo_server:app --host 127.0.0.1 --port 8000
 ```
 
-Sign in with `demo@example.com` / `IqtadiDemo!2026`. The reusable group
+Sign in with `demo@example.com` / `eqtadi1234`. The reusable group
 invitation is `DEMOJOIN24`; today's separate attendance code is `FAJRDEMO`.
 These deterministic credentials are for the isolated demo database only.
 
