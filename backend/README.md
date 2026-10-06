@@ -47,10 +47,12 @@ existing terminal PATH values and old executable launchers can still select the 
 
 Accounts expose `/api/v1/accounts`, with backend-owned password hashing, email
 verification, guardian sessions, child pairing and scalar-result synchronization.
-Configure `ACCOUNT_PUBLIC_URL`, exact `ACCOUNT_ALLOWED_ORIGINS`, SMTP settings and
-`ACCOUNT_DB` using `.env.example`. Production email needs working SMTP; explicit
-`ACCOUNT_MAIL_MODE=development` writes private `.eml` files to `ACCOUNT_MAIL_OUTBOX`
-and does not send real mail. Do not serve that directory publicly.
+Configure `ACCOUNT_PUBLIC_URL`, exact `ACCOUNT_ALLOWED_ORIGINS`, Resend or SMTP
+settings, and `ACCOUNT_DB` using `.env.example`. Real Resend delivery needs
+`ACCOUNT_RESEND_API_KEY` and a verified-domain `ACCOUNT_MAIL_FROM`. Explicit
+`ACCOUNT_MAIL_MODE=development` writes private `.eml` files to
+`ACCOUNT_MAIL_OUTBOX`, never bypasses verification, and does not send real mail.
+Do not serve that directory publicly.
 
 Web accounts use HttpOnly cookies; prefer Web/API on the same HTTPS origin through
 a reverse proxy. `ACCOUNT_SECURE_COOKIES=false` is for explicit local HTTP testing

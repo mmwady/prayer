@@ -5,28 +5,33 @@ import secrets
 import time
 import uuid
 from datetime import date, datetime, timedelta, timezone
+from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
 from ..config import get_settings
 from .auth import (
-    AuthBody,
-    SignupBody,
-    EmailBody,
     ActionBody,
+    AuthBody,
+    EmailBody,
     ResetBody,
+    SignupBody,
     authenticate,
-    register,
-    email_action,
     consume,
+    email_action,
+    identity,
     passwords,
+    register,
 )
 from .domain import RAKATS, PrayerTimeService, progress
-from .store import AccountStore, digest
+from .store import AccountStore, digest, ensure_personal_profile
 
 router = APIRouter(prefix="/api/v1/accounts", tags=["optional accounts"])
 COOKIE_PATH = "/api/v1/accounts"
+DEVICE_SESSION_SECONDS = 180 * 86400
 
 
 def store():
@@ -70,19 +75,35 @@ def guardian(request: Request, database=Depends(store)):
         ).fetchone()
         if not row:
             raise HTTPException(401, "SIGN_IN_REQUIRED")
-        return {k: row[k] for k in ("id", "name", "email", "role")}
+        return identity(row)
 
 
-def device(request: Request, database=Depends(store)):
+def device(request: Request, response: Response, database=Depends(store)):
+    raw_token = token(request, "device")
+    now = time.time()
     with database.transaction() as db:
         row = db.execute(
-            "SELECT d.*,c.name,c.active FROM devices d JOIN children c ON c.id=d.child_id WHERE d.token_hash=? AND d.revoked_at IS NULL AND d.expires_at>? AND c.active=1",
-            (digest(token(request, "device")), time.time()),
+            "SELECT d.*,c.name,c.active,c.profile_kind FROM devices d JOIN children c ON c.id=d.child_id WHERE d.token_hash=? AND d.revoked_at IS NULL AND d.expires_at>? AND c.active=1",
+            (digest(raw_token), now),
         ).fetchone()
         if not row:
             raise HTTPException(401, "DEVICE_DISCONNECTED")
-        db.execute("UPDATE devices SET last_seen_at=? WHERE id=?", (time.time(), row["id"]))
-        return dict(row)
+        expires = now + DEVICE_SESSION_SECONDS
+        db.execute(
+            "UPDATE devices SET last_seen_at=?,expires_at=? WHERE id=?",
+            (now, expires, row["id"]),
+        )
+        if request.headers.get("x-iqtadi-platform") == "web" and request.method != "DELETE":
+            response.set_cookie(
+                "iqtadi_device",
+                raw_token,
+                max_age=DEVICE_SESSION_SECONDS,
+                httponly=True,
+                secure=get_settings().account_secure_cookies,
+                samesite="strict",
+                path=COOKIE_PATH,
+            )
+        return dict(row) | {"expires_at": expires}
 
 
 def owned_group(db, group_id, owner):
@@ -96,8 +117,13 @@ def owned_group(db, group_id, owner):
 
 def owned_child(db, child_id, owner):
     row = db.execute(
-        "SELECT c.* FROM children c JOIN groups g ON g.id=c.group_id WHERE c.id=? AND g.owner_user_id=?",
-        (child_id, owner["id"]),
+        """SELECT DISTINCT c.* FROM children c
+           LEFT JOIN guardian_links gl ON gl.child_id=c.id
+           LEFT JOIN groups g ON g.id=c.group_id
+           WHERE c.id=? AND (
+             c.account_user_id=? OR gl.user_id=? OR
+             (g.owner_user_id=? AND g.type='FAMILY'))""",
+        (child_id, owner["id"], owner["id"], owner["id"]),
     ).fetchone()
     if not row:
         raise HTTPException(404, "CHILD_NOT_FOUND")
@@ -123,21 +149,77 @@ def session_response(request, response, kind, raw, seconds, data):
 @router.get("/config", dependencies=[Depends(boundary)])
 def config():
     s = get_settings()
-    return {"email_configured": bool(s.account_smtp_host) or s.account_mail_mode == "development"}
+    email_configured = (
+        bool(s.account_resend_api_key and s.account_mail_from)
+        if s.account_mail_mode == "resend"
+        else bool(s.account_smtp_host)
+        if s.account_mail_mode == "smtp"
+        else False
+    )
+    return {
+        "email_configured": email_configured,
+        "email_mode": s.account_mail_mode,
+    }
 
 
 @router.post("/session", dependencies=[Depends(boundary)])
 def login(body: AuthBody, request: Request, response: Response, database=Depends(store)):
     raw = secrets.token_urlsafe(32)
+    practice_raw = secrets.token_urlsafe(32)
+    device_id = str(uuid.uuid4())
     with database.transaction() as db:
         limited(request, db, "login", 20)
     with database.transaction() as db:
         identity = authenticate(db, body)
+        profile_id = ensure_personal_profile(
+            db, identity["id"], identity["name"], datetime.now(timezone.utc).isoformat()
+        )
         db.execute(
             "INSERT INTO guardian_sessions VALUES(?,?,?)",
             (digest(raw), identity["id"], time.time() + 30 * 86400),
         )
-    return session_response(request, response, "guardian", raw, 30 * 86400, {"guardian": identity})
+        db.execute(
+            "INSERT INTO devices VALUES(?,?,?,?,?,?,?,NULL)",
+            (
+                device_id,
+                profile_id,
+                digest(practice_raw),
+                request.headers.get("x-iqtadi-platform", "other"),
+                time.time(),
+                time.time(),
+                time.time() + 180 * 86400,
+            ),
+        )
+    web = request.headers.get("x-iqtadi-platform") == "web"
+    if web:
+        response.set_cookie(
+            "iqtadi_device",
+            practice_raw,
+            max_age=180 * 86400,
+            httponly=True,
+            secure=get_settings().account_secure_cookies,
+            samesite="strict",
+            path=COOKIE_PATH,
+        )
+    data = session_response(
+        request,
+        response,
+        "guardian",
+        raw,
+        30 * 86400,
+        {
+            "guardian": identity,
+            "practice_profile": {
+                "child_id": profile_id,
+                "name": identity["name"],
+                "device_id": device_id,
+                "profile_kind": "SELF",
+            },
+        },
+    )
+    if not web:
+        data["practice_session_token"] = practice_raw
+    return data
 
 
 @router.post("/auth/signup", dependencies=[Depends(boundary)])
@@ -145,8 +227,11 @@ def signup(body: SignupBody, request: Request, database=Depends(store)):
     with database.transaction() as db:
         limited(request, db, "email", 10)
     with database.transaction() as db:
-        register(db, body)
-    return {"message": "CHECK_EMAIL"}
+        delivery = register(db, body)
+    return {
+        "message": "CHECK_EMAIL",
+        "delivery": delivery,
+    }
 
 
 @router.post("/auth/resend", dependencies=[Depends(boundary)])
@@ -160,6 +245,11 @@ def recover(body: EmailBody, request: Request, database=Depends(store)):
 
 
 def request_email(body, request, database, kind):
+    delivery = (
+        "development_outbox"
+        if get_settings().account_mail_mode == "development"
+        else get_settings().account_mail_mode
+    )
     with database.transaction() as db:
         limited(request, db, "email", 10)
     with database.transaction() as db:
@@ -167,8 +257,11 @@ def request_email(body, request, database, kind):
             "SELECT * FROM guardians WHERE email=?", (str(body.email).casefold(),)
         ).fetchone()
         if row and (kind == "reset" or not row["email_verified"]):
-            email_action(db, row["id"], row["email"], kind)
-    return {"message": "CHECK_EMAIL_IF_REGISTERED"}
+            delivery = email_action(db, row["id"], row["email"], kind)
+    return {
+        "message": "CHECK_EMAIL_IF_REGISTERED",
+        "delivery": delivery,
+    }
 
 
 @router.post("/auth/verify", dependencies=[Depends(boundary)])
@@ -196,13 +289,22 @@ def email_page():
         """<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1"><title>اقتدِ — حسابك</title>
     <style>body{font-family:system-ui;background:#f6f0e5;color:#073e30;max-width:460px;margin:8vh auto;padding:24px}input,button{font:inherit;padding:12px;margin:12px 0;width:100%;box-sizing:border-box}button{background:#126b4d;color:white;border:0;border-radius:12px}</style>
-    <h1>اقتدِ</h1><p id="title"></p><input id="password" type="password" minlength="10" maxlength="128" placeholder="كلمة المرور الجديدة (10 أحرف على الأقل)">
+    <h1>اقتدِ</h1><p id="title"></p><input id="password" type="password" minlength="8" maxlength="128" placeholder="كلمة المرور الجديدة (8 أحرف على الأقل)">
     <button id="go">تأكيد</button><p id="status" role="status"></p>
-    <script>const p=new URLSearchParams(location.hash.slice(1)),kind=p.get('kind'),token=p.get('token');history.replaceState(null,'',location.pathname);
-    document.getElementById('title').textContent=kind==='verify'?'تفعيل البريد الإلكتروني':'استعادة كلمة المرور';document.getElementById('password').hidden=kind==='verify';
-    document.getElementById('go').onclick=async()=>{const b=document.getElementById('go');b.disabled=true;try{const body={token};if(kind==='reset')body.password=document.getElementById('password').value;
+    <script>
+    const p=new URLSearchParams(location.hash.slice(1)),kind=p.get('kind'),token=p.get('token');
+    history.replaceState(null,'',location.pathname);
+    const verify=kind==='verify',reset=kind==='reset',button=document.getElementById('go'),status=document.getElementById('status');
+    document.getElementById('title').textContent=verify?'تفعيل البريد الإلكتروني':reset?'استعادة كلمة المرور':'رابط غير صالح';
+    document.getElementById('password').hidden=!reset;
+    if(!token||(!verify&&!reset)){button.disabled=true;status.textContent='الرابط غير مكتمل. اطلب رابطًا جديدًا من صفحة الحساب.';}
+    button.onclick=async()=>{button.disabled=true;status.textContent='جارٍ التحقق…';try{const body={token};if(reset)body.password=document.getElementById('password').value;
     const r=await fetch('/api/v1/accounts/auth/'+kind,{method:'POST',headers:{'Content-Type':'application/json','X-Iqtadi-Account':'1'},body:JSON.stringify(body)});
-    document.getElementById('status').textContent=r.ok?'تم بنجاح. عد إلى التطبيق وسجّل الدخول.':'تعذر إتمام الطلب؛ تحقق من كلمة المرور وصلاحية الرابط.';}catch(e){document.getElementById('status').textContent='تعذر الاتصال.';}finally{b.disabled=false;}};</script></html>""",
+    let result={};try{result=await r.json();}catch(_){}
+    if(r.ok){button.hidden=true;status.textContent=verify?'تم تفعيل البريد بنجاح. عد إلى التطبيق وسجّل الدخول.':'تم تغيير كلمة المرور. عد إلى التطبيق وسجّل الدخول.';return;}
+    status.textContent=result.detail==='EMAIL_LINK_INVALID_OR_EXPIRED'?'هذا الرابط منتهي أو سبق استخدامه. اطلب رابطًا جديدًا من صفحة الحساب.':reset?'تعذر تغيير كلمة المرور؛ استخدم 8 أحرف على الأقل وتحقق من صلاحية الرابط.':'تعذر تفعيل البريد بسبب خطأ في الطلب. اطلب رابطًا جديدًا.';
+    }catch(e){status.textContent='تعذر الاتصال بالخادم. تحقق من الشبكة وحاول مجددًا.';}finally{if(!button.hidden)button.disabled=false;}};
+    </script></html>""",
         headers={
             "Cache-Control": "no-store",
             "Referrer-Policy": "no-referrer",
@@ -225,6 +327,7 @@ def logout(request: Request, response: Response, owner=Depends(guardian), databa
             (digest(token(request, "guardian")),),
         )
     response.delete_cookie("iqtadi_guardian", path=COOKIE_PATH)
+    response.delete_cookie("iqtadi_device", path=COOKIE_PATH)
     return {"disconnected": True}
 
 
@@ -288,11 +391,15 @@ def add_group(body: GroupBody, owner=Depends(guardian), database=Depends(store))
                 key,
                 owner["id"],
                 name,
-                "FAMILY" if owner["role"] == "PARENT" else "CLASSROOM",
+                "FAMILY",
                 tz,
                 schedule,
                 datetime.now(timezone.utc).isoformat(),
             ),
+        )
+        db.execute(
+            "INSERT OR IGNORE INTO family_memberships VALUES(?,?,?,?)",
+            (key, owner["id"], "OWNER", datetime.now(timezone.utc).isoformat()),
         )
     return {"id": key}
 
@@ -303,7 +410,9 @@ def groups(owner=Depends(guardian), database=Depends(store)):
         return [
             dict(r) | {"schedule": json.loads(r["schedule"])}
             for r in db.execute(
-                "SELECT * FROM groups WHERE owner_user_id=? ORDER BY created_at", (owner["id"],)
+                """SELECT * FROM groups WHERE owner_user_id=? AND type<>'PERSONAL'
+                   ORDER BY created_at""",
+                (owner["id"],),
             )
         ]
 
@@ -346,8 +455,12 @@ def add_child(group_id: str, body: ChildBody, owner=Depends(guardian), database=
     key = str(uuid.uuid4())
     with database.transaction() as db:
         owned_group(db, group_id, owner)
+        created_at = datetime.now(timezone.utc).isoformat()
         db.execute(
-            "INSERT INTO children VALUES(?,?,?,?,?,?,?)",
+            """INSERT INTO children
+               (id,group_id,name,age,avatar,active,created_at,profile_kind,
+                account_user_id,age_band,alias)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 key,
                 group_id,
@@ -355,8 +468,16 @@ def add_child(group_id: str, body: ChildBody, owner=Depends(guardian), database=
                 body.age,
                 body.avatar,
                 body.active,
-                datetime.now(timezone.utc).isoformat(),
+                created_at,
+                "DEPENDENT",
+                None,
+                "CHILD",
+                None,
             ),
+        )
+        db.execute(
+            "INSERT OR IGNORE INTO guardian_links VALUES(?,?,?,?)",
+            (owner["id"], key, "OWNER", created_at),
         )
     return {"id": key}
 
@@ -394,6 +515,10 @@ def pairing(child_id: str, request: Request, owner=Depends(guardian), database=D
         )
     return {
         "qr_payload": "iqtadi-pair:" + raw,
+        "qr_url": get_settings().account_public_url.rstrip("/")
+        + COOKIE_PATH
+        + "/pairing/open#pair="
+        + quote(raw, safe=""),
         "code": code,
         "expires_at": datetime.fromtimestamp(expires, timezone.utc).isoformat(),
     }
@@ -402,6 +527,27 @@ def pairing(child_id: str, request: Request, owner=Depends(guardian), database=D
 class RedeemBody(Body):
     token: str = Field(min_length=8, max_length=200)
     platform: str = Field(pattern="^(android|web|ios|other)$")
+
+
+@router.get("/pairing/open", response_class=HTMLResponse)
+def open_pairing_link():
+    """Bypass an older offline shell before handing the fragment to Flutter."""
+
+    return HTMLResponse(
+        """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Iqtadi</title></head><body><script>
+(async()=>{
+  const target='/' + location.hash;
+  if ('serviceWorker' in navigator) {
+    const registrations=await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(registration=>registration.unregister()));
+  }
+  location.replace(target);
+})().catch(()=>location.replace('/' + location.hash));
+</script></body></html>""",
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
 
 
 @router.post("/pairing/redeem", dependencies=[Depends(boundary)])
@@ -427,21 +573,128 @@ def redeem(body: RedeemBody, request: Request, response: Response, database=Depe
         db.execute("UPDATE pairing_tokens SET used_at=? WHERE id=?", (now, pair["id"]))
         db.execute(
             "INSERT INTO devices VALUES(?,?,?,?,?,?,?,NULL)",
-            (key, pair["child_id"], digest(raw), body.platform, now, now, now + 180 * 86400),
+            (
+                key,
+                pair["child_id"],
+                digest(raw),
+                body.platform,
+                now,
+                now,
+                now + DEVICE_SESSION_SECONDS,
+            ),
         )
     return session_response(
         request,
         response,
         "device",
         raw,
-        180 * 86400,
-        {"device_id": key, "child_id": pair["child_id"], "name": pair["name"]},
+        DEVICE_SESSION_SECONDS,
+        {
+            "device_id": key,
+            "child_id": pair["child_id"],
+            "name": pair["name"],
+            "profile_kind": "DEPENDENT",
+        },
     )
 
 
 @router.get("/device")
 def device_me(child=Depends(device)):
-    return {k: child[k] for k in ("id", "child_id", "name", "expires_at")}
+    return {
+        k: child[k]
+        for k in ("id", "child_id", "name", "profile_kind", "expires_at")
+    }
+
+
+@router.get("/device/progress")
+def device_progress(child=Depends(device), database=Depends(store)):
+    """The paired learner may read only their own scalar practice summary."""
+
+    with database.transaction() as db:
+        profile = db.execute(
+            "SELECT c.*,g.name group_name,g.timezone,g.schedule FROM children c JOIN groups g ON g.id=c.group_id WHERE c.id=?",
+            (child["child_id"],),
+        ).fetchone()
+        if not profile:
+            raise HTTPException(404, "PROFILE_NOT_FOUND")
+        timing = PrayerTimeService(profile["timezone"], json.loads(profile["schedule"]))
+        today = datetime.now(timing.tz).date()
+        attempts = [
+            dict(row)
+            for row in db.execute(
+                "SELECT * FROM attempts WHERE child_id=?", (child["child_id"],)
+            )
+        ]
+        summary = progress(attempts, timing, today)
+        rankings = []
+        memberships = db.execute(
+            """SELECT mg.id group_id,mg.name group_name,m.name mosque_name,
+                      gm.alias,gc.leaderboard,gc.share_practice,gc.share_attendance,
+                      mg.timezone,mg.schedule
+               FROM group_memberships gm JOIN mosque_groups mg ON mg.id=gm.group_id
+               JOIN mosques m ON m.id=mg.mosque_id
+               JOIN guardian_consents gc ON gc.group_id=gm.group_id
+                 AND gc.child_id=gm.child_id AND gc.revoked_at IS NULL
+               WHERE gm.child_id=? AND gm.status='ACTIVE'""",
+            (child["child_id"],),
+        ).fetchall()
+        for membership in memberships:
+            item = {
+                "group_id": membership["group_id"],
+                "group_name": membership["group_name"],
+                "mosque_name": membership["mosque_name"],
+                "alias": membership["alias"],
+                "leaderboard_enabled": bool(membership["leaderboard"]),
+            }
+            if membership["leaderboard"] and membership["share_practice"]:
+                group_timing = PrayerTimeService(
+                    membership["timezone"], json.loads(membership["schedule"])
+                )
+                members = db.execute(
+                    """SELECT gm.child_id,gm.alias FROM group_memberships gm
+                       JOIN guardian_consents gc ON gc.group_id=gm.group_id
+                         AND gc.child_id=gm.child_id AND gc.revoked_at IS NULL
+                       WHERE gm.group_id=? AND gm.status='ACTIVE'
+                         AND gc.leaderboard=1 AND gc.share_practice=1""",
+                    (membership["group_id"],),
+                ).fetchall()
+                board = []
+                for member in members:
+                    member_attempts = [
+                        dict(row)
+                        for row in db.execute(
+                            "SELECT * FROM attempts WHERE child_id=?", (member["child_id"],)
+                        )
+                    ]
+                    member_summary = progress(member_attempts, group_timing, today)
+                    board.append(
+                        (member["child_id"], member_summary["weekly_points"])
+                    )
+                board.sort(key=lambda row: (-row[1], row[0]))
+                position = next(
+                    (index + 1 for index, row in enumerate(board) if row[0] == child["child_id"]),
+                    None,
+                )
+                item.update(
+                    {
+                        "practice_position": position,
+                        "participants": len(board),
+                        "weekly_points": summary["weekly_points"],
+                    }
+                )
+            rankings.append(item)
+        return {
+            "child_id": child["child_id"],
+            "name": profile["name"],
+            "date": summary["date"],
+            "points": summary["points"],
+            "valid_prayers": summary["valid_prayers"],
+            "weekly_points": summary["weekly_points"],
+            "weekly_valid_prayers": summary["weekly_valid_prayers"],
+            "streak": summary["streak"],
+            "states": summary["states"],
+            "group_rankings": rankings,
+        }
 
 
 @router.delete("/device")

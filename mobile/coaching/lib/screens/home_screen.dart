@@ -7,7 +7,6 @@ import '../ui/app_theme.dart';
 import '../ui/ui_kit.dart';
 import '../ui/brand_header.dart';
 import 'video_analysis_screen.dart';
-import '../mosque/screen.dart';
 import 'local_prayer_references_screen.dart';
 import 'local_sessions_screen.dart';
 import '../local/offline_notice.dart';
@@ -60,16 +59,14 @@ class HomeScreen extends StatelessWidget {
                         trailing: Icon(Icons.chevron_left),
                       ),
                     ),
-                  AppCard(
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const MosqueCompanionScreen())),
-                    child: const ListTile(
+                  const AppCard(
+                    child: ListTile(
                       leading:
                           Icon(Icons.people_outline, color: AppColors.accent),
-                      title: Text('رفيق المسجد — Mosque Companion'),
+                      title: Text('رفيق المسجد — قريبًا'),
                       subtitle:
-                          Text('رفيق مشي أو توصيلة ودعم بسيط • ديمو تجريبي'),
-                      trailing: Icon(Icons.chevron_left),
+                          Text('رفيق مشي أو توصيلة ودعم بسيط • قيد التجهيز'),
+                      trailing: PillTag('قريبًا', tone: Tone.info),
                     ),
                   ),
                   const SectionTitle(

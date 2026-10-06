@@ -7,3 +7,5 @@ Future<String?> readAccountToken(String key) => _vault.read(key: key);
 Future<void> writeAccountToken(String key, String? value) => value == null
     ? _vault.delete(key: key)
     : _vault.write(key: key, value: value);
+String? initialAccountPairingCode() => null;
+void clearAccountPairingLink() {}

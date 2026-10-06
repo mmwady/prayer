@@ -19,17 +19,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .admin.prayer_references import router as prayer_reference_router
-from .config import get_settings
-from .logging_config import configure_logging
-from .prayer.guidance import router as prayer_guidance_router
-from .analysis.api import router as analysis_router
-from .analysis.jobs import JobManager
-from .analysis.live import LiveManager, router as live_router
-from .analysis.security import AnalysisBoundary
-from .mosque.api import router as mosque_router
 from .accounts.api import router as accounts_router
 from .accounts.boundary import AccountBoundary
+from .accounts.community import router as account_spaces_router
+from .admin.prayer_references import router as prayer_reference_router
+from .analysis.api import router as analysis_router
+from .analysis.jobs import JobManager
+from .analysis.live import LiveManager
+from .analysis.live import router as live_router
+from .analysis.security import AnalysisBoundary
+from .config import get_settings
+from .logging_config import configure_logging
+from .mosque.api import router as mosque_router
+from .prayer.guidance import router as prayer_guidance_router
 
 
 def create_app() -> FastAPI:
@@ -89,6 +91,7 @@ def create_app() -> FastAPI:
     app.include_router(live_router)
     app.include_router(mosque_router)
     app.include_router(accounts_router)
+    app.include_router(account_spaces_router)
 
     return app
 

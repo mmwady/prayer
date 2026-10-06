@@ -9,6 +9,7 @@
 //   flutter run --dart-define=BACKEND_URL=http://192.168.1.10:8000
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Env {
@@ -23,7 +24,9 @@ class Env {
     defaultValue: 'http://127.0.0.1:8000',
   );
   static String? _override;
-  static String get backendUrl => _override ?? defaultBackendUrl;
+  // Web follows the page origin so one build works on localhost and Wi-Fi.
+  static String get backendUrl =>
+      _override ?? (kIsWeb ? Uri.base.origin : defaultBackendUrl);
 
   static String normalizeUrl(String value) {
     final uri = Uri.tryParse(value.trim());

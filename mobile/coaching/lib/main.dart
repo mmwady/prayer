@@ -14,8 +14,11 @@ import 'state/locale_provider.dart';
 import 'ui/app_theme.dart';
 import 'config/env.dart';
 import 'accounts/controller.dart';
+import 'accounts/platform.dart';
 
 Future<void> main() async {
+  // Read a one-time child pairing link before MaterialApp normalizes the URL.
+  final startupPairingCode = initialAccountPairingCode();
   // Restore the test endpoint before any backend client is constructed.
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -24,19 +27,22 @@ Future<void> main() async {
   runApp(
     ChangeNotifierProvider(
       create: (_) => LocaleProvider(),
-      child: const CoachingApp(),
+      child: CoachingApp(startupPairingCode: startupPairingCode),
     ),
   );
 }
 
 /// Root widget: shared Arabic RTL theme for Android and responsive Web.
 class CoachingApp extends StatelessWidget {
-  const CoachingApp({super.key});
+  const CoachingApp({super.key, this.startupPairingCode});
+
+  final String? startupPairingCode;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => AccountController()..initialize(),
+      create: (_) => AccountController(startupPairingCode: startupPairingCode)
+        ..initialize(),
       child: Consumer<LocaleProvider>(
         builder: (context, localeProvider, child) {
           return MaterialApp(
