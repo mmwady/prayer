@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -87,7 +88,10 @@ class _OfflineNoticeState extends State<OfflineNotice> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_enabled || _status.state == 'installed') {
+    if (!_enabled ||
+        _status.state == 'installed' ||
+        _status.state == 'failed' ||
+        _status.state == 'unavailable') {
       return const SizedBox.shrink();
     }
     final preparing = _status.state == 'preparing';
@@ -98,9 +102,9 @@ class _OfflineNoticeState extends State<OfflineNotice> {
         : update
             ? 'تحديث التطبيق جاهز'
             : ready
-                ? 'جاهز للتدريب دون اتصال'
+                ? 'اكتمل تحميل التطبيق'
                 : preparing
-                    ? 'جارٍ تجهيز التدريب دون إنترنت'
+                    ? 'جاري تحميل التطبيق'
                     : 'لم يكتمل الحفظ للتشغيل دون إنترنت';
     final text = _applying
         ? 'سيُعاد فتح التطبيق بعد اكتمال التحديث.'
@@ -128,29 +132,37 @@ class _OfflineNoticeState extends State<OfflineNotice> {
                 color: ready ? AppColors.accent : AppColors.info),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
-                child: Text(title,
+                child: Text(localized(context, title),
                     style: Theme.of(context).textTheme.titleMedium)),
           ]),
-          const SizedBox(height: AppSpacing.sm),
-          Text(text),
-          if (preparing || _applying) ...[
+          if ((!preparing && !ready) || _applying) ...[
             const SizedBox(height: AppSpacing.sm),
-            LinearProgressIndicator(value: _applying ? null : _status.progress),
-            if (!_applying && _status.total > 0)
-              Text('حُفظ ${_status.completed} من ${_status.total} ملفًا'),
+            Text(localized(context, text)),
+          ],
+          if (preparing && !_applying) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(localized(
+                context, '{0}%', [((_status.progress ?? 0) * 100).round()])),
+          ],
+          if (_applying) ...[
+            const SizedBox(height: AppSpacing.sm),
+            const LinearProgressIndicator(),
           ],
           if (update) ...[
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
               onPressed: _applying ? null : _update,
               icon: const Icon(Icons.system_update_alt),
-              label: const Text('تطبيق التحديث'),
+              label: Text(localized(context, 'تطبيق التحديث')),
             ),
           ],
           if (_updateError != null)
-            AppNote(_updateError!, icon: Icons.info_outline),
-          const SizedBox(height: AppSpacing.sm),
-          const Text('صورك وفيديوهاتك تبقى على جهازك.'),
+            AppNote(localized(context, _updateError!),
+                icon: Icons.info_outline),
+          if ((!preparing && !ready) || _applying) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(localized(context, 'صورك وفيديوهاتك تبقى على جهازك.')),
+          ],
         ],
       ),
     );

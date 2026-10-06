@@ -12,6 +12,7 @@ void main() {
     await tester.pumpWidget(ChangeNotifierProvider(
         create: (_) => LocaleProvider(), child: const CoachingApp()));
     expect(find.text('اقتدِ'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('صلاة الفجر'), 250);
     expect(find.text('صلاة الفجر'), findsOneWidget);
     expect(Directionality.of(tester.element(find.text('اقتدِ'))),
         TextDirection.rtl);

@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -18,13 +19,19 @@ class AccountEntry extends StatelessWidget {
           .push(MaterialPageRoute(builder: (_) => const AccountScreen())),
       child: ListTile(
           leading: const Icon(Icons.family_restroom, color: AppColors.accent),
-          title: Text(c.child == null
-              ? 'الحساب والمتابعة — اختياري'
-              : 'السلام عليكم يا ${c.child!['name']}'),
-          subtitle: Text(c.child != null
-              ? 'التحليل على جهازك • ${c.queue.length} نتيجة تنتظر المزامنة'
-              : 'ولي أمر أو معلم؟ تابع النتائج النهائية فقط'),
-          trailing: const Icon(Icons.chevron_left)),
+          title: Text(localized(
+              context,
+              c.child == null
+                  ? 'الحساب والمتابعة — اختياري'
+                  : 'السلام عليكم يا ${c.child!['name']}')),
+          subtitle: Text(localized(
+              context,
+              c.child != null
+                  ? 'التحليل على جهازك • ${c.queue.length} نتيجة تنتظر المزامنة'
+                  : 'ولي أمر أو معلم؟ تابع النتائج النهائية فقط')),
+          trailing: Icon(Directionality.of(context) == TextDirection.rtl
+              ? Icons.chevron_left
+              : Icons.chevron_right)),
     );
   }
 }
@@ -55,53 +62,59 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     final c = context.watch<AccountController>();
     return Scaffold(
-        appBar: AppBar(title: const Text('الحساب والمتابعة')),
+        appBar: AppBar(title: Text(localized(context, 'الحساب والمتابعة'))),
         body: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 680),
                 child: ListView(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     children: [
-                      const AppNote(
-                          'تحليل الصلاة محلي على جهازك. تصل ملخصات النتائج فقط عند ربط الجهاز. الحساب اختياري؛ التدريب متاح دون إنترنت.'),
+                      AppNote(localized(context,
+                          'تحليل الصلاة محلي على جهازك. تصل ملخصات النتائج فقط عند ربط الجهاز. الحساب اختياري؛ التدريب متاح دون إنترنت.')),
                       if (!c.ready || c.busy) const LinearProgressIndicator(),
                       if (c.error != null)
                         Padding(
                             padding: const EdgeInsets.all(12),
-                            child: Text(c.error!,
+                            child: Text(localized(context, c.error!),
                                 style:
                                     const TextStyle(color: AppColors.warning))),
                       if (c.child != null) ...[
-                        Text('السلام عليكم يا ${c.child!['name']}',
+                        Text(
+                            localized(context, 'السلام عليكم يا {0}',
+                                [c.child!['name']]),
                             style: Theme.of(context).textTheme.titleLarge),
-                        Text('${c.queue.length} نتيجة محفوظة تنتظر المزامنة'),
-                        const AppNote(
-                            'نتيجة الفيديو تُسجل بوقت انتهاء التحليل، وليس وقت تصوير الفيديو القديم. النتائج غير المؤكدة تظهر للمراجعة ولا تُحتسب كنجاح.'),
+                        Text(localized(
+                            context,
+                            '{0} نتيجة محفوظة تنتظر المزامنة',
+                            [c.queue.length])),
+                        AppNote(localized(context,
+                            'نتيجة الفيديو تُسجل بوقت انتهاء التحليل، وليس وقت تصوير الفيديو القديم. النتائج غير المؤكدة تظهر للمراجعة ولا تُحتسب كنجاح.')),
                         FilledButton.icon(
                             onPressed: c.syncing ? null : c.sync,
                             icon: const Icon(Icons.sync),
-                            label: const Text('مزامنة النتائج')),
+                            label: Text(localized(context, 'مزامنة النتائج'))),
                         TextButton(
                             onPressed: c.busy || c.syncing
                                 ? null
                                 : () => c.action(c.disconnect),
-                            child: const Text('فصل هذا الجهاز')),
+                            child: Text(localized(context, 'فصل هذا الجهاز'))),
                       ] else ...[
-                        const SectionTitle('ربط جهاز طفل / طالب',
+                        SectionTitle(localized(context, 'ربط جهاز طفل / طالب'),
                             icon: Icons.qr_code_scanner),
                         TextField(
                             controller: _code,
                             textDirection: TextDirection.ltr,
-                            decoration: const InputDecoration(
-                                labelText: 'رمز الربط المؤقت',
-                                helperText:
-                                    'أدخل الرمز المعروض عند ولي الأمر أو المعلم')),
+                            decoration: InputDecoration(
+                                labelText:
+                                    localized(context, 'رمز الربط المؤقت'),
+                                helperText: localized(context,
+                                    'أدخل الرمز المعروض عند ولي الأمر أو المعلم'))),
                         Wrap(spacing: 12, children: [
                           FilledButton(
                               onPressed: c.busy
                                   ? null
                                   : () => c.action(() => c.pair(_code.text)),
-                              child: const Text('ربط الجهاز')),
+                              child: Text(localized(context, 'ربط الجهاز'))),
                           OutlinedButton.icon(
                               onPressed: c.busy
                                   ? null
@@ -116,24 +129,26 @@ class _AccountScreenState extends State<AccountScreen> {
                                       }
                                     },
                               icon: const Icon(Icons.qr_code_scanner),
-                              label: const Text('مسح QR')),
+                              label: Text(localized(context, 'مسح QR'))),
                         ]),
-                        const AppNote(
-                            'إدخال الرمز متاح دائمًا على الويب إذا لم تدعم الكاميرا المسح.'),
+                        AppNote(localized(context,
+                            'إدخال الرمز متاح دائمًا على الويب إذا لم تدعم الكاميرا المسح.')),
                       ],
                       const SizedBox(height: 24),
                       if (c.guardian != null) ...[
-                        Text('مرحبًا ${c.guardian!['name']}',
+                        Text(
+                            localized(
+                                context, 'مرحبًا {0}', [c.guardian!['name']]),
                             style: Theme.of(context).textTheme.titleLarge),
                         FilledButton.icon(
                             onPressed: () => Navigator.of(context).push(
                                 MaterialPageRoute(
                                     builder: (_) => const DashboardScreen())),
                             icon: const Icon(Icons.dashboard_outlined),
-                            label: const Text('لوحة المتابعة')),
+                            label: Text(localized(context, 'لوحة المتابعة'))),
                         TextButton(
                             onPressed: c.busy ? null : () => c.action(c.logout),
-                            child: const Text('تسجيل الخروج')),
+                            child: Text(localized(context, 'تسجيل الخروج'))),
                       ] else
                         Form(
                             key: form,
@@ -141,49 +156,57 @@ class _AccountScreenState extends State<AccountScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   SectionTitle(
-                                      signup
-                                          ? 'إنشاء حساب'
-                                          : 'دخول ولي أمر / معلم',
+                                      localized(
+                                          context,
+                                          signup
+                                              ? 'إنشاء حساب'
+                                              : 'دخول ولي أمر / معلم'),
                                       icon: Icons.person_outline),
                                   if (signup)
                                     TextFormField(
                                         controller: _name,
-                                        decoration: const InputDecoration(
-                                            labelText: 'الاسم الكامل'),
-                                        validator: (v) =>
-                                            (v?.trim().isEmpty ?? true)
-                                                ? 'أدخل الاسم'
-                                                : null),
+                                        decoration: InputDecoration(
+                                            labelText: localized(
+                                                context, 'الاسم الكامل')),
+                                        validator: (v) => (v?.trim().isEmpty ??
+                                                true)
+                                            ? localized(context, 'أدخل الاسم')
+                                            : null),
                                   TextFormField(
                                       controller: _email,
                                       keyboardType: TextInputType.emailAddress,
                                       textDirection: TextDirection.ltr,
-                                      decoration: const InputDecoration(
-                                          labelText: 'البريد الإلكتروني'),
-                                      validator: (v) =>
-                                          v != null && v.contains('@')
-                                              ? null
-                                              : 'أدخل بريدًا صالحًا'),
+                                      decoration: InputDecoration(
+                                          labelText: localized(
+                                              context, 'البريد الإلكتروني')),
+                                      validator: (v) => v != null &&
+                                              v.contains('@')
+                                          ? null
+                                          : localized(
+                                              context, 'أدخل بريدًا صالحًا')),
                                   TextFormField(
                                       controller: _password,
                                       obscureText: true,
                                       textDirection: TextDirection.ltr,
-                                      decoration: const InputDecoration(
-                                          labelText:
-                                              'كلمة المرور (10 أحرف على الأقل)'),
+                                      decoration: InputDecoration(
+                                          labelText: localized(context,
+                                              'كلمة المرور (10 أحرف على الأقل)')),
                                       validator: (v) => (v?.length ?? 0) >= 10
                                           ? null
-                                          : '10 أحرف على الأقل'),
+                                          : localized(
+                                              context, '10 أحرف على الأقل')),
                                   if (signup)
                                     DropdownButtonFormField<String>(
                                         initialValue: role,
-                                        items: const [
+                                        items: [
                                           DropdownMenuItem(
                                               value: 'PARENT',
-                                              child: Text('ولي أمر')),
+                                              child: Text(localized(
+                                                  context, 'ولي أمر'))),
                                           DropdownMenuItem(
                                               value: 'TEACHER',
-                                              child: Text('معلم'))
+                                              child: Text(
+                                                  localized(context, 'معلم')))
                                         ],
                                         onChanged: (v) =>
                                             setState(() => role = v!)),
@@ -203,29 +226,34 @@ class _AccountScreenState extends State<AccountScreen> {
                                                         : null));
                                               }
                                             },
-                                      child: Text(signup
-                                          ? 'إنشاء الحساب وإرسال رابط التفعيل'
-                                          : 'تسجيل الدخول')),
+                                      child: Text(localized(
+                                          context,
+                                          signup
+                                              ? 'إنشاء الحساب وإرسال رابط التفعيل'
+                                              : 'تسجيل الدخول'))),
                                   TextButton(
                                       onPressed: () =>
                                           setState(() => signup = !signup),
-                                      child: Text(signup
-                                          ? 'لدي حساب بالفعل'
-                                          : 'إنشاء حساب جديد')),
+                                      child: Text(localized(
+                                          context,
+                                          signup
+                                              ? 'لدي حساب بالفعل'
+                                              : 'إنشاء حساب جديد'))),
                                   TextButton(
                                       onPressed: c.busy
                                           ? null
                                           : () => c.action(
                                               () => c.recover(_email.text)),
-                                      child: const Text('نسيت كلمة المرور')),
+                                      child: Text(localized(
+                                          context, 'نسيت كلمة المرور'))),
                                   TextButton(
                                       onPressed: c.busy
                                           ? null
                                           : () => c.action(() =>
                                               c.resendVerification(
                                                   _email.text, _password.text)),
-                                      child: const Text(
-                                          'إعادة إرسال رابط التفعيل')),
+                                      child: Text(localized(context,
+                                          'إعادة إرسال رابط التفعيل'))),
                                 ])),
                     ]))));
   }
@@ -248,18 +276,18 @@ class _PairScannerState extends State<PairScanner> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text('مسح رمز الربط')),
+      appBar: AppBar(title: Text(localized(context, 'مسح رمز الربط'))),
       body: Column(children: [
-        const AppNote(
-            'اسمح بالكاميرا لمسح QR فقط. إذا تعذر المسح، ارجع وأدخل الرمز يدويًا.'),
+        AppNote(localized(context,
+            'اسمح بالكاميرا لمسح QR فقط. إذا تعذر المسح، ارجع وأدخل الرمز يدويًا.')),
         Expanded(
             child: MobileScanner(
                 controller: scanner,
-                errorBuilder: (context, error) => const Center(
+                errorBuilder: (context, error) => Center(
                         child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.lg),
-                      child: Text(
-                          'تعذر فتح ماسح الكاميرا. ارجع وأدخل رمز الربط يدويًا.'),
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Text(localized(context,
+                          'تعذر فتح ماسح الكاميرا. ارجع وأدخل رمز الربط يدويًا.')),
                     )),
                 onDetect: (capture) {
                   if (found) return;
@@ -337,22 +365,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final c = context.watch<AccountController>();
     final children = dashboard?['children'] as List? ?? [];
     return Scaffold(
-        appBar: AppBar(title: const Text('لوحة المتابعة'), actions: [
-          IconButton(onPressed: load, icon: const Icon(Icons.refresh))
-        ]),
+        appBar: AppBar(
+            title: Text(localized(context, 'لوحة المتابعة')),
+            actions: [
+              IconButton(onPressed: load, icon: const Icon(Icons.refresh))
+            ]),
         body: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1050),
                 child: ListView(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     children: [
-                      Text('مرحبًا ${c.guardian?['name'] ?? ''}',
+                      Text(
+                          localized(context, 'مرحبًا {0}',
+                              [c.guardian?['name'] ?? '']),
                           style: Theme.of(context).textTheme.headlineSmall),
-                      const AppNote(
-                          'النقاط لتشجيع اكتمال الحركات المرصودة؛ ليست حكمًا على صحة الصلاة. +5 لكل صلاة مؤكدة و+2 للتوقيت و+3 ليوم مكتمل. لا خصم ولا نقاط إضافية لتكرار المحاولات.'),
+                      AppNote(localized(context,
+                          'النقاط لتشجيع اكتمال الحركات المرصودة؛ ليست حكمًا على صحة الصلاة. +5 لكل صلاة مؤكدة و+2 للتوقيت و+3 ليوم مكتمل. لا خصم ولا نقاط إضافية لتكرار المحاولات.')),
                       if (loading) const LinearProgressIndicator(),
                       if (error != null || c.error != null)
-                        Text(error ?? c.error!,
+                        Text(localized(context, error ?? c.error!),
                             style: const TextStyle(color: AppColors.warning)),
                       if (groups.isNotEmpty)
                         DropdownButtonFormField<String>(
@@ -372,9 +404,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         OutlinedButton.icon(
                             onPressed: c.busy ? null : () => groupForm(),
                             icon: const Icon(Icons.group_add_outlined),
-                            label: Text(c.guardian?['role'] == 'TEACHER'
-                                ? 'إضافة فصل'
-                                : 'إضافة أسرة')),
+                            label: Text(localized(
+                                context,
+                                c.guardian?['role'] == 'TEACHER'
+                                    ? 'إضافة فصل'
+                                    : 'إضافة أسرة'))),
                         if (selected != null)
                           OutlinedButton.icon(
                               onPressed: c.busy
@@ -383,19 +417,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       existing: groups.firstWhere(
                                           (g) => g['id'] == selected)),
                               icon: const Icon(Icons.schedule),
-                              label: const Text('إعداد مواقيت المجموعة')),
+                              label: Text(
+                                  localized(context, 'إعداد مواقيت المجموعة'))),
                         if (selected != null)
                           FilledButton.icon(
                               onPressed: c.busy ? null : () => childForm(),
                               icon: const Icon(Icons.person_add_alt),
-                              label: const Text('إضافة طفل / طالب')),
+                              label:
+                                  Text(localized(context, 'إضافة طفل / طالب'))),
                       ]),
                       if (dashboard != null) ...[
-                        SectionTitle('متابعة اليوم ${dashboard!['date']}',
+                        SectionTitle(
+                            localized(context, 'متابعة اليوم {0}',
+                                [dashboard!['date']]),
                             icon: Icons.today),
                         if ((dashboard!['group']['schedule'] as Map).isEmpty)
-                          const AppNote(
-                              'لم تُحدد مواقيت بعد. النتائج تُحتسب دون مكافأة توقيت؛ الصلاة غير المسجلة لا تُعتبر فائتة دون جدول.'),
+                          AppNote(localized(context,
+                              'لم تُحدد مواقيت بعد. النتائج تُحتسب دون مكافأة توقيت؛ الصلاة غير المسجلة لا تُعتبر فائتة دون جدول.')),
                         for (final child in children)
                           AppCard(
                               child: Column(
@@ -408,13 +446,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             .characters
                                             .first)),
                                     title: Text(child['name']),
-                                    subtitle: Text(
-                                        '${child['valid_prayers']}/5 • ${child['points']} نقطة اليوم • سلسلة ${child['streak']} أيام مكتملة\n${_movementSummary(child)}')),
+                                    subtitle: Text(localized(
+                                        context,
+                                        '{0}/5 • {1} نقطة اليوم • سلسلة {2} أيام مكتملة\n{3}',
+                                        [
+                                          child['valid_prayers'],
+                                          child['points'],
+                                          child['streak'],
+                                          localized(
+                                              context, _movementSummary(child))
+                                        ]))),
                                 Wrap(spacing: 8, runSpacing: 8, children: [
                                   for (final prayer in _prayers.entries)
                                     Tooltip(
-                                        message:
-                                            '${_state(child['states'][prayer.key])}${_prayerScore(child, prayer.key)}',
+                                        message: localized(context, '{0}{1}', [
+                                          localized(
+                                              context,
+                                              _state(
+                                                  child['states'][prayer.key])),
+                                          localized(context,
+                                              _prayerScore(child, prayer.key))
+                                        ]),
                                         child: Chip(
                                             label: Row(
                                                 mainAxisSize: MainAxisSize.min,
@@ -428,7 +480,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                           [prayer.key])),
                                               const SizedBox(
                                                   width: AppSpacing.xs),
-                                              Text(prayer.value),
+                                              Text(localized(
+                                                  context, prayer.value)),
                                             ])))
                                 ]),
                                 Wrap(spacing: 8, children: [
@@ -436,38 +489,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       onPressed:
                                           c.busy ? null : () => pairing(child),
                                       icon: const Icon(Icons.qr_code),
-                                      label: const Text('ربط جهاز')),
+                                      label:
+                                          Text(localized(context, 'ربط جهاز'))),
                                   TextButton.icon(
                                       onPressed: () => devices(child),
                                       icon: const Icon(Icons.devices),
-                                      label: const Text('الأجهزة')),
+                                      label:
+                                          Text(localized(context, 'الأجهزة'))),
                                   TextButton(
                                       onPressed: () => childForm(
                                           existing:
                                               Map<String, dynamic>.from(child)),
-                                      child: const Text('تعديل / إيقاف')),
+                                      child: Text(
+                                          localized(context, 'تعديل / إيقاف'))),
                                   TextButton(
                                       onPressed: () => history(child),
-                                      child: const Text('الأسبوع')),
+                                      child:
+                                          Text(localized(context, 'الأسبوع'))),
                                 ])
                               ])),
-                        const AppNote(
-                            'نسبة اكتمال الحركات = المرصودة ÷ المتوقعة. أفضل محاولة لكل صلاة في اليوم؛ الترتيب بالنقاط ثم النسبة عند التعادل. النسبة لا تلغي الحاجة للمراجعة.'),
-                        const SectionTitle('ترتيب الأسبوع — آخر 7 أيام',
+                        AppNote(localized(context,
+                            'نسبة اكتمال الحركات = المرصودة ÷ المتوقعة. أفضل محاولة لكل صلاة في اليوم؛ الترتيب بالنقاط ثم النسبة عند التعادل. النسبة لا تلغي الحاجة للمراجعة.')),
+                        SectionTitle(
+                            localized(context, 'ترتيب الأسبوع — آخر 7 أيام'),
                             icon: Icons.emoji_events_outlined),
                         for (final child in dashboard!['leaderboard'])
                           AppCard(
                               child: ListTile(
                                   title: Text(child['name']),
-                                  trailing:
-                                      Text('${child['weekly_points']} نقطة'),
-                                  subtitle: Text(
-                                      '${child['weekly_valid_prayers']} صلاة مؤكدة • ${child['weekly_on_time_prayers']} في الوقت • سلسلة ${child['streak']} أيام\n${_movementSummary(child, weekly: true)}'))),
-                        const AppNote(
-                            'اضغط مطولًا على رمز الصلاة لمعرفة الحالة. الأخضر: مكتملة في الوقت، الساعة: متأخرة، النجمة: التوقيت غير معروف، علامة السؤال: تحتاج مراجعة، الساعة الرملية: لم ينتهِ الوقت / لم يحدد. سلسلة الأيام: خمس صلوات مؤكدة يوميًا.'),
+                                  trailing: Text(localized(context, '{0} نقطة',
+                                      [child['weekly_points']])),
+                                  subtitle: Text(localized(
+                                      context,
+                                      '{0} صلاة مؤكدة • {1} في الوقت • سلسلة {2} أيام\n{3}',
+                                      [
+                                        child['weekly_valid_prayers'],
+                                        child['weekly_on_time_prayers'],
+                                        child['streak'],
+                                        localized(
+                                            context,
+                                            _movementSummary(child,
+                                                weekly: true))
+                                      ])))),
+                        AppNote(localized(context,
+                            'اضغط مطولًا على رمز الصلاة لمعرفة الحالة. الأخضر: مكتملة في الوقت، الساعة: متأخرة، النجمة: التوقيت غير معروف، علامة السؤال: تحتاج مراجعة، الساعة الرملية: لم ينتهِ الوقت / لم يحدد. سلسلة الأيام: خمس صلوات مؤكدة يوميًا.')),
                       ] else if (!loading)
-                        const AppNote(
-                            'ابدأ بإضافة أسرة أو فصل، ثم الطفل، ثم اربط جهازه. تجربة الصلاة المحلية تظل متاحة للجميع.'),
+                        AppNote(localized(context,
+                            'ابدأ بإضافة أسرة أو فصل، ثم الطفل، ثم اربط جهازه. تجربة الصلاة المحلية تظل متاحة للجميع.')),
                     ]))));
   }
 
@@ -535,8 +603,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         context: context,
         builder: (dialog) => StatefulBuilder(
             builder: (dialog, update) => AlertDialog(
-                    title: Text(
-                        existing == null ? 'مجموعة جديدة' : 'إعدادات المجموعة'),
+                    title: Text(localized(
+                        context,
+                        existing == null
+                            ? 'مجموعة جديدة'
+                            : 'إعدادات المجموعة')),
                     content: SizedBox(
                         width: 440,
                         child: SingleChildScrollView(
@@ -545,49 +616,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 children: [
                               TextField(
                                   controller: name,
-                                  decoration: const InputDecoration(
-                                      labelText:
-                                          'اسم الأسرة / الفصل / المدينة')),
+                                  decoration: InputDecoration(
+                                      labelText: localized(context,
+                                          'اسم الأسرة / الفصل / المدينة'))),
                               TextField(
                                   controller: tz,
                                   textDirection: TextDirection.ltr,
-                                  decoration: const InputDecoration(
-                                      labelText:
-                                          'المنطقة الزمنية (مثل Africa/Cairo)')),
+                                  decoration: InputDecoration(
+                                      labelText: localized(context,
+                                          'المنطقة الزمنية (مثل Africa/Cairo)'))),
                               SwitchListTile(
                                   value: timing,
-                                  title:
-                                      const Text('مواقيت معتمدة لهذه الفترة'),
+                                  title: Text(localized(
+                                      context, 'مواقيت معتمدة لهذه الفترة')),
                                   onChanged: (v) => update(() => timing = v)),
                               if (timing) ...[
-                                const Text(
-                                    'أدخل جدول المدينة المعتمد، HH:MM بنظام 24 ساعة. مدة أقصاها 32 يومًا. خارجها يكون التوقيت غير معروف.'),
+                                Text(localized(context,
+                                    'أدخل جدول المدينة المعتمد، HH:MM بنظام 24 ساعة. مدة أقصاها 32 يومًا. خارجها يكون التوقيت غير معروف.')),
                                 TextField(
                                     controller: from,
                                     textDirection: TextDirection.ltr,
-                                    decoration: const InputDecoration(
-                                        labelText: 'من YYYY-MM-DD')),
+                                    decoration: InputDecoration(
+                                        labelText: localized(
+                                            context, 'من YYYY-MM-DD'))),
                                 TextField(
                                     controller: until,
                                     textDirection: TextDirection.ltr,
-                                    decoration: const InputDecoration(
-                                        labelText: 'حتى YYYY-MM-DD')),
+                                    decoration: InputDecoration(
+                                        labelText: localized(
+                                            context, 'حتى YYYY-MM-DD'))),
                                 for (final e in clocks.entries)
                                   TextField(
                                       controller: e.value,
                                       textDirection: TextDirection.ltr,
                                       decoration: InputDecoration(
-                                          labelText:
-                                              '${_prayers[e.key] ?? 'الشروق'} HH:MM')),
+                                          labelText: localized(
+                                              context, '{0} HH:MM', [
+                                        localized(context,
+                                            _prayers[e.key] ?? 'الشروق')
+                                      ]))),
                               ]
                             ]))),
                     actions: [
                       TextButton(
                           onPressed: () => Navigator.pop(dialog, false),
-                          child: const Text('إلغاء')),
+                          child: Text(localized(context, 'إلغاء'))),
                       FilledButton(
                           onPressed: () => Navigator.pop(dialog, true),
-                          child: const Text('حفظ'))
+                          child: Text(localized(context, 'حفظ')))
                     ])));
     if (ok == true && mounted) {
       await run(() async {
@@ -620,31 +696,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
         context: context,
         builder: (dialog) => StatefulBuilder(
             builder: (dialog, update) => AlertDialog(
-                    title: const Text('طفل / طالب'),
+                    title: Text(localized(context, 'طفل / طالب')),
                     content: Column(mainAxisSize: MainAxisSize.min, children: [
                       TextField(
                           controller: name,
-                          decoration:
-                              const InputDecoration(labelText: 'الاسم')),
+                          decoration: InputDecoration(
+                              labelText: localized(context, 'الاسم'))),
                       TextField(
                           controller: age,
                           keyboardType: TextInputType.number,
-                          decoration:
-                              const InputDecoration(labelText: 'العمر (3–25)')),
+                          decoration: InputDecoration(
+                              labelText: localized(context, 'العمر (3–25)'))),
                       if (existing != null)
                         SwitchListTile(
                             value: active,
-                            title: const Text('ملف نشط'),
-                            subtitle: const Text('الإيقاف يفصل كل الأجهزة'),
+                            title: Text(localized(context, 'ملف نشط')),
+                            subtitle: Text(
+                                localized(context, 'الإيقاف يفصل كل الأجهزة')),
                             onChanged: (v) => update(() => active = v))
                     ]),
                     actions: [
                       TextButton(
                           onPressed: () => Navigator.pop(dialog, false),
-                          child: const Text('إلغاء')),
+                          child: Text(localized(context, 'إلغاء'))),
                       FilledButton(
                           onPressed: () => Navigator.pop(dialog, true),
-                          child: const Text('حفظ'))
+                          child: Text(localized(context, 'حفظ')))
                     ])));
     if (ok == true && mounted) {
       await run(() async {
@@ -674,24 +751,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await showDialog<void>(
           context: context,
           builder: (dialog) => AlertDialog(
-                  title: Text('ربط جهاز ${child['name']}'),
+                  title:
+                      Text(localized(context, 'ربط جهاز {0}', [child['name']])),
                   content: SizedBox(
                       width: 300,
                       child: SingleChildScrollView(
-                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          child:
+                              Column(mainAxisSize: MainAxisSize.min, children: [
                         QrImageView(data: pair['qr_payload'], size: 240),
-                        SelectableText(pair['code'],
+                        SelectableText(localized(context, pair['code']),
                             textDirection: TextDirection.ltr,
                             style: Theme.of(dialog).textTheme.headlineSmall),
-                        const Text(
-                            'صالح 5 دقائق ولمرة واحدة فقط. لا تشارك الرمز مع غير الطفل.'),
-                        Text(
-                            'ينتهي: ${DateTime.parse(pair['expires_at']).toLocal()}')
+                        Text(localized(context,
+                            'صالح 5 دقائق ولمرة واحدة فقط. لا تشارك الرمز مع غير الطفل.')),
+                        Text(localized(context, 'ينتهي: {0}',
+                            [DateTime.parse(pair['expires_at']).toLocal()]))
                       ]))),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(dialog),
-                        child: const Text('إغلاق'))
+                        child: Text(localized(context, 'إغلاق')))
                   ]));
     });
   }
@@ -706,18 +785,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await showDialog<void>(
           context: context,
           builder: (dialog) => AlertDialog(
-                  title: Text('أجهزة ${child['name']}'),
+                  title: Text(localized(context, 'أجهزة {0}', [child['name']])),
                   content: SizedBox(
                       width: 400,
                       child: SingleChildScrollView(
-                          child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        if (rows.isEmpty) const Text('لا أجهزة مرتبطة'),
+                          child:
+                              Column(mainAxisSize: MainAxisSize.min, children: [
+                        if (rows.isEmpty)
+                          Text(localized(context, 'لا أجهزة مرتبطة')),
                         for (final d in rows)
                           ListTile(
                               title: Text(d['platform']),
-                              subtitle: Text(d['revoked_at'] != null
-                                  ? 'مفصول'
-                                  : 'آخر اتصال: ${DateTime.fromMillisecondsSinceEpoch((d['last_seen_at'] * 1000).round()).toLocal()}'),
+                              subtitle: Text(localized(
+                                  context,
+                                  d['revoked_at'] != null
+                                      ? 'مفصول'
+                                      : 'آخر اتصال: ${DateTime.fromMillisecondsSinceEpoch((d['last_seen_at'] * 1000).round()).toLocal()}')),
                               trailing: d['revoked_at'] != null
                                   ? null
                                   : IconButton(
@@ -737,7 +820,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(dialog),
-                        child: const Text('إغلاق'))
+                        child: Text(localized(context, 'إغلاق')))
                   ]));
     });
   }
@@ -745,7 +828,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void history(Map child) => showDialog<void>(
       context: context,
       builder: (dialog) => AlertDialog(
-              title: Text('أسبوع ${child['name']}'),
+              title: Text(localized(context, 'أسبوع {0}', [child['name']])),
               content: SizedBox(
                   width: 400,
                   child: SingleChildScrollView(
@@ -754,12 +837,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ListTile(
                           title: Text(d['date']),
                           subtitle: Text(
-                              '${d['valid_prayers']}/5 • ${d['on_time_prayers']} في الوقت\n${_movementSummary(d)}'),
-                          trailing: Text('${d['points']} نقطة'))
+                              localized(context, '{0}/5 • {1} في الوقت\n{2}', [
+                            d['valid_prayers'],
+                            d['on_time_prayers'],
+                            localized(context, _movementSummary(d))
+                          ])),
+                          trailing: Text(
+                              localized(context, '{0} نقطة', [d['points']])))
                   ]))),
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(dialog),
-                    child: const Text('إغلاق'))
+                    child: Text(localized(context, 'إغلاق')))
               ]));
 }

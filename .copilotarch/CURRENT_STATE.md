@@ -2,11 +2,22 @@
 
 ## Status
 
+2026-10-06 Arabic / English: Arabic is the default; the home language menu switches
+the whole Flutter presentation between RTL and LTR and remembers the choice on
+the device. Presentation copy and SDK controls are localized; inference, prayer
+rules, stored reports, API wire values and account state are unchanged.
+Verification: 149 Flutter tests pass with `--concurrency=1`; release Web builds;
+Chrome checks cover both languages at 320/390/820px, persistence after reload and
+home/teaching/accounts/video/live navigation. Analyzer retains six existing infos.
+
 2026-10-06 movement completion score: shared video/live report and local history/export
 store detected/expected station counts and percentage. Paired scalar sync stores
 schema-v2 nullable fields; guardian day/week views and leaderboard tie-breaking use
 best attempt per prayer/day. Existing uncertainty and points remain independent.
-This change is local and has not been deployed. Validation is recorded in docs/ACCOUNTS.md.
+Deployed 2026-10-06 from `wady` commit `b20b441` to the stable OVH host (web/backend).
+Public HTTPS scalar score persistence, duplicate retry and guardian leaderboard passed;
+schema v2 migration and backend health/dependency checks passed. Synthetic test data removed.
+Public Chrome video and simulated-camera score persistence passed; physical camera unverified.
 
 2026-10-05 VPS testing deployment: complete Flutter Release Web served through
 public Nginx HTTPS at `vps-c79afd97.vps.ovh.ca` with automatic certificate renewal; the temporary tunnel is disabled. Docker backend uses Python

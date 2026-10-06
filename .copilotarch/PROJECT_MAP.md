@@ -1,5 +1,10 @@
 # Project Map
 
+## Presentation language
+
+- `mobile/coaching/lib/l10n/` — Arabic-source / English display catalog and synchronous localization delegate; existing dynamic notices translate only at rendering boundaries.
+- `mobile/coaching/lib/state/locale_provider.dart` — Arabic default and persisted device language; `main.dart` configures app and SDK locales, and the home app bar offers switching.
+
 ## Default local prayer analysis
 
 - `mobile/coaching/lib/local/` — typed local inference/repository contracts, serial
@@ -10,6 +15,7 @@
   channel, exact Pillow/float32 math, private storage location and system export picker.
 - `lib/screens/local_sessions_screen.dart`, `local_prayer_references_screen.dart` — local
   report review/export/delete and reviewed JSON reference management.
+- `lib/screens/prayer_illustrations_screen.dart` — home-accessible ordered teaching images and Dorar source link.
 - `browser/scripts/build-offline.mjs`, `web/iqtadi_service_worker.js` — atomically hashed
   same-origin app/model caching, explicit activation and no API-response caching.
 - `docs/LOCAL_TRAINING.md`, `LOCAL_TRAINING_ACCEPTANCE.md` — current deployment and measured limits.

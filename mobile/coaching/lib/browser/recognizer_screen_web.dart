@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 import 'dart:js_interop';
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
@@ -46,7 +47,9 @@ class _BrowserRecognizerScreenState extends State<BrowserRecognizerScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('تحليل محلي — الصور تبقى على جهازك')),
+        appBar: AppBar(
+            title:
+                Text(localized(context, 'تحليل محلي — الصور تبقى على جهازك'))),
         body: HtmlElementView(viewType: _view),
       );
 }

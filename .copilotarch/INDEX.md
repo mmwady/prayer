@@ -70,3 +70,5 @@ Local frame extraction uses native Android/web decoding; inference uses the pack
 
 - Backend: `app/mosque/` → SQLite demo sessions behind explicit opt-in; Flutter: `mobile/coaching/lib/mosque/`, home card.
 - Run/limitations: `docs/MOSQUE_COMPANION.md`; no production identities or real street routing are claimed.
+
+Deployment agents: use `docs/VPS_DEPLOYMENT.md` for direct SSH release steps and server/browser logs; direct deployment is preferred over waiting for GitHub Actions.

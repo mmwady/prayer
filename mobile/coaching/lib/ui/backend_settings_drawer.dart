@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../config/env.dart';
 import 'app_theme.dart';
@@ -52,10 +53,11 @@ class _BackendSettingsDrawerState extends State<BackendSettingsDrawer> {
             child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            const BrandHeader(
-                title: 'إعدادات الاتصال',
-                subtitle: 'خادم رفيق المسجد فقط؛ التدريب محلي',
-                caption: 'اقتدِ'),
+            BrandHeader(
+                title: localized(context, 'إعدادات الاتصال'),
+                subtitle:
+                    localized(context, 'خادم رفيق المسجد فقط؛ التدريب محلي'),
+                caption: localized(context, 'اقتدِ')),
             const SizedBox(height: AppSpacing.lg),
             AppCard(
                 child: Form(
@@ -63,7 +65,7 @@ class _BackendSettingsDrawerState extends State<BackendSettingsDrawer> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('رابط API',
+                        Text(localized(context, 'رابط API'),
                             style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: AppSpacing.md),
                         TextFormField(
@@ -80,7 +82,7 @@ class _BackendSettingsDrawerState extends State<BackendSettingsDrawer> {
                               Env.normalizeUrl(value ?? '');
                               return null;
                             } on FormatException catch (error) {
-                              return error.message;
+                              return localized(context, error.message);
                             }
                           },
                         ),
@@ -88,17 +90,19 @@ class _BackendSettingsDrawerState extends State<BackendSettingsDrawer> {
                         FilledButton.icon(
                             onPressed: _saving ? null : () => _save(),
                             icon: const Icon(Icons.save_outlined),
-                            label: const Text('حفظ الرابط')),
+                            label: Text(localized(context, 'حفظ الرابط'))),
                         TextButton(
                             onPressed:
                                 _saving ? null : () => _save(reset: true),
-                            child: const Text('استعادة الرابط الافتراضي')),
+                            child: Text(localized(
+                                context, 'استعادة الرابط الافتراضي'))),
                       ],
                     ))),
-            const AppNote(
-                'أدخل رابط الخادم دون /api. يُحفظ على هذا الجهاز ويُستخدم للجلسات الجديدة.',
+            AppNote(
+                localized(context,
+                    'أدخل رابط الخادم دون /api. يُحفظ على هذا الجهاز ويُستخدم للجلسات الجديدة.'),
                 icon: Icons.link),
-            if (_message != null) AppNote(_message!),
+            if (_message != null) AppNote(localized(context, _message!)),
           ],
         )),
       );

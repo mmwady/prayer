@@ -1,4 +1,7 @@
+import '../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/locale_provider.dart';
 
 import '../prayer/prayer_definition.dart';
 import '../ui/app_theme.dart';
@@ -7,6 +10,7 @@ import '../ui/brand_header.dart';
 import 'video_analysis_screen.dart';
 import '../mosque/screen.dart';
 import 'local_sessions_screen.dart';
+import 'prayer_illustrations_screen.dart';
 import '../local/offline_notice.dart';
 import '../accounts/screen.dart';
 
@@ -21,10 +25,21 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('اقتدِ'),
+        title: Text(localized(context, 'اقتدِ')),
         actions: [
+          PopupMenuButton<String>(
+            tooltip: localized(context, 'اللغة'),
+            initialValue: context.watch<LocaleProvider?>()?.localeCode ?? 'ar',
+            onSelected: (code) =>
+                context.read<LocaleProvider>().setLocale(code),
+            icon: const Icon(Icons.language_outlined),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'ar', child: Text('العربية')),
+              PopupMenuItem(value: 'en', child: Text('English')),
+            ],
+          ),
           IconButton(
-            tooltip: 'كيف تستخدم التطبيق',
+            tooltip: localized(context, 'كيف تستخدم التطبيق'),
             onPressed: () => _showHelp(context),
             icon: const Icon(Icons.help_outline),
           ),
@@ -37,30 +52,51 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm,
                     AppSpacing.lg, AppSpacing.xxl),
                 children: [
-                  const BrandHeader(
-                      title: 'معك خطوة بخطوة',
-                      subtitle: 'تأمل حركاتك بالكاميرا أو من تسجيلك',
-                      caption: 'تحليل حركات الصلاة'),
+                  BrandHeader(
+                      title: localized(context, 'معك خطوة بخطوة'),
+                      subtitle: localized(
+                          context, 'تأمل حركاتك بالكاميرا أو من تسجيلك'),
+                      caption: localized(context, 'تحليل حركات الصلاة')),
                   const SizedBox(height: AppSpacing.sm),
                   const OfflineNotice(),
                   const AccountEntry(),
                   AppCard(
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const MosqueCompanionScreen())),
-                    child: const ListTile(
-                      leading:
-                          Icon(Icons.people_outline, color: AppColors.accent),
-                      title: Text('رفيق المسجد — Mosque Companion'),
-                      subtitle:
-                          Text('رفيق مشي أو توصيلة ودعم بسيط • ديمو تجريبي'),
-                      trailing: Icon(Icons.chevron_left),
+                        builder: (_) => const PrayerIllustrationsScreen())),
+                    child: ListTile(
+                      leading: const Icon(Icons.menu_book_outlined,
+                          color: AppColors.accent),
+                      title:
+                          Text(localized(context, 'التعليم المنظم خطوة بخطوة')),
+                      subtitle: Text(localized(
+                          context, 'الصور الاسترشادية لحركات الصلاة بالترتيب')),
+                      trailing: Icon(
+                          Directionality.of(context) == TextDirection.rtl
+                              ? Icons.chevron_left
+                              : Icons.chevron_right),
                     ),
                   ),
-                  const SectionTitle(
-                    'اختر الصلاة',
+                  AppCard(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const MosqueCompanionScreen())),
+                    child: ListTile(
+                      leading: const Icon(Icons.people_outline,
+                          color: AppColors.accent),
+                      title: Text(
+                          localized(context, 'رفيق المسجد — Mosque Companion')),
+                      subtitle: Text(localized(context,
+                          'رفيق مشي أو توصيلة ودعم بسيط • ديمو تجريبي')),
+                      trailing: Icon(
+                          Directionality.of(context) == TextDirection.rtl
+                              ? Icons.chevron_left
+                              : Icons.chevron_right),
+                    ),
+                  ),
+                  SectionTitle(
+                    localized(context, 'اختر الصلاة'),
                     icon: Icons.mosque_outlined,
-                    subtitle:
-                        'اختر صلاة، ثم اختر فيديو أو افتح الكاميرا للتحليل المحلي.',
+                    subtitle: localized(context,
+                        'اختر صلاة، ثم اختر فيديو أو افتح الكاميرا للتحليل المحلي.'),
                   ),
                   LayoutBuilder(builder: (context, constraints) {
                     final columns = constraints.maxWidth > 650 ? 3 : 2;
@@ -80,14 +116,18 @@ class HomeScreen extends StatelessWidget {
                   AppCard(
                       onTap: () => Navigator.of(context).push(MaterialPageRoute(
                           builder: (_) => const LocalSessionsScreen())),
-                      child: const ListTile(
-                          leading: Icon(Icons.history),
-                          title: Text('تقاريري على الجهاز'),
-                          subtitle:
-                              Text('مراجعة وتصدير وحذف جلسات التدريب المحلية'),
-                          trailing: Icon(Icons.chevron_left))),
-                  const AppNote(
-                    'التدريب والصور والتقارير على جهازك. المتابعة الاختيارية تزامن النتائج النهائية فقط؛ ورفيق المسجد يستخدم الخادم. التطبيق لا يقيّم صحة الصلاة ولا قبولها.',
+                      child: ListTile(
+                          leading: const Icon(Icons.history),
+                          title: Text(localized(context, 'تقاريري على الجهاز')),
+                          subtitle: Text(localized(context,
+                              'مراجعة وتصدير وحذف جلسات التدريب المحلية')),
+                          trailing: Icon(
+                              Directionality.of(context) == TextDirection.rtl
+                                  ? Icons.chevron_left
+                                  : Icons.chevron_right))),
+                  AppNote(
+                    localized(context,
+                        'التدريب والصور والتقارير على جهازك. المتابعة الاختيارية تزامن النتائج النهائية فقط؛ ورفيق المسجد يستخدم الخادم. التطبيق لا يقيّم صحة الصلاة ولا قبولها.'),
                     icon: Icons.lock_outline,
                   ),
                 ],
@@ -113,29 +153,33 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('كيف تستخدم التطبيق',
+                Text(localized(context, 'كيف تستخدم التطبيق'),
                     style: Theme.of(sheetContext).textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'اختر صلاة، ثم فيديو محليًا أو التحليل المباشر بالكاميرا. تُحلل الصور على جهازك ويُحفظ التقرير محليًا بعد الإنهاء.',
+                  localized(context,
+                      'اختر صلاة، ثم فيديو محليًا أو التحليل المباشر بالكاميرا. تُحلل الصور على جهازك ويُحفظ التقرير محليًا بعد الإنهاء.'),
                   style: Theme.of(sheetContext).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                const StepTracker([
+                StepTracker([
                   TrackerStep(
-                    'اختر الصلاة والفيديو أو الكاميرا',
+                    localized(context, 'اختر الصلاة والفيديو أو الكاميرا'),
                     mark: StepMark.done,
                   ),
-                  TrackerStep('ابدأ التحليل على جهازك'),
-                  TrackerStep('راجع الركعات والحركات وصورها في التقرير'),
+                  TrackerStep(localized(context, 'ابدأ التحليل على جهازك')),
+                  TrackerStep(localized(
+                      context, 'راجع الركعات والحركات وصورها في التقرير')),
                 ]),
                 const SizedBox(height: AppSpacing.lg),
-                const AppNote(
-                  'ثلاثة مصنفات محلية تتخذ قرارات مستقلة، ويُعرض متوسط احتمالاتها. يظهر اختلافها كعدم يقين. لا تُرفع الصور أو الفيديوهات.',
+                AppNote(
+                  localized(context,
+                      'ثلاثة مصنفات محلية تتخذ قرارات مستقلة، ويُعرض متوسط احتمالاتها. يظهر اختلافها كعدم يقين. لا تُرفع الصور أو الفيديوهات.'),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                const AppNote(
-                  'التطبيق يتابع ترتيب الحركات فقط. لا يحكم على النية ولا القراءة ولا صحة الصلاة.',
+                AppNote(
+                  localized(context,
+                      'التطبيق يتابع ترتيب الحركات فقط. لا يحكم على النية ولا القراءة ولا صحة الصلاة.'),
                   icon: Icons.shield_outlined,
                 ),
               ],
@@ -162,10 +206,10 @@ class _PrayerCard extends StatelessWidget {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(_iconFor(prayer.prayerType), color: AppColors.gold, size: 32),
         const SizedBox(height: 12),
-        Text(prayer.arabicName,
+        Text(localized(context, prayer.arabicName),
             style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
         const SizedBox(height: 4),
-        Text(_subtitle(prayer),
+        Text(localized(context, _subtitle(prayer)),
             style: theme.textTheme.bodySmall, textAlign: TextAlign.center),
       ]),
     );

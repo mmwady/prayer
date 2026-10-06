@@ -1,5 +1,17 @@
 # Feature Map
 
+## Arabic / English presentation
+
+- `mobile/coaching/lib/state/locale_provider.dart` owns Arabic-default locale and the device preference (`iqtadi_locale`). Home app-bar language menu switches between Arabic RTL and English LTR.
+- `lib/l10n/{app_localizations,english_strings}.dart` and SDK Material/Widgets/Cupertino delegates localize presentation, labels, validation and existing notices. Names, wire enums, raw reports and source data remain unchanged.
+- `test/localization_test.dart` verifies persistence, direction, retained route state, responsive reports without mutation, teaching labels and the preserved synthetic training flow.
+
+## Ordered prayer illustrations (2026-10-06)
+
+- Home card "التعليم المنظم خطوة بخطوة" opens `lib/screens/prayer_illustrations_screen.dart`.
+- Ten numbered bundled movement images and names, followed by the Dorar prayer-description source link.
+- Display-only content; no reference editor, calibration, inference or report state. `url_launcher` opens the source externally.
+
 ## Optional account monitoring (2026-10-05)
 
 - `mobile/coaching/lib/accounts/`: backend login/signup, SMTP email actions,

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-06: Arabic / English
+
+- Added a persisted language menu, Arabic default, English translations and RTL/LTR presentation across Flutter screens and SDK controls.
+- Preserved visual tokens, assets, recognition/sequence logic, stored reports and backend contracts. Locale tests cover retained screen state and report data.
+
+## 2026-10-06: ordered prayer illustrations
+
+- Restore a home entry for ten numbered movement illustrations and names, with the Dorar prayer-description link at the end.
+- Web release and browser layout verified; 12 local-source/offline tests passed. Analyzer retains six existing infos.
+
 ## 2026-10-06: movement completion score
 
 - Shared video/live results show observed station coverage; local history/export and
