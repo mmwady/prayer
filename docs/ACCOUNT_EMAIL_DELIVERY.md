@@ -126,6 +126,24 @@ after testing. This is an isolated test account; the published VPS/main deployme
 was not changed. Real Resend delivery/webhooks, live password-reset email and
 physical mobile registration remain separate acceptance checks.
 
+### Published VPS acceptance, 2026-10-06
+
+After the user's separate deployment authorization and approval to transfer the
+Gmail app credential, review commit `51efdb6` was deployed as Web/backend to the
+stable HTTPS VPS. Only SMTP/account-origin settings were transferred through
+encrypted SSH stdin; the backend env remains root-owned mode 0600. The existing
+data and env were snapshotted before activation, with tested rollback for both.
+
+Real Flutter registration on the published hostname sent one actual Gmail SMTP
+verification message. The connected inbox supplied the received production link;
+Chrome confirmed activation and login. Unverified login and link reuse were
+rejected; Secure/HttpOnly cookie flags, correct identity after reload, the owned
+SELF profile and schema-v4/foreign-key integrity passed. Private mail payloads
+were cleared after submission. No account verification was seeded or bypassed.
+The real user account remains on the VPS; no local test database was uploaded.
+Private artifacts are under `output/vps-mail-live/` and `output/deployment/`.
+Live Resend/webhooks, password-reset delivery and physical mobile remain untested.
+
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Final account, family/mosque and semantic API suites | PASS | 62 passed in 308.77s; includes all 16 new mail tests. `output/mail-accounts-final.log`. |
@@ -137,7 +155,7 @@ physical mobile registration remain separate acceptance checks.
 | Migration / model preservation | PASS | Wady, Ezz and prior integration schema upgraded to v4 twice without changing fixture rows/sessions; foreign keys clean. All 141 protected blobs and manifest hashes retained; packaged Web/APK model hashes match. `output/mail-migration-audit.json`, `output/mail-protection-audit.json`. |
 | New mail module/tests Ruff and module mypy | PASS | Full-project checks still report 212 inherited Ruff diagnostics and five inherited mypy errors. |
 | Chrome signup, verification, login/reload | PASS, development delivery | Real Flutter and verification page; injected outage followed by automatic worker retry. `output/mail-acceptance/browser-result.json`. |
-| Real Gmail SMTP delivery, activation and login | PASS | Received in connected Gmail; actual mail link activated in Chrome; verified login, secure cookie/reload, token reuse rejection and correct DB association. `output/mail-live/`. |
+| Real Gmail SMTP delivery, activation and login | PASS | Both isolated and published VPS: received inbox link, verified login, secure cookie/reload, token reuse rejection and correct DB association. `output/mail-live/`, `output/vps-mail-live/`. |
 | Real Resend delivery / live webhook | NOT RUN | No live Resend credentials/webhook configured; Gmail SMTP testing does not verify Resend. |
 
 - Mail tests cover commit ordering/rollback, restart and lease recovery, concurrent

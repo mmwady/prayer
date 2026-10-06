@@ -4,12 +4,18 @@ Date: 2026-10-06. Integration branch: `integration/wady-ezz`.
 
 **Main release gate is CLOSED.** The integrated application preserves the protected
 domains, but inherited backend test/lint/type failures prevent a claim that all
-required validation succeeds. `main`, `wady` and `Ezz` remain intact. No deployment,
-production database operation, main merge or main push has been performed.
+required validation succeeds. `main`, `wady` and `Ezz` remain intact. No main merge
+or main push has been performed.
 The integration branch is committed for review; failing checks do not authorize
 a main update. The user explicitly authorized publishing only this review branch
 to GitHub on 2026-10-06, following an earlier automatic approval rejection.
-No merge into main, main push or deployment is authorized by this publication.
+That publication did not authorize deployment. The user subsequently requested
+VPS deployment and explicitly requested retry/approval of the Gmail credential
+transfer after automatic review rejected its initial attempt. Direct SSH deployed
+review commit `51efdb6` (Web and backend), with data/env snapshots and rollback,
+on 2026-10-06. This separate deployment authorization does not reopen the main
+Git gate. Real published Gmail registration/link verification/login passed;
+see [VPS deployment](VPS_DEPLOYMENT.md) for the deployed release and checks.
 
 User-authorized follow-up, 2026-10-06: account email submission now uses an additive
 schema-v4 durable outbox, leased retries, SMTP SSL/STARTTLS and signed Resend delivery

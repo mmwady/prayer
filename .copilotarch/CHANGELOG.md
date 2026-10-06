@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-06: authorized VPS account/email update
+
+- Direct SSH deployed review commit 51efdb6 Web/backend, with data/env snapshot
+  rollback and the stable origin. Main/source branches remain unchanged.
+- Explicitly approved Gmail SMTP transfer; actual published registration, inbox
+  link activation, login/secure-cookie reload and correct profile persistence pass.
+- Public six-prayer routes, real 16-frame local video/three-model inference and
+  simulated live input/report pass; no prayer media upload. Physical camera pending.
+
 ## 2026-10-06: reliable account email
 
 - Schema v4 adds durable account mail intent and private signed Resend receipts.

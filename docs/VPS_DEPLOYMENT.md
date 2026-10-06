@@ -2,16 +2,59 @@
 
 Deployed on 2026-10-05 through the SSH alias `iqtadi-vps`. Manual GitHub Actions deployment is available. This is a testing deployment with the stable URL https://vps-c79afd97.vps.ovh.ca.
 
+## Current update: 2026-10-06
+
+The user separately authorized direct deployment of review commit `51efdb6` and
+the Gmail SMTP credential transfer after its initial automatic approval rejection.
+Web/backend release:
+`gha-20261006063004-1-51efdb64fac025180df82752338a9aa3bd508552`.
+No main merge/push was performed; the inherited main Git validation gate remains
+closed. This was direct SSH activation, not a GitHub Actions run.
+
+- Candidate Docker startup, isolated schema-v4/foreign-key check and three Linux
+  release/rollback tests passed. Installed runtime dependencies pass `pip check`.
+- Web packaging and server verification passed for all **80 files**, 126,913,014
+  bytes, offline version `986a399e1fb6ad2093576031`. All 141 protected prayer blobs
+  and Web/APK model manifest hashes still match Wady.
+- Stopped-container data snapshot and original env were retained under
+  `/srv/iqtadi/backups/gha-20261006063004-1-51efdb64fac025180df82752338a9aa3bd508552/`
+  (directory mode 0700). Activation's temporary release script restores both data
+  and env if cutover fails; neither database reset nor fixture database upload occurred.
+- Only SMTP and account-origin settings were transmitted via encrypted SSH stdin.
+  Server `backend.env` is root-owned mode 0600; no API key/password is in source,
+  Web assets, reports or GitHub. Gmail implicit SSL on port 465 authenticated from
+  the VPS before cutover. Paid guidance remains disabled.
+- Public health and account config pass (`email_configured=true`, mode SMTP).
+  Real published Flutter signup sent a received Gmail message; its production
+  link was confirmed in Chrome, followed by verified login/cookie reload. Account
+  and SELF ownership, token reuse rejection, payload scrubbing and schema-v4
+  integrity passed. The real user account remains; live Resend/password-reset
+  delivery and physical device acceptance remain unverified.
+- Public Chrome regression passed six prayer routes, a real 16-frame local video
+  using all three models (`REVIEW_REQUIRED` preserved), and simulated live-camera
+  input with 15 processed frames/one captured action. No prayer images/model inputs
+  were posted to the backend. Admin/OpenAPI and missing model/WASM 404 checks and
+  rejection of an unauthorized account Origin passed; no page JavaScript exceptions.
+  Captured console output contains the ONNX "Unknown CPU vendor" warning and the
+  TensorFlow Lite XNNPACK startup info; both inference workflows still passed.
+
+Evidence under ignored `output/deployment/`, `output/vps-mail-live/` and
+`output/vps/`; prior release/data/env remain available for operator rollback.
+See [mail delivery checks](ACCOUNT_EMAIL_DELIVERY.md) for exact test boundaries.
+
 ## Layout and access
 
 - `/srv/iqtadi/current/web`: complete Flutter Release Web distribution; current points
-  to `/srv/iqtadi/releases/20261005-model-progress-final`; `first` retains the initial release.
+  to `/srv/iqtadi/releases/gha-20261006063004-1-51efdb64fac025180df82752338a9aa3bd508552`;
+  previous releases and `first` are retained.
 - `/srv/iqtadi/shared/data`: persistent SQLite/reference/analysis data, mounted at
   `/app/data` in the backend container, owned by UID 10001.
-- `/srv/iqtadi/shared/backend.env`: server-only configuration, mode 0600. No local
-  developer secrets or personal media/database files were uploaded.
+- `/srv/iqtadi/shared/backend.env`: server-only configuration, mode 0600. The
+  explicitly approved Gmail SMTP credential is installed; no other local developer
+  secrets or personal media/database files were uploaded.
 - `/srv/iqtadi/deploy`: installed deployment scripts and `public-url.txt`.
-- Docker image `iqtadi-backend:20261005-test`: Python 3.11 and CPU-only Torch 2.5.1.
+- Docker image `iqtadi-backend:gha-20261006063004-1-51efdb64fac025180df82752338a9aa3bd508552`:
+  Python 3.11 and CPU-only Torch 2.5.1.
   Container `iqtadi-backend` has `unless-stopped` restart policy and a health check.
 - Public Nginx listens on IPv4/IPv6 ports 80 and 443 for `vps-c79afd97.vps.ovh.ca`.
   HTTP redirects to HTTPS except the ACME webroot `/srv/iqtadi/acme`.
@@ -38,9 +81,10 @@ a device test; the deployment browser check uses a simulated canvas camera and r
 
 Mosque Companion is enabled **as a simulated demo**. Paid guidance calls are disabled
 (`PRAYER_GUIDANCE_ENABLED=false`); no provider key was installed. Account cookies are
-Secure/HttpOnly/SameSite strict, allowed origins are limited to the stable HTTPS URL. SMTP is
-unconfigured: ordinary signup email verification/password-reset delivery is unavailable
-until actual SMTP settings are provided. Development email mode was not enabled.
+Secure/HttpOnly/SameSite strict, allowed origins are limited to the stable HTTPS URL.
+Gmail SMTP is configured and real signup/verification delivery passed. Password
+reset uses the same transport but live reset delivery was not exercised in this
+deployment. Development email mode is not enabled.
 
 ## Operations
 
