@@ -100,6 +100,32 @@ References: [Resend sending](https://resend.com/docs/api-reference/emails/send-e
 
 ## Verification and limits
 
+### Real Gmail SMTP acceptance, 2026-10-06
+
+With the user's explicit authorization, the review build was exercised through
+temporary public HTTPS, an isolated account database and Gmail SMTP on port 465
+with verified TLS and an app password. Registration used the real Flutter UI;
+exactly one SMTP submission was accepted, and the connected Gmail inbox contained
+the actual verification message. Its received link was opened in Chrome and
+confirmed through the real backend verification page, without reading a token
+from SQLite or bypassing email verification.
+
+Unverified login returned 403; activation persisted the verified account and its
+correctly owned SELF profile. Reusing the consumed activation token returned 400.
+Real UI login, Secure/HttpOnly account-cookie flags and correct identity after a
+page reload passed. The first cookie check filtered cookies using the root URL;
+it was corrected to the account API path and login/reload was repeated. This was
+a test-harness correction, with no application code change. No browser errors
+were observed. The accepted private outbox payload was cleared and database
+foreign-key integrity passed.
+
+Evidence is private under `output/mail-live/`: sanitized Gmail receipt, screenshots,
+`browser-result.json` and `database-result.json`. Credentials, account passwords,
+links and database files are not committed. The temporary host/tunnel is stopped
+after testing. This is an isolated test account; the published VPS/main deployment
+was not changed. Real Resend delivery/webhooks, live password-reset email and
+physical mobile registration remain separate acceptance checks.
+
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Final account, family/mosque and semantic API suites | PASS | 62 passed in 308.77s; includes all 16 new mail tests. `output/mail-accounts-final.log`. |
@@ -111,7 +137,8 @@ References: [Resend sending](https://resend.com/docs/api-reference/emails/send-e
 | Migration / model preservation | PASS | Wady, Ezz and prior integration schema upgraded to v4 twice without changing fixture rows/sessions; foreign keys clean. All 141 protected blobs and manifest hashes retained; packaged Web/APK model hashes match. `output/mail-migration-audit.json`, `output/mail-protection-audit.json`. |
 | New mail module/tests Ruff and module mypy | PASS | Full-project checks still report 212 inherited Ruff diagnostics and five inherited mypy errors. |
 | Chrome signup, verification, login/reload | PASS, development delivery | Real Flutter and verification page; injected outage followed by automatic worker retry. `output/mail-acceptance/browser-result.json`. |
-| Real SMTP/Resend delivery and live webhook | NOT RUN | No sender/provider credentials configured locally or on the published VPS. Connected Gmail access is confirmed; actual mail/link test awaits provider setup. |
+| Real Gmail SMTP delivery, activation and login | PASS | Received in connected Gmail; actual mail link activated in Chrome; verified login, secure cookie/reload, token reuse rejection and correct DB association. `output/mail-live/`. |
+| Real Resend delivery / live webhook | NOT RUN | No live Resend credentials/webhook configured; Gmail SMTP testing does not verify Resend. |
 
 - Mail tests cover commit ordering/rollback, restart and lease recovery, concurrent
   dispatch, lost provider/DB acknowledgements, frozen retry envelopes, fixed sender
@@ -121,9 +148,10 @@ References: [Resend sending](https://resend.com/docs/api-reference/emails/send-e
   mail outage, rejects unverified login, observes automatic retry to a private local
   `.eml`, opens the real verification page, logs in and reloads the cookie session.
   Screenshots and results: `output/mail-acceptance/`.
-- External SMTP/Resend delivery, production DNS/domain verification and a configured
-  live Resend webhook were **not** exercised. All transport tests are controlled;
-  the browser host uses explicitly labelled development mail.
+- Real Gmail SMTP delivery/verification passed separately as described above.
+  The earlier outage/retry browser host uses explicitly labelled development mail,
+  and transport fault tests are controlled. Production sender-domain deployment
+  and a configured live Resend webhook were **not** exercised.
 - The main gate remains closed for the four inherited prayer boundary failures,
   212 inherited Ruff diagnostics and five inherited mypy errors. This repair does
   not change protected prayer rules to force those checks to pass.

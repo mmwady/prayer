@@ -7,8 +7,11 @@ account/token before contacting providers. Leased background retries preserve
 tokens and frozen Resend envelopes across outages/restarts. SMTP supports both
 STARTTLS and implicit SSL; signed Resend receipts track delivery separately from
 submission and never authenticate the account. Real local Chrome signup/outage/
-retry/.eml verification/login/reload acceptance passed. External email delivery
-and live provider webhook configuration remain unverified (SMTP/Resend not configured).
+retry/.eml verification/login/reload acceptance passed. Subsequent real Gmail SMTP
+SSL delivery, received-link activation, verified login, Secure/HttpOnly cookie
+reload and correct account/SELF-profile persistence passed on an isolated HTTPS
+review host. The published VPS is unchanged; real Resend/webhooks and mobile
+registration remain unverified. No credentials or test database are committed.
 Final account/API suites: 62 passed; Flutter: 153 passed; Web/Android builds and
 v4 migration/model preservation audit pass. Analyzer retains six inherited infos.
 Complete backend run: 198 passed/four inherited boundary failures before the last
