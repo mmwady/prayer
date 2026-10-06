@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-06: additive Ezz samples on existing VPS
+
+- User selected current-site sample addition; both real accounts/sessions retained.
+- Private labelled samples, age-compatible mosque memberships, full attendance
+  denominators and explicit synthetic practice history; no auth/prayer/schema changes.
+- Two operator tools preserve the original Ezz seed guards, refuse conflicts,
+  backup with SQLite and audit repeat imports. Private credentials/data stay ignored.
+- Published login/UI/role/ranking/code acceptance and backups: `docs/ACCOUNT_DEMO_SERVER.md`.
+
 ## 2026-10-06: authorized VPS account/email update
 
 - Direct SSH deployed review commit 51efdb6 Web/backend, with data/env snapshot

@@ -2,6 +2,14 @@
 
 ## Status
 
+2026-10-06 explicitly authorized additive rich Ezz samples on the existing VPS DB:
+both real accounts/sessions retained; six labelled fake accounts, two families,
+three dependents, four age-compatible mosque groups, 189 synthetic attempts and
+65 attendance events added. Private replacement passwords/codes, distinct platform
+admin password, SQLite backups, strict atomic importer and repeat-import audit.
+Real HTTPS logins/UI/role/ranking/code checks pass; no schema/app/prayer changes.
+See `docs/ACCOUNT_DEMO_SERVER.md` and `backend/tools/*account_demo*`.
+
 2026-10-06 user-authorized VPS update: direct SSH deployed review commit 51efdb6
 as Web/backend at the stable HTTPS hostname, preserving shared data and keeping
 main/source branches unchanged. Gmail SMTP is configured after explicit credential

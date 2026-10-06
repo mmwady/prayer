@@ -204,3 +204,13 @@ The selected commit/target appear in the workflow summary and last-deployment.tx
 Three isolated deployment tests exercise web-only activation, combined-release rollback
 and rejection of invalid static hashes. These test the script with simulated Docker/HTTP;
 they do not claim a real production failure was injected.
+
+## Authorized rich sample-data addition (2026-10-06)
+
+Ezz samples were added to the existing account database following explicit user
+selection. Both existing accounts and sessions survived; no release/image/env/schema
+change or database reset occurred. Six private-credential accounts, two families,
+three children, four age-compatible mosque groups, 189 synthetic practices and
+65 attendance events are installed. Consistent private snapshots and real HTTPS
+login/UI/role/ranking checks are documented in [ACCOUNT_DEMO_SERVER.md](ACCOUNT_DEMO_SERVER.md).
+No credential or database is published to GitHub. Main remains gated as before.

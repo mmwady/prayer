@@ -320,6 +320,15 @@ attendance, two mosque groups, several family levels and three dependents.
 Use group invitation code `DEMOJOIN24` and attendance code `FAJRDEMO`. Credentials
 and codes are intentionally deterministic and must never be used in production.
 
+## Explicit sample import into an existing site
+
+For an explicitly authorized additive import, use `tools/prepare_account_demo_import.py`
+and `tools/import_account_demo.py`. These generate private, labelled samples, reject
+collisions and preserve existing accounts with a consistent backup. The local-only
+default passwords/codes above must not be used on a public site. See
+[the server sample-data report](ACCOUNT_DEMO_SERVER.md) for the 2026-10-06 operation,
+permissions, age-group mappings, backup locations and actual test limits.
+
 ## Verification and limits
 
 See `output/accounts/VERIFICATION.md` for final command results and runtime evidence.
