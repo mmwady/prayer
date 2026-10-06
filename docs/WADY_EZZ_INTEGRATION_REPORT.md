@@ -6,10 +6,10 @@ Date: 2026-10-06. Integration branch: `integration/wady-ezz`.
 domains, but inherited backend test/lint/type failures prevent a claim that all
 required validation succeeds. `main`, `wady` and `Ezz` remain intact. No deployment,
 production database operation, main merge or main push has been performed.
-The integration branch is committed locally for review; failing checks do not
-authorize a main update. Publishing this branch to GitHub was rejected by automatic
-approval review as source-code egress requiring explicit authorization. No remote
-branch was created or changed; publication remains pending user approval.
+The integration branch is committed for review; failing checks do not authorize
+a main update. The user explicitly authorized publishing only this review branch
+to GitHub on 2026-10-06, following an earlier automatic approval rejection.
+No merge into main, main push or deployment is authorized by this publication.
 
 ## Sources and ownership
 
