@@ -2,9 +2,21 @@
 
 ## Status
 
+2026-10-06 semantic integration on `integration/wady-ezz`: pinned Wady b20b441
+owns local prayer; pinned Ezz 59457c4 owns backend/auth/personal profiles,
+families/guardians/dependents, mosque groups and companion. Shared scalar adapters,
+navigation and nullable account schema v3 reconcile both. Original domain rules,
+model/pipeline hashes and Ezz session/consent permissions remain protected.
+Web release and Android debug builds pass; packaged model hashes pass; Flutter
+151 tests pass and analyzer has six existing infos. Main gate remains CLOSED:
+four inherited backend boundary tests disagree with unchanged sequence rules;
+212 inherited Ruff and five inherited mypy diagnostics also fail validation.
+No main/source-branch update or deployment. Details and runtime limits:
+`docs/WADY_EZZ_INTEGRATION_REPORT.md`, `docs/WADY_EZZ_OWNERSHIP.md`.
+
 2026-10-06 movement completion score: shared video/live report and local history/export
 store detected/expected station counts and percentage. Paired scalar sync stores
-schema-v2 nullable fields; guardian day/week views and leaderboard tie-breaking use
+schema-v3 nullable fields; personal/guardian day/week views and leaderboard tie-breaking use
 best attempt per prayer/day. Existing uncertainty and points remain independent.
 This change is local and has not been deployed. Validation is recorded in docs/ACCOUNTS.md.
 

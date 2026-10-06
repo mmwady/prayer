@@ -23,6 +23,11 @@ form analyzer, rep counter) has been **deleted**, not merely disconnected.
 
 ## Primary Entry Points
 
+- Integrated ownership/validation: `docs/WADY_EZZ_OWNERSHIP.md`,
+  `docs/WADY_EZZ_INTEGRATION_REPORT.md`; main remains gated by documented checks.
+- Ezz identities/family/mosque groups: `backend/app/accounts/`,
+  `mobile/coaching/lib/accounts/`; nullable scalar prayer coverage uses schema v3.
+
 - Recorded analysis: `mobile/coaching/lib/local/`, `mobile/coaching/lib/video/`,
   `mobile/coaching/lib/screens/video_analysis_screen.dart`
 - Live camera: `mobile/coaching/lib/local/`, `mobile/coaching/lib/live/`,

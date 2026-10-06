@@ -1,12 +1,15 @@
 """Real Argon2, SQLite and HTTP boundaries; only email delivery is captured."""
 
 from datetime import date, datetime, timezone
+from urllib.parse import parse_qs, urlparse
+
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
+
 from app.accounts import auth
-from app.accounts.boundary import AccountBoundary
 from app.accounts.api import router, store
+from app.accounts.boundary import AccountBoundary
 from app.accounts.domain import PrayerTimeService, progress
 from app.accounts.store import digest
 from app.config import get_settings
@@ -99,11 +102,114 @@ def test_account_boundary_size_and_private_cache(env):
     assert client.get(BASE + "/auth/action").headers["referrer-policy"] == "no-referrer"
 
 
-def test_teacher_group_type_and_role_cannot_change_at_login(env):
+def test_password_minimum_is_eight_characters(env):
+    client, emails, _ = env
+    short = client.post(
+        BASE + "/auth/signup",
+        json={"name": "Short", "email": "short@example.com", "password": "Pass12!"},
+    )
+    assert short.status_code == 422
+    accepted = client.post(
+        BASE + "/auth/signup",
+        json={"name": "Eight", "email": "eight@example.com", "password": "Pass123!"},
+    )
+    assert accepted.status_code == 200
+    assert emails[-1][:2] == ("eight@example.com", "verify")
+
+
+def test_development_signup_still_requires_email_verification(env, monkeypatch):
+    client, emails, database = env
+    monkeypatch.setenv("ACCOUNT_MAIL_MODE", "development")
+    get_settings.cache_clear()
+    response = client.post(
+        BASE + "/auth/signup",
+        json={
+            "name": "Local Parent",
+            "email": "local.parent@example.com",
+            "password": "Pass123!",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "CHECK_EMAIL",
+        "delivery": "development_outbox",
+    }
+    assert emails[-1][:2] == ("local.parent@example.com", "verify")
+    with database.transaction() as db:
+        assert (
+            db.execute(
+                "SELECT email_verified FROM guardians WHERE email=?",
+                ("local.parent@example.com",),
+            ).fetchone()[0]
+            == 0
+        )
+    assert (
+        client.post(
+            BASE + "/session",
+            json={"email": "local.parent@example.com", "password": "Pass123!"},
+        ).status_code
+        == 403
+    )
+
+
+def test_resend_provider_submits_real_message(monkeypatch):
+    captured = {}
+
+    class ProviderResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"id": "resend-message-id"}
+
+    def post(url, **kwargs):
+        captured["url"] = url
+        captured.update(kwargs)
+        return ProviderResponse()
+
+    monkeypatch.setenv("ACCOUNT_MAIL_MODE", "resend")
+    monkeypatch.setenv("ACCOUNT_RESEND_API_KEY", "re_test_secret")
+    monkeypatch.setenv("ACCOUNT_MAIL_FROM", "Iqtadi <verify@iqtadi.example>")
+    monkeypatch.setenv("ACCOUNT_PUBLIC_URL", "http://192.168.1.20:8020")
+    monkeypatch.setattr(auth.httpx, "post", post)
+    get_settings.cache_clear()
+    try:
+        delivery = auth.send_email("parent@example.com", "verify", "one-time-token")
+    finally:
+        get_settings.cache_clear()
+
+    assert delivery == "resend"
+    assert captured["url"] == "https://api.resend.com/emails"
+    assert captured["headers"]["Authorization"] == "Bearer re_test_secret"
+    assert captured["json"]["to"] == ["parent@example.com"]
+    assert "one-time-token" in captured["json"]["text"]
+    assert captured["timeout"] == 10
+
+
+def test_resend_rejection_is_never_reported_as_success(monkeypatch):
+    class RejectedResponse:
+        status_code = 422
+
+    monkeypatch.setenv("ACCOUNT_MAIL_MODE", "resend")
+    monkeypatch.setenv("ACCOUNT_RESEND_API_KEY", "re_test_secret")
+    monkeypatch.setenv("ACCOUNT_MAIL_FROM", "Iqtadi <verify@iqtadi.example>")
+    monkeypatch.setattr(auth.httpx, "post", lambda *args, **kwargs: RejectedResponse())
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(HTTPException) as rejected:
+            auth.send_email("parent@example.com", "verify", "one-time-token")
+    finally:
+        get_settings.cache_clear()
+
+    assert rejected.value.status_code == 503
+    assert rejected.value.detail == "EMAIL_PROVIDER_REJECTED"
+
+
+def test_legacy_signup_role_is_not_a_permanent_security_role(env):
     client, _, _ = env
     owner = parent(env, "Teacher", "TEACHER")
     client.post(BASE + "/groups", headers=owner, json={"name": "Class"})
-    assert client.get(BASE + "/groups", headers=owner).json()[0]["type"] == "CLASSROOM"
+    assert client.get(BASE + "/groups", headers=owner).json()[0]["type"] == "FAMILY"
     assert (
         client.post(
             BASE + "/session",
@@ -320,6 +426,35 @@ def test_manual_code_and_web_device_cookie(env):
     assert client.post(BASE + "/attempts", json=attempt_payload()).status_code == 200
     assert client.delete(BASE + "/device").status_code == 200
     assert client.post(BASE + "/attempts", json=attempt_payload("new")).status_code == 401
+
+
+def test_pairing_qr_is_a_direct_safe_link_and_device_session_slides(env):
+    client, _, database = env
+    owner, _, child = setup_child(env)
+    pairing, session = pair(env, owner, child)
+    qr = urlparse(pairing["qr_url"])
+    assert qr.scheme in ("http", "https")
+    assert not qr.query
+    assert qr.path == BASE + "/pairing/open"
+    assert parse_qs(qr.fragment)["pair"][0] == pairing["qr_payload"].removeprefix(
+        "iqtadi-pair:"
+    )
+    bridge = client.get(BASE + "/pairing/open")
+    assert bridge.status_code == 200
+    assert "serviceWorker.getRegistrations" in bridge.text
+    assert bridge.headers["cache-control"] == "no-store"
+    assert session["profile_kind"] == "DEPENDENT"
+
+    with database.transaction() as db:
+        db.execute(
+            "UPDATE devices SET expires_at=? WHERE id=?",
+            (datetime.now(timezone.utc).timestamp() + 60, session["device_id"]),
+        )
+    headers = {**HEADERS, "Authorization": "Bearer " + session["session_token"]}
+    refreshed = client.get(BASE + "/device", headers=headers)
+    assert refreshed.status_code == 200
+    assert refreshed.json()["profile_kind"] == "DEPENDENT"
+    assert refreshed.json()["expires_at"] > datetime.now(timezone.utc).timestamp() + 170 * 86400
 
 
 def test_no_double_points_streak_and_future_windows():
@@ -542,4 +677,4 @@ def test_schema_v2_preserves_v1_attempts_and_is_idempotent(tmp_path):
         row = dict(db.execute("SELECT * FROM attempts").fetchone())
         assert row["id"] == "old" and row["valid"] == 1
         assert row["movement_score"] is None and row["movements_detected"] is None
-        assert db.execute("SELECT max(version) FROM account_schema").fetchone()[0] == 2
+        assert db.execute("SELECT max(version) FROM account_schema").fetchone()[0] == 3

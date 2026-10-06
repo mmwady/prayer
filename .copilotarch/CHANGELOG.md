@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-06: Wady / Ezz semantic integration
+
+- Retained Wady offline prayer pipeline and Ezz complete auth/family/mosque APIs;
+  adapted nullable scalar coverage, profile progress, rankings and navigation.
+- Additive schema v3 safely upgrades either source branch; original rows and
+  sessions survive. Pinned inference bytes and packaged models match Wady.
+- Flutter 151 tests, Web/Android builds pass. Main remains unchanged because
+  inherited backend boundary tests, lint and type checks fail; see integration report.
+
 ## 2026-10-06: movement completion score
 
 - Shared video/live results show observed station coverage; local history/export and

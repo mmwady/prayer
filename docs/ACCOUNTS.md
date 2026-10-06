@@ -1,4 +1,4 @@
-# Optional accounts and monitoring
+# Unified accounts, families and mosque groups
 
 Implemented 2026-10-05. Authentication runs entirely on the existing FastAPI
 backend. No Firebase is used. Prayer analysis happens locally on the user's device.
@@ -8,7 +8,26 @@ backend. No Firebase is used. Prayer analysis happens locally on the user's devi
 The existing Provider/Navigator Flutter application remains the entry point.
 `AccountController` starts in the background; the offline prayer cards do not wait
 for login, pairing, network, or the backend. An optional home tile opens accounts.
-Paired children see their name without an extra step before prayer selection.
+Every person creates the same account and signs in the same way. “New Muslim”
+and large/simple presentation are learning preferences, not security roles. A
+signed-in adult receives a personal practice profile automatically, so the
+existing camera-training flow can synchronize its scalar score without a second
+pairing step. A child can still use a separately paired device.
+
+Family responsibilities and mosque responsibilities are separate scopes:
+
+- `OWNER` creates the family and can invite family members.
+- `GUARDIAN` can manage dependent profiles and give/revoke consent.
+- `ADULT` has an independent account and personal practice profile.
+- `SUPPORTER` has a privacy-limited family view.
+- `ADMIN`/`LEADER` manages a verified mosque and its groups, but is never made a
+  guardian of a learner.
+
+A parent joins a minor to a mosque group by scanning the leader's invitation,
+signing in, selecting a controlled child profile, choosing an alias, and approving
+the exact shared summaries. There is no assisted-registration exception. Mosque
+attendance is stored and ranked separately from camera-practice scoring. Group
+boards show aliases; mosque-wide boards show group aggregates only.
 
 The selected-prayer video/live path produces its final `AnalysisReport` in
 `LocalSession.complete()`. After the original report is calculated and stored, a
@@ -57,20 +76,26 @@ artifacts. Model files and the locked browser inference manifest are untouched.
 ## Database
 
 `ACCOUNT_DB`, default `backend/data/accounts.sqlite3` relative to backend launch
-directory, is separate from Mosque/analysis data. SQLite schema version 1 creates
-tables/indexes additively: `guardians`, `guardian_sessions`, `email_tokens`,
-`groups`, `children`, `pairing_tokens`, `devices`, `attempts`, `rate_limits`,
-`account_schema`. Foreign keys are enabled. `UNIQUE(child_id,client_attempt_id)`
+directory, is separate from Mosque/analysis data. SQLite schema version 3 keeps
+the original tables and adds personal profiles, `family_memberships`,
+`guardian_links`, `family_invites`, `mosques`, `mosque_staff`, `mosque_groups`,
+`group_invites`, `group_memberships`, `guardian_consents`,
+`attendance_sessions`, `attendance_events`, and `account_audit_events`.
+The migration is additive and maps legacy family ownership into the new family
+scope; legacy classroom teachers are deliberately not mapped as guardians.
+Foreign keys are enabled. `UNIQUE(child_id,client_attempt_id)`
 enforces idempotency. Redemption/revocation/insertion use database transactions.
 No existing migration framework is present, so there is no Alembic migration or
 destructive schema change. Back up this database; reverting the optional router
 can leave it safely in place. Future schema changes must version the schema.
 
-Schema version 2 adds nullable `movements_detected`, `movements_expected` and
+Schema version 3 also adds nullable `movements_detected`, `movements_expected` and
 `movement_score` to attempts under a serialized additive migration. Existing
 rows retain null scores, and older queued summaries without these fields remain
 accepted. The API checks the expected station count for the selected prayer and
 recomputes the percentage before saving it; counts and percentage must agree.
+Both source branches previously used version 2 for different additive changes;
+version 3 reconciles them without resetting either database or replacing rows.
 
 ## Dependencies
 
@@ -95,12 +120,30 @@ are `Cache-Control: no-store`; bodies are limited to 16 KiB.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/config` | Email configuration availability only |
-| POST | `/auth/signup` | Parent/teacher registration |
+| POST | `/auth/signup` | Unified person registration and preferences |
 | POST | `/auth/resend`, `/auth/recover` | Verification/reset email |
 | POST | `/auth/verify`, `/auth/reset` | One-use email token redemption |
 | GET | `/auth/action` | Backend-hosted verification/reset page |
 | POST, DELETE | `/session` | Guardian login/logout |
 | GET | `/me` | Validated guardian identity |
+| GET | `/overview` | Personal profile, families and mosque relationships |
+| PUT | `/preferences` | Learning/accessibility preferences |
+| GET, POST | `/families` | List/create private family spaces |
+| GET | `/families/{id}` | Family members and dependent profiles |
+| POST | `/families/{id}/dependents` | Guardian creates a dependent profile |
+| POST | `/families/{id}/invites` | Owner invites guardian/adult/supporter |
+| POST | `/family-invitations/redeem` | Account accepts a family role |
+| GET | `/families/{id}/progress` | Private family camera-practice progress |
+| GET | `/mosques`, `/mosque-groups` | Verified mosques and visible groups |
+| POST | `/mosques/{id}/groups` | Verified staff creates a group |
+| POST | `/mosque-groups/{id}/invite` | Leader creates a parent-scanned invitation |
+| POST | `/mosque-groups/join` | Guardian consent, alias and sharing choices |
+| DELETE | `/mosque-groups/{id}/members/{profile}` | Guardian revokes consent or leader removes |
+| GET | `/mosque-groups/{id}/dashboard` | Alias-only, separate practice/attendance boards |
+| POST | `/mosque-groups/{id}/attendance-sessions` | Leader opens short-lived onsite attendance |
+| POST | `/attendance/check-in` | Consented profile checks in with its device |
+| POST | `/attendance-sessions/{id}/mark` | Leader records onsite attendance |
+| GET | `/mosques/{id}/leaderboard` | Group totals only; no child identity |
 | GET, POST | `/groups` | Owner groups/create family or classroom |
 | PUT | `/groups/{id}` | Name/timezone/reviewed schedule |
 | POST | `/groups/{id}/children` | Add child/student |
@@ -122,7 +165,7 @@ sessions. SMTP uses STARTTLS. Email links carry tokens in the URL fragment;
 the backend page clears it and explicitly POSTs the action. A GET cannot consume
 the token. The page sends no referrer and disallows framing.
 
-Guardian sessions are random opaque tokens, hashed server-side, expiring in 30
+Account sessions are random opaque tokens, hashed server-side, expiring in 30
 days. Child sessions expire in 180 days and can be revoked immediately. Android
 stores bearer tokens in secure storage and excludes that store from backups.
 Web uses HttpOnly, Secure, SameSite=Strict cookies scoped to the account API;
@@ -137,8 +180,10 @@ once atomically. Creating another code invalidates the earlier outstanding one.
 Manual entry is always available on Android and Web, including camera denial.
 Camera scanning uses the plugin with a user-friendly error fallback.
 
-Server ownership checks protect every group/child/dashboard/device action. Role
-determines group type. A child can submit only for the child assigned by its
+Server relationship checks protect every family/child/group/dashboard/device
+action. A mosque leader relationship never grants family or guardian access. A
+minor cannot join a mosque group without an active consent record from a linked
+guardian. A child can submit only for the child assigned by its
 validated session; client-supplied child/user IDs are rejected. Revocation is
 rechecked within the insert transaction. Deactivation revokes devices and codes.
 Login, email and pairing attempts are rate limited in SQLite, including failures.
@@ -213,11 +258,14 @@ Repeated uploads/attempts cannot multiply points or movement totals.
 ## Running locally and deploying
 
 Install backend dependencies in its venv, then use the existing FastAPI startup.
-Configure `ACCOUNT_PUBLIC_URL`, `ACCOUNT_ALLOWED_ORIGINS`, SMTP host/port/user/
-password/from and `ACCOUNT_DB` from `.env.example`. Production email requires
-real SMTP configuration. For local development only, set
-`ACCOUNT_MAIL_MODE=development`; protected `.eml` files are written to
-`ACCOUNT_MAIL_OUTBOX`, not returned by APIs or publicly served.
+Configure `ACCOUNT_PUBLIC_URL`, `ACCOUNT_ALLOWED_ORIGINS`, email and `ACCOUNT_DB`
+from `.env.example`. For real Resend delivery set `ACCOUNT_MAIL_MODE=resend`,
+`ACCOUNT_RESEND_API_KEY`, and `ACCOUNT_MAIL_FROM` to a sender on a verified
+domain. SMTP remains supported. For offline development only, set
+`ACCOUNT_MAIL_MODE=development`; verification remains mandatory and messages are
+written to protected `.eml` files under `ACCOUNT_MAIL_OUTBOX`. They are never
+returned by APIs or publicly served, and the UI explicitly says no email was
+sent. The password minimum is 8 characters in registration, login and reset.
 
 Prefer Web and API on the same HTTPS origin, reverse-proxying `/api/v1/accounts`.
 SameSite=Strict requires a same-site Web/API deployment; unrelated hosting domains
@@ -235,10 +283,38 @@ not regenerate or convert ONNX models. Test helper:
 from `backend`, with explicit dev DB/outbox settings. Its static server handles
 `.mjs`/WASM MIME types for the existing local models.
 
-Developer seed: `python -m tools.seed_account_demo --db data/family.demo.sqlite3`.
-It requires a separate empty `.demo.sqlite3` file, prompts for a password, creates
-an unverified Mohamed DEMO and labelled synthetic Omar/Ali/Youssef history. Normal
-verification/login remain required. It never seeds a running real account DB.
+For the full local demonstration, from `backend` run:
+
+```powershell
+.\.venv\Scripts\python.exe -m tools.seed_account_demo --db data/accounts.rich.v2.demo.sqlite3
+$env:ACCOUNT_DB = (Resolve-Path data/accounts.rich.v2.demo.sqlite3)
+$env:ACCOUNT_SECURE_COOKIES = 'false'
+.\.venv\Scripts\python.exe -m uvicorn tools.account_demo_server:app --host 127.0.0.1 --port 8000
+```
+
+For a phone on the same Wi-Fi, use `powershell.exe -NoProfile -ExecutionPolicy
+Bypass -File backend/start_account_demo_lan.ps1 -Port 8020`. It validates the
+selected email provider, binds the test server to all local interfaces, discovers
+the PC's private IPv4 address and prints the phone URL. The Flutter Web build uses
+its page origin automatically. Private-LAN HTTP supports account/family testing;
+use the debug Android APK or local HTTPS when testing the camera because mobile
+browsers may require a secure context.
+
+The seed refuses a live database or a non-empty file. It creates verified,
+local-demo-only accounts with password `IqtadiDemo!2026`:
+
+| Account | Scenario |
+| --- | --- |
+| `demo@example.com` | Primary demo: personal learner, father/family owner, mosque leader |
+| `guardian@example.com` | Additional guardian and adult learner |
+| `newmuslim@example.com` | New-Muslim learning preference |
+| `elder@example.com` | Large-text accessibility preference |
+| `sheikh@example.com` | Mosque administrator, with no guardian rights |
+
+The seed includes seven days of camera-practice summaries, separate mosque
+attendance, two mosque groups, several family levels and three dependents.
+Use group invitation code `DEMOJOIN24` and attendance code `FAJRDEMO`. Credentials
+and codes are intentionally deterministic and must never be used in production.
 
 ## Verification and limits
 
@@ -252,12 +328,13 @@ verification require real camera/device access and are separately reported.
 Security tests cover expiration/reuse/invalid pairing, owner isolation, child
 scope, revocation, duplicate sync, unauthenticated endpoints, cookie origin/header
 protection, recovery/session invalidation, rate limiting, result consistency,
-scalar privacy and request body limits. Flutter tests cover persistent offline
+scalar privacy, mandatory minor consent, leader/guardian separation, alias-only
+group boards and group-total mosque boards. Flutter tests cover persistent offline
 queue, lost ACK, duplicate/race/revocation binding, synthetic exclusion and
 responsive account/manual-entry screens at 320/390/1024 pixels.
 
-Remaining MVP limits: timetable is manual; owner-only group management (no
-co-teacher invites); no dedicated retired-profile recovery UI; finite sessions
+Remaining MVP limits: timetable is manual; mosque staff provisioning requires a
+trusted administrative process; no dedicated retired-profile recovery UI; finite sessions
 require re-login/re-pairing; standalone image recognizer does not synchronize;
 browser cache must finish its first online setup before offline inference; queue
 uses existing local preferences rather than an encrypted result database.
