@@ -95,10 +95,6 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                           label: const Text('حذف التحليل والعودة')),
                     ] else ...[
                       if (!c.busy) ...[
-                        if (c.api is LocalAnalysisService)
-                          LocalAssessmentControls(
-                              session: (c.api as LocalAnalysisService).session,
-                              onChanged: () => setState(() {})),
                         AppCard(
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

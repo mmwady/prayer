@@ -52,8 +52,8 @@ class LocalSession {
   List<Map<String, dynamic>> samples = [], captures = [];
   Map<String, Uint8List> images = {};
   StableLocalCapture stable = StableLocalCapture();
-  LocalAssessmentOptions options = const LocalAssessmentOptions();
-  LocalAssessmentOptions _activeOptions = const LocalAssessmentOptions();
+  final LocalAssessmentOptions options = LocalAssessmentOptions.recommended;
+  LocalAssessmentOptions _activeOptions = LocalAssessmentOptions.recommended;
   Future<void> _operation = Future.value();
   String? _groupSignature, _bestFrame;
   int? _lastTimestamp;
@@ -260,7 +260,8 @@ class LocalSession {
           'analysis_version': info!['model_version'],
         });
       } catch (_) {
-        data['storage_warning'] = 'التقرير المحلي متاح، لكن تعذر حفظ ملخص المتابعة للمزامنة.';
+        data['storage_warning'] =
+            'التقرير المحلي متاح، لكن تعذر حفظ ملخص المتابعة للمزامنة.';
       }
     }
   }

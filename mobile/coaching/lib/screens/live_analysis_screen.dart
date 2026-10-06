@@ -8,7 +8,6 @@ import '../ui/ui_kit.dart';
 import 'video_analysis_screen.dart';
 import '../local/analysis_service.dart';
 import '../local/prediction_cards.dart';
-import '../local/assessment_widgets.dart';
 
 class LiveAnalysisScreen extends StatefulWidget {
   const LiveAnalysisScreen(
@@ -201,10 +200,6 @@ class _LiveAnalysisScreenState extends State<LiveAnalysisScreen>
                             ]))),
                   if (!c.busy && c.camera.ready) startButton(c),
                   if (!c.busy && countdown == null) ...[
-                    if (c.api is LocalAnalysisService && c.api.jobId == null)
-                      LocalAssessmentControls(
-                          session: (c.api as LocalAnalysisService).session,
-                          onChanged: () => setState(() {})),
                     AppCard(
                         child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,63 +1,6 @@
 import 'package:flutter/material.dart';
 import 'assessment_options.dart';
-import 'session.dart';
 import '../video/analysis_report.dart';
-
-class LocalAssessmentControls extends StatelessWidget {
-  const LocalAssessmentControls(
-      {super.key, required this.session, required this.onChanged});
-  final LocalSession session;
-  final VoidCallback onChanged;
-  @override
-  Widget build(BuildContext context) {
-    final options = session.options;
-    void update({bool? sequence, bool? ruku, bool? seated}) {
-      session.options = LocalAssessmentOptions(
-          sequenceNormalization: sequence ?? options.sequenceNormalization,
-          rukuGeometryGate: ruku ?? options.rukuGeometryGate,
-          seatedProbabilityProjection:
-              seated ?? options.seatedProbabilityProjection);
-      onChanged();
-    }
-
-    return Card(
-        child: ExpansionTile(
-            title: const Text('تحسين قراءة الحركات'),
-            subtitle: Text(options.enabled
-                ? 'تحسينات اختيارية مفعّلة'
-                : 'النتائج الخام — التحسينات متوقفة'),
-            children: [
-          const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                  'تساعد هذه الخيارات في قراءة التسلسل. تبقى تنبؤات النماذج الأصلية محفوظة، وتظهر التغييرات في التقرير للمراجعة.')),
-          TextButton(
-              onPressed: () {
-                session.options = LocalAssessmentOptions.recommended;
-                onChanged();
-              },
-              child: const Text('استخدام إعدادات التحسين المقترحة')),
-          SwitchListTile(
-              value: options.sequenceNormalization,
-              title: const Text('تنقية تسلسل الحركات'),
-              subtitle: const Text(
-                  'يجمع الأحداث المتقطعة ويرجّح ترتيب المحطات؛ لا يثبت صحة الصلاة.'),
-              onChanged: (v) => update(sequence: v)),
-          SwitchListTile(
-              value: options.rukuGeometryGate,
-              title: const Text('مراجعة الركوع من وضع الساقين'),
-              subtitle: const Text(
-                  'يترك الركوع غير مؤكد إذا لم تظهر أدلة كافية على استقامة الساق.'),
-              onChanged: (v) => update(ruku: v)),
-          SwitchListTile(
-              value: options.seatedProbabilityProjection,
-              title: const Text('ترجيح وضع الجلوس — تجريبي'),
-              subtitle: const Text(
-                  'يجمع احتمالات الجلوس والتسليم عند ضعف القرار الفردي؛ قد يضيف أحداثًا زائدة.'),
-              onChanged: (v) => update(seated: v)),
-        ]));
-  }
-}
 
 class LocalAssessmentReview extends StatelessWidget {
   const LocalAssessmentReview({super.key, required this.report});

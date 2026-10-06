@@ -91,24 +91,37 @@ List<Map<String, dynamic>> samplesFor(Map fixture) => [
 void main() {
   test('actual phone floor glitches do not split rakahs or end at early Salam',
       () {
-    final events = (jsonDecode(
-            File('test/fixtures/mobile_quality_events.json').readAsStringSync())
-        as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final events = (jsonDecode(File('test/fixtures/mobile_quality_events.json')
+            .readAsStringSync()) as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
     String observations() => jsonEncode([
           for (final e in events)
             {
-              for (final key in ['pose', 'start_ms', 'end_ms', 'confidence',
-                'candidate_pose', 'candidate_confidence', 'representative_frame_id'])
+              for (final key in [
+                'pose',
+                'start_ms',
+                'end_ms',
+                'confidence',
+                'candidate_pose',
+                'candidate_confidence',
+                'representative_frame_id'
+              ])
                 key: e[key]
             }
         ]);
     final original = observations();
     final report = localSequence('fajr', events, normalizeSequence: true);
     final rows = report['rakahs'] as List;
-    expect(rows.expand((r) => r['stations'] as List)
-        .where((s) => s['status'] == 'DETECTED').length, 16);
+    expect(
+        rows
+            .expand((r) => r['stations'] as List)
+            .where((s) => s['status'] == 'DETECTED')
+            .length,
+        16);
     final standing = rows[1]['stations'][0] as Map;
-    final boundary = events.firstWhere((e) => e['event_id'] == standing['event_id']);
+    final boundary =
+        events.firstWhere((e) => e['event_id'] == standing['event_id']);
     expect(boundary['start_ms'], 29500);
     expect((rows[1]['stations'] as List).last['timestamp_ms'], 61750);
     expect(observations(), original);
@@ -211,27 +224,13 @@ void main() {
     }
   }
   testWidgets(
-      'optional controls and raw correction disclosure work in Arabic RTL',
+      'fixed session settings and raw correction disclosure work in Arabic RTL',
       (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
     final session = LocalSession();
-    await tester.pumpWidget(MaterialApp(
-        home: Directionality(
-            textDirection: TextDirection.rtl,
-            child: StatefulBuilder(
-                builder: (context, setState) => Scaffold(
-                    body: SingleChildScrollView(
-                        child: LocalAssessmentControls(
-                            session: session,
-                            onChanged: () => setState(() {}))))))));
-    expect(session.options.enabled, false);
-    await tester.tap(find.text('تحسين قراءة الحركات'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('استخدام إعدادات التحسين المقترحة'));
-    await tester.pumpAndSettle();
     expect(session.options.toMap(), LocalAssessmentOptions.recommended.toMap());
     expect(session.options.seatedProbabilityProjection, false);
     final report = AnalysisReport.fromJson(buildLocalReport(

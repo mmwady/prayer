@@ -231,15 +231,11 @@ Map<String, dynamic> _projectReport(Map<String, dynamic> report) => {
     };
 
 void main() {
-  test(
-      'report settings freeze at creation and raw decisions survive save/export',
-      () async {
+  test('fixed report settings and raw decisions survive save/export', () async {
     final repository = _MemoryRepository();
     final session =
-        LocalSession(inference: _FakeInference(), repository: repository)
-          ..options = LocalAssessmentOptions.recommended;
+        LocalSession(inference: _FakeInference(), repository: repository);
     await session.create('demo');
-    session.options = const LocalAssessmentOptions();
     await session.add(_frame(0));
     await session.complete();
     expect(session.report.raw['assessment_options'],
