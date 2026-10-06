@@ -2,6 +2,21 @@
 
 ## Status
 
+2026-10-06 bilingual presentation work on `codex/bilingual-integrated-ui`, based
+on corrected integrated main `f5fce8b`. Arabic remains the default; the home language
+menu switches English/LTR and persists `iqtadi_locale`. SDK localization delegates
+cover Material controls. Unified accounts, family and mosque-group screens retain
+their existing routes, permissions, transport values and user-authored names/messages.
+Prayer/backend/model sources are unchanged. The embedded image recognizer receives
+locale messages through a display-only adapter without reloading its session.
+Main is protected from this feature; no publication/deployment of the feature.
+Validation: all 160 Flutter tests and 10 browser tests pass; full Web/offline build
+passes. Analyzer has only the six inherited informational findings.
+Isolated Chrome checks pass for Arabic/English at 320, 390 and 1024 pixels,
+saved-language reload, account/family/group UI and recognizer state retention.
+Account requests use explicit intercepted fixtures; physical camera/device and
+real server authentication were not exercised by this localization verification.
+
 2026-10-06 explicitly authorized additive rich Ezz samples on the existing VPS DB:
 both real accounts/sessions retained; six labelled fake accounts, two families,
 three dependents, four age-compatible mosque groups, 189 synthetic attempts and

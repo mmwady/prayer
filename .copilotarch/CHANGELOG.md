@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-06 — Bilingual integrated presentation
+
+- Added Arabic-default/English UI switching with persistent preference and RTL/LTR,
+  on a separate branch based on corrected integrated main.
+- Localized unified accounts, families, mosque groups, prayer views and the embedded
+  recognizer while preserving user data, account transport and protected model/domain code.
+- Full Flutter regression: 160 passed; browser localization/assets/init: 10 passed;
+  Web build passes and six inherited analyzer infos remain.
+
 ## 2026-10-06: additive Ezz samples on existing VPS
 
 - User selected current-site sample addition; both real accounts/sessions retained.

@@ -1,13 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Locale state for the Arabic-first prayer app.
 ///
-/// Arabic is the only supported locale, so RTL is always on. `main.dart` reads
-/// [isRtl] to build the root [Directionality]; keeping it behind a
-/// [ChangeNotifier] leaves room for a future locale switch without touching the
-/// widget tree.
+/// Presentation preference only; never changes prayer/session state.
 class LocaleProvider extends ChangeNotifier {
-  String get localeCode => 'ar';
+  static const preferenceKey = 'iqtadi_locale';
+  String _localeCode = 'ar';
+  String get localeCode => _localeCode;
+  Locale get locale => Locale(_localeCode);
+  bool get isRtl => _localeCode == 'ar';
 
-  bool get isRtl => true;
+  Future<void> load() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final saved = preferences.getString(preferenceKey);
+      if (saved == 'ar' || saved == 'en') {
+        _localeCode = saved!;
+        notifyListeners();
+      }
+    } catch (_) {/* Arabic remains the default if storage is unavailable. */}
+  }
+
+  Future<void> setLocale(String code) async {
+    if ((code != 'ar' && code != 'en') || code == _localeCode) return;
+    _localeCode = code;
+    notifyListeners();
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(preferenceKey, code);
+    } catch (_) {/* Switching still works without persistent storage. */}
+  }
 }

@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'screens/home_screen.dart';
@@ -15,6 +16,7 @@ import 'ui/app_theme.dart';
 import 'config/env.dart';
 import 'accounts/controller.dart';
 import 'accounts/platform.dart';
+import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
   // Read a one-time child pairing link before MaterialApp normalizes the URL.
@@ -24,9 +26,11 @@ Future<void> main() async {
   try {
     await Env.load();
   } catch (_) {/* Use the build default if storage is unavailable. */}
+  final localeProvider = LocaleProvider();
+  await localeProvider.load();
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => LocaleProvider(),
+    ChangeNotifierProvider.value(
+      value: localeProvider,
       child: CoachingApp(startupPairingCode: startupPairingCode),
     ),
   );
@@ -46,8 +50,15 @@ class CoachingApp extends StatelessWidget {
       child: Consumer<LocaleProvider>(
         builder: (context, localeProvider, child) {
           return MaterialApp(
-            // Dynamically read title from translations if needed, or fallback.
-            title: 'اقتدِ',
+            title: localeProvider.isRtl ? 'اقتدِ' : 'Iqtadi',
+            locale: localeProvider.locale,
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             debugShowCheckedModeBanner: false,
             theme: buildAppTheme(),
             builder: (context, child) {

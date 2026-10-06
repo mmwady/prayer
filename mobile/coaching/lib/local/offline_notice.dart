@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -128,29 +129,30 @@ class _OfflineNoticeState extends State<OfflineNotice> {
                 color: ready ? AppColors.accent : AppColors.info),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
-                child: Text(title,
+                child: Text(localized(context, title),
                     style: Theme.of(context).textTheme.titleMedium)),
           ]),
           const SizedBox(height: AppSpacing.sm),
-          Text(text),
+          Text(localized(context, text)),
           if (preparing || _applying) ...[
             const SizedBox(height: AppSpacing.sm),
             LinearProgressIndicator(value: _applying ? null : _status.progress),
             if (!_applying && _status.total > 0)
-              Text('حُفظ ${_status.completed} من ${_status.total} ملفًا'),
+              Text(localized(context, 'حُفظ {0} من {1} ملفًا',
+                  [_status.completed, _status.total])),
           ],
           if (update) ...[
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
               onPressed: _applying ? null : _update,
               icon: const Icon(Icons.system_update_alt),
-              label: const Text('تطبيق التحديث'),
+              label: Text(localized(context, 'تطبيق التحديث')),
             ),
           ],
           if (_updateError != null)
             AppNote(_updateError!, icon: Icons.info_outline),
           const SizedBox(height: AppSpacing.sm),
-          const Text('صورك وفيديوهاتك تبقى على جهازك.'),
+          Text(localized(context, 'صورك وفيديوهاتك تبقى على جهازك.')),
         ],
       ),
     );

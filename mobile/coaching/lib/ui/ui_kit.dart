@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // ui_kit.dart
 //
@@ -95,12 +96,14 @@ class SectionTitle extends StatelessWidget {
     this.subtitle,
     this.icon,
     this.trailing,
+    this.translateTitle = true,
   });
 
   final String title;
   final String? subtitle;
   final IconData? icon;
   final Widget? trailing;
+  final bool translateTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -119,14 +122,18 @@ class SectionTitle extends StatelessWidget {
                 Icon(icon, size: 20, color: AppColors.accent),
                 const SizedBox(width: AppSpacing.sm),
               ],
-              Expanded(child: Text(title, style: theme.textTheme.titleLarge)),
+              Expanded(
+                  child: Text(
+                      translateTitle ? localized(context, title) : title,
+                      style: theme.textTheme.titleLarge)),
               if (trailing != null) trailing,
             ],
           ),
           if (subtitle != null)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.xs),
-              child: Text(subtitle, style: theme.textTheme.bodySmall),
+              child: Text(localized(context, subtitle),
+                  style: theme.textTheme.bodySmall),
             ),
         ],
       ),
@@ -174,13 +181,14 @@ class StatusBanner extends StatelessWidget {
               children: [
                 if (title != null) ...[
                   Text(
-                    title,
+                    localized(context, title),
                     style: theme.textTheme.titleMedium
                         ?.copyWith(color: tone.color),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                 ],
-                Text(text, style: theme.textTheme.bodyMedium),
+                Text(localized(context, text),
+                    style: theme.textTheme.bodyMedium),
               ],
             ),
           ),
@@ -208,7 +216,8 @@ class AppNote extends StatelessWidget {
           Icon(icon, size: 16, color: AppColors.textSecondary),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+            child: Text(localized(context, text),
+                style: Theme.of(context).textTheme.bodySmall),
           ),
         ],
       );
@@ -240,7 +249,7 @@ class PillTag extends StatelessWidget {
             const SizedBox(width: 5),
           ],
           Text(
-            text,
+            localized(context, text),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: tone.color,
                   fontWeight: FontWeight.w600,
@@ -285,7 +294,7 @@ class MetricTile extends StatelessWidget {
               ],
               Flexible(
                 child: Text(
-                  label,
+                  localized(context, label),
                   style: theme.textTheme.bodySmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -295,7 +304,7 @@ class MetricTile extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            value,
+            localized(context, value),
             style: theme.textTheme.titleLarge,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -329,7 +338,8 @@ class StatLine extends StatelessWidget {
             Icon(icon, size: 18, color: tone.color),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
+              child: Text(localized(context, text),
+                  style: Theme.of(context).textTheme.bodyLarge),
             ),
           ],
         ),
@@ -388,7 +398,7 @@ class StepTracker extends StatelessWidget {
                     padding: EdgeInsets.only(
                         bottom: i == steps.length - 1 ? 0 : AppSpacing.lg),
                     child: Text(
-                      steps[i].label,
+                      localized(context, steps[i].label),
                       style: steps[i].mark == StepMark.current
                           ? theme.textTheme.titleMedium
                               ?.copyWith(color: AppColors.accent)
@@ -435,7 +445,7 @@ class _StepDot extends StatelessWidget {
       child: done
           ? const Icon(Icons.check, size: 16, color: AppColors.onAccent)
           : Text(
-              '${index + 1}',
+              localized(context, '{0}', [index + 1]),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,

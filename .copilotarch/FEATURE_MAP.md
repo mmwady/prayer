@@ -1,5 +1,16 @@
 # Feature Map
 
+## Arabic / English presentation
+
+- `lib/state/locale_provider.dart`: Arabic-default saved UI language preference.
+- `lib/l10n/`: Arabic source-copy catalog, English translations, safe value slots.
+- `lib/main.dart`, `lib/screens/home_screen.dart`: SDK delegates, direction and menu.
+- `lib/accounts/{screen,family_screen,mosque_groups_screen,movement_progress}.dart`:
+  integrated account UI localization; names, aliases, messages, codes and wire enums stay raw.
+- `browser/src/i18n*.mjs`: DOM copy/direction only; original inference/session code stays hash-identical.
+- `test/localization_test.dart`, `test/integrated_localization_test.dart`,
+  `browser/test/i18n.test.mjs`: state/data preservation and bilingual rendering checks.
+
 ## Optional account monitoring (2026-10-05)
 
 - `mobile/coaching/lib/accounts/`: backend login/signup, SMTP email actions,

@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 import '../ui/ui_kit.dart';
@@ -18,23 +19,26 @@ class MovementProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ExpansionTile(
-        title: const Text('اكتمال الحركات المرصودة'),
-        subtitle: Text('الأسبوع: ${summary(progress, weekly: true)}'),
+        title: Text(localized(context, 'اكتمال الحركات المرصودة')),
+        subtitle: Text(localized(context, 'الأسبوع: {0}',
+            [localized(context, summary(progress, weekly: true))])),
         children: [
           ListTile(
-            title: const Text('اليوم'),
-            subtitle: Text(summary(progress)),
+            title: Text(localized(context, 'اليوم')),
+            subtitle: Text(localized(context, summary(progress))),
           ),
           for (final day in progress['week'] as List? ?? const [])
             ExpansionTile(
               title: Text('${day['date']}'),
-              subtitle: Text(summary(day as Map)),
+              subtitle: Text(localized(context, summary(day as Map))),
               children: [
                 for (final entry
                     in (day['movement_results'] as Map? ?? const {}).entries)
                   ListTile(
-                    title: Text(_prayers[entry.key] ?? '${entry.key}'),
-                    subtitle: Text(summary(entry.value as Map)),
+                    title: Text(localized(
+                        context, _prayers[entry.key] ?? '${entry.key}')),
+                    subtitle:
+                        Text(localized(context, summary(entry.value as Map))),
                     trailing: PillTag(
                       entry.value['uncertain'] == true
                           ? 'تحتاج مراجعة'
@@ -46,10 +50,10 @@ class MovementProgress extends StatelessWidget {
                   ),
               ],
             ),
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: Text(
-                'نسبة رصد الحركات مستقلة عن النقاط، ولا تعني صحة الصلاة أو قبولها.'),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(localized(context,
+                'نسبة رصد الحركات مستقلة عن النقاط، ولا تعني صحة الصلاة أو قبولها.')),
           ),
         ],
       );

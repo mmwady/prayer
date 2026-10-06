@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -84,19 +85,20 @@ class _FamilyScreenState extends State<FamilyScreen> {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('إنشاء أسرة'),
+        title: Text(localized(context, 'إنشاء أسرة')),
         content: TextField(
           controller: name,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'اسم الأسرة'),
+          decoration:
+              InputDecoration(labelText: localized(context, 'اسم الأسرة')),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء')),
+              child: Text(localized(context, 'إلغاء'))),
           FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('إنشاء')),
+              child: Text(localized(context, 'إنشاء'))),
         ],
       ),
     );
@@ -120,7 +122,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('إضافة طفل إلى الأسرة'),
+          title: Text(localized(context, 'إضافة طفل إلى الأسرة')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -128,23 +130,29 @@ class _FamilyScreenState extends State<FamilyScreen> {
                 TextField(
                   controller: name,
                   autofocus: true,
-                  decoration: const InputDecoration(labelText: 'الاسم الحقيقي'),
+                  decoration: InputDecoration(
+                      labelText: localized(context, 'الاسم الحقيقي')),
                 ),
                 TextField(
                   controller: alias,
-                  decoration: const InputDecoration(
-                      labelText: 'الاسم المستعار للمجموعات — اختياري'),
+                  decoration: InputDecoration(
+                      labelText: localized(
+                          context, 'الاسم المستعار للمجموعات — اختياري')),
                 ),
                 DropdownButtonFormField<String>(
                   initialValue: ageBand,
-                  decoration: const InputDecoration(labelText: 'الفئة العمرية'),
-                  items: const [
+                  decoration: InputDecoration(
+                      labelText: localized(context, 'الفئة العمرية')),
+                  items: [
                     DropdownMenuItem(
-                        value: 'CHILD_5_9', child: Text('5–9 سنوات')),
+                        value: 'CHILD_5_9',
+                        child: Text(localized(context, '5–9 سنوات'))),
                     DropdownMenuItem(
-                        value: 'CHILD_10_13', child: Text('10–13 سنة')),
+                        value: 'CHILD_10_13',
+                        child: Text(localized(context, '10–13 سنة'))),
                     DropdownMenuItem(
-                        value: 'TEEN_14_17', child: Text('14–17 سنة')),
+                        value: 'TEEN_14_17',
+                        child: Text(localized(context, '14–17 سنة'))),
                   ],
                   onChanged: (value) =>
                       setDialogState(() => ageBand = value ?? ageBand),
@@ -155,10 +163,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('إلغاء')),
+                child: Text(localized(context, 'إلغاء'))),
             FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('إضافة')),
+                child: Text(localized(context, 'إضافة'))),
           ],
         ),
       ),
@@ -193,18 +201,22 @@ class _FamilyScreenState extends State<FamilyScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('دعوة فرد إلى الأسرة'),
+          title: Text(localized(context, 'دعوة فرد إلى الأسرة')),
           content: DropdownButtonFormField<String>(
             initialValue: role,
-            decoration: const InputDecoration(labelText: 'مستوى الصلاحية'),
-            items: const [
+            decoration: InputDecoration(
+                labelText: localized(context, 'مستوى الصلاحية')),
+            items: [
               DropdownMenuItem(
                   value: 'GUARDIAN',
-                  child: Text('ولي أمر — إدارة الأطفال والموافقات')),
+                  child: Text(localized(
+                      context, 'ولي أمر — إدارة الأطفال والموافقات'))),
               DropdownMenuItem(
-                  value: 'ADULT', child: Text('بالغ — تقدمه الشخصي فقط')),
+                  value: 'ADULT',
+                  child: Text(localized(context, 'بالغ — تقدمه الشخصي فقط'))),
               DropdownMenuItem(
-                  value: 'SUPPORTER', child: Text('داعم — متابعة محدودة')),
+                  value: 'SUPPORTER',
+                  child: Text(localized(context, 'داعم — متابعة محدودة'))),
             ],
             onChanged: (value) =>
                 setDialogState(() => role = value ?? 'GUARDIAN'),
@@ -212,10 +224,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('إلغاء')),
+                child: Text(localized(context, 'إلغاء'))),
             FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('إنشاء الدعوة')),
+                child: Text(localized(context, 'إنشاء الدعوة'))),
           ],
         ),
       ),
@@ -238,32 +250,35 @@ class _FamilyScreenState extends State<FamilyScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('صلاحيات ${member['name']}'),
+          title: Text(localized(context, 'صلاحيات {0}', [member['name']])),
           content: DropdownButtonFormField<String>(
             initialValue: role,
-            decoration:
-                const InputDecoration(labelText: 'الدور داخل هذه الأسرة فقط'),
-            items: const [
+            decoration: InputDecoration(
+                labelText: localized(context, 'الدور داخل هذه الأسرة فقط')),
+            items: [
               DropdownMenuItem(
                   value: 'GUARDIAN',
-                  child: Text('ولي أمر — إدارة الأطفال والموافقات')),
+                  child: Text(localized(
+                      context, 'ولي أمر — إدارة الأطفال والموافقات'))),
               DropdownMenuItem(
-                  value: 'ADULT', child: Text('بالغ — ملفه الشخصي فقط')),
+                  value: 'ADULT',
+                  child: Text(localized(context, 'بالغ — ملفه الشخصي فقط'))),
               DropdownMenuItem(
-                  value: 'SUPPORTER', child: Text('داعم — مشاهدة محدودة')),
+                  value: 'SUPPORTER',
+                  child: Text(localized(context, 'داعم — مشاهدة محدودة'))),
             ],
             onChanged: (value) => setDialogState(() => role = value ?? role),
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dialogContext, 'REMOVE'),
-                child: const Text('إزالة من الأسرة')),
+                child: Text(localized(context, 'إزالة من الأسرة'))),
             TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('إلغاء')),
+                child: Text(localized(context, 'إلغاء'))),
             FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, role),
-                child: const Text('حفظ الصلاحية')),
+                child: Text(localized(context, 'حفظ الصلاحية'))),
           ],
         ),
       ),
@@ -306,7 +321,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
       showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(title),
+          title: Text(localized(context, title)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -320,7 +335,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                     style: Theme.of(context).textTheme.headlineSmall),
                 if (note != null) ...[
                   const SizedBox(height: 8),
-                  Text(note, textAlign: TextAlign.center),
+                  Text(localized(context, note), textAlign: TextAlign.center),
                 ],
               ],
             ),
@@ -328,7 +343,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
           actions: [
             FilledButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('تم')),
+                child: Text(localized(context, 'تم'))),
           ],
         ),
       );
@@ -357,12 +372,12 @@ class _FamilyScreenState extends State<FamilyScreen> {
     final selected = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('أجهزة ${dependent['name']}'),
+        title: Text(localized(context, 'أجهزة {0}', [dependent['name']])),
         content: SizedBox(
           width: 440,
           child: devices.isEmpty
-              ? const Text(
-                  'لا يوجد جهاز مرتبط الآن. إذا مسح الطفل QR للتو، انتظر لحظة ثم افتح إدارة الأجهزة مجددًا.')
+              ? Text(localized(context,
+                  'لا يوجد جهاز مرتبط الآن. إذا مسح الطفل QR للتو، انتظر لحظة ثم افتح إدارة الأجهزة مجددًا.'))
               : ListView.separated(
                   shrinkWrap: true,
                   itemCount: devices.length,
@@ -372,14 +387,17 @@ class _FamilyScreenState extends State<FamilyScreen> {
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.smartphone),
-                      title: Text('الجهاز المرتبط ${index + 1}'),
-                      subtitle: Text(device['platform'] == 'web'
-                          ? 'هاتف أو متصفح ويب'
-                          : 'تطبيق الهاتف'),
+                      title: Text(localized(
+                          context, 'الجهاز المرتبط {0}', [index + 1])),
+                      subtitle: Text(localized(
+                          context,
+                          device['platform'] == 'web'
+                              ? 'هاتف أو متصفح ويب'
+                              : 'تطبيق الهاتف')),
                       trailing: TextButton.icon(
                         onPressed: () => Navigator.pop(context, device),
                         icon: const Icon(Icons.link_off),
-                        label: const Text('فصل'),
+                        label: Text(localized(context, 'فصل')),
                       ),
                     );
                   },
@@ -388,7 +406,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('إغلاق')),
+              child: Text(localized(context, 'إغلاق'))),
         ],
       ),
     );
@@ -402,16 +420,18 @@ class _FamilyScreenState extends State<FamilyScreen> {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('فصل جهاز الطفل؟'),
-        content: Text(
-            'سيتوقف جهاز ${dependent['name']} عن المزامنة، ويمكن ربطه لاحقًا برمز جديد.'),
+        title: Text(localized(context, 'فصل جهاز الطفل؟')),
+        content: Text(localized(
+            context,
+            'سيتوقف جهاز {0} عن المزامنة، ويمكن ربطه لاحقًا برمز جديد.',
+            [dependent['name']])),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء')),
+              child: Text(localized(context, 'إلغاء'))),
           FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('فصل الجهاز')),
+              child: Text(localized(context, 'فصل الجهاز'))),
         ],
       ),
     );
@@ -452,7 +472,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
     final role = family?['role'] as String?;
     final canManageChildren = role == 'OWNER' || role == 'GUARDIAN';
     return Scaffold(
-      appBar: AppBar(title: const Text('إدارة الأسرة')),
+      appBar: AppBar(title: Text(localized(context, 'إدارة الأسرة'))),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
@@ -476,7 +496,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                   child: FilledButton.icon(
                     onPressed: loading ? null : _createFamily,
                     icon: const Icon(Icons.add),
-                    label: const Text('أسرة جديدة'),
+                    label: Text(localized(context, 'أسرة جديدة')),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -490,13 +510,17 @@ class _FamilyScreenState extends State<FamilyScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: selectedId,
                     isExpanded: true,
-                    decoration:
-                        const InputDecoration(labelText: 'الأسرة الحالية'),
+                    decoration: InputDecoration(
+                        labelText: localized(context, 'الأسرة الحالية')),
                     items: families
                         .map((family) => DropdownMenuItem<String>(
                               value: family['id'] as String,
                               child: Text(
-                                '${family['name']} — ${_role(family['role'] as String)}',
+                                localized(context, '{0} — {1}', [
+                                  family['name'],
+                                  localized(
+                                      context, _role(family['role'] as String))
+                                ]),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -508,6 +532,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                   const SizedBox(height: AppSpacing.xl),
                   SectionTitle(
                     family?['name'] as String? ?? 'الأسرة',
+                    translateTitle: family?['name'] == null,
                     subtitle: 'مستواك: ${_role(role ?? '')}',
                     icon: Icons.home_outlined,
                   ),
@@ -517,7 +542,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       child: OutlinedButton.icon(
                         onPressed: loading ? null : _inviteMember,
                         icon: const Icon(Icons.person_add_alt),
-                        label: const Text('دعوة فرد'),
+                        label: Text(localized(context, 'دعوة فرد')),
                       ),
                     ),
                   _members(),
@@ -532,7 +557,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       child: FilledButton.icon(
                         onPressed: loading ? null : _addDependent,
                         icon: const Icon(Icons.add),
-                        label: const Text('إضافة طفل'),
+                        label: Text(localized(context, 'إضافة طفل')),
                       ),
                     ),
                   _dependents(canManageChildren),
@@ -570,7 +595,8 @@ class _FamilyScreenState extends State<FamilyScreen> {
                     : TextButton.icon(
                         onPressed: loading ? null : () => _manageMember(member),
                         icon: const Icon(Icons.manage_accounts_outlined),
-                        label: Text(_role(member['role'] as String)),
+                        label: Text(localized(
+                            context, _role(member['role'] as String))),
                       ),
               );
             }),
@@ -602,8 +628,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
                     contentPadding: EdgeInsets.zero,
                     leading: const CircleAvatar(child: Icon(Icons.child_care)),
                     title: Text(child['name'] as String),
-                    subtitle: Text(
-                        '${child['alias'] ?? 'بلا اسم مستعار'} • ${_age(child['age_band'] as String?)}'),
+                    subtitle: Text(localized(context, '{0} • {1}', [
+                      child['alias'] ?? localized(context, 'بلا اسم مستعار'),
+                      localized(context, _age(child['age_band'] as String?))
+                    ])),
                     trailing: PillTag(
                       devices.isEmpty
                           ? 'غير مرتبط بجهاز'
@@ -622,14 +650,14 @@ class _FamilyScreenState extends State<FamilyScreen> {
                         FilledButton.tonalIcon(
                           onPressed: loading ? null : () => _pairDevice(child),
                           icon: const Icon(Icons.qr_code_2),
-                          label: const Text('ربط هاتف الطفل'),
+                          label: Text(localized(context, 'ربط هاتف الطفل')),
                         ),
                         OutlinedButton.icon(
                           onPressed:
                               loading ? null : () => _manageDevices(child),
                           icon: const Icon(Icons.phonelink_erase),
-                          label: Text(
-                              'إدارة/فصل الأجهزة${devices.isEmpty ? '' : ' (${devices.length})'}'),
+                          label: Text(localized(context, 'إدارة/فصل الأجهزة{0}',
+                              [devices.isEmpty ? '' : ' (${devices.length})'])),
                         ),
                       ],
                     ),
@@ -660,7 +688,8 @@ class _FamilyScreenState extends State<FamilyScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('${row['weekly_valid_prayers'] ?? 0} صلوات مكتملة'),
+                    Text(localized(context, '{0} صلوات مكتملة',
+                        [row['weekly_valid_prayers'] ?? 0])),
                     MovementProgress(progress: row),
                   ],
                 ),

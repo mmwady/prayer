@@ -1,5 +1,9 @@
 # Project Map
 
+- `mobile/coaching/lib/l10n/`: source-keyed bilingual presentation catalogs/delegate.
+- `mobile/coaching/browser/src/i18n.mjs`, `i18n-copy.mjs`: separate embedded UI
+  translation module, receiving same-origin parent locale messages without a reload.
+
 ## Default local prayer analysis
 
 - `mobile/coaching/lib/local/` — typed local inference/repository contracts, serial

@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -31,15 +32,24 @@ class _MosqueAccessScreenState extends State<MosqueAccessScreen> {
   }
 
   Future<void> load() async {
-    setState(() { loading = true; error = null; });
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
       final api = context.read<AccountController>().api;
       final next = Map<String, dynamic>.from(await api.call('/overview'));
       final adminRows = next['is_platform_admin'] == true
           ? (await api.call('/admin/mosque-leader-requests') as List)
-              .map((row) => Map<String, dynamic>.from(row as Map)).toList()
+              .map((row) => Map<String, dynamic>.from(row as Map))
+              .toList()
           : <Map<String, dynamic>>[];
-      if (mounted) setState(() { overview = next; requests = adminRows; });
+      if (mounted) {
+        setState(() {
+          overview = next;
+          requests = adminRows;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => error = e.toString());
     } finally {
@@ -52,35 +62,73 @@ class _MosqueAccessScreenState extends State<MosqueAccessScreen> {
     final city = TextEditingController();
     final note = TextEditingController();
     var role = 'LEADER';
-    final accepted = await showDialog<bool>(context: context,
-      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(
-        title: const Text('طلب صلاحية قائد مسجد'),
-        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: mosque, decoration: const InputDecoration(labelText: 'اسم المسجد')),
-          TextField(controller: city, decoration: const InputDecoration(labelText: 'المدينة')),
-          DropdownButtonFormField<String>(initialValue: role,
-            decoration: const InputDecoration(labelText: 'المهمة'),
-            items: const [
-              DropdownMenuItem(value: 'LEADER', child: Text('شيخ أو معلم مجموعة')),
-              DropdownMenuItem(value: 'ADMIN', child: Text('مسؤول إدارة المسجد')),
-            ],
-            onChanged: (value) => setState(() => role = value ?? role)),
-          TextField(controller: note, maxLines: 3,
-            decoration: const InputDecoration(labelText: 'معلومات تساعد على التحقق')),
-        ])),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('إرسال الطلب')),
-        ],
-      )));
+    final accepted = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setState) => AlertDialog(
+                  title: Text(localized(context, 'طلب صلاحية قائد مسجد')),
+                  content: SingleChildScrollView(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    TextField(
+                        controller: mosque,
+                        decoration: InputDecoration(
+                            labelText: localized(context, 'اسم المسجد'))),
+                    TextField(
+                        controller: city,
+                        decoration: InputDecoration(
+                            labelText: localized(context, 'المدينة'))),
+                    DropdownButtonFormField<String>(
+                        initialValue: role,
+                        decoration: InputDecoration(
+                            labelText: localized(context, 'المهمة')),
+                        items: [
+                          DropdownMenuItem(
+                              value: 'LEADER',
+                              child: Text(
+                                  localized(context, 'شيخ أو معلم مجموعة'))),
+                          DropdownMenuItem(
+                              value: 'ADMIN',
+                              child: Text(
+                                  localized(context, 'مسؤول إدارة المسجد'))),
+                        ],
+                        onChanged: (value) =>
+                            setState(() => role = value ?? role)),
+                    TextField(
+                        controller: note,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                            labelText: localized(
+                                context, 'معلومات تساعد على التحقق'))),
+                  ])),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: Text(localized(context, 'إلغاء'))),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: Text(localized(context, 'إرسال الطلب'))),
+                  ],
+                )));
     final mosqueName = mosque.text.trim();
     final cityName = city.text.trim();
     final noteValue = note.text.trim();
-    mosque.dispose(); city.dispose(); note.dispose();
-    if (accepted != true || mosqueName.length < 2 || cityName.length < 2 || !mounted) return;
+    mosque.dispose();
+    city.dispose();
+    note.dispose();
+    if (accepted != true ||
+        mosqueName.length < 2 ||
+        cityName.length < 2 ||
+        !mounted) {
+      return;
+    }
     await context.read<AccountController>().action(() async {
-      await context.read<AccountController>().api.call('/mosque-leader-requests', method: 'POST', body: {
-        'mosque_name': mosqueName, 'city': cityName, 'requested_role': role,
+      await context
+          .read<AccountController>()
+          .api
+          .call('/mosque-leader-requests', method: 'POST', body: {
+        'mosque_name': mosqueName,
+        'city': cityName,
+        'requested_role': role,
         if (noteValue.isNotEmpty) 'note': noteValue,
       });
       await load();
@@ -90,7 +138,9 @@ class _MosqueAccessScreenState extends State<MosqueAccessScreen> {
   Future<void> _decide(String id, bool approve) async {
     await context.read<AccountController>().action(() async {
       await context.read<AccountController>().api.call(
-        '/admin/mosque-leader-requests/$id/decision', method: 'POST', body: {'approve': approve});
+          '/admin/mosque-leader-requests/$id/decision',
+          method: 'POST',
+          body: {'approve': approve});
       await load();
     });
   }
@@ -101,44 +151,75 @@ class _MosqueAccessScreenState extends State<MosqueAccessScreen> {
     final ownRequests = overview?['leader_requests'] as List? ?? const [];
     final isAdmin = overview?['is_platform_admin'] == true;
     return Scaffold(
-      appBar: AppBar(title: const Text('صلاحيات المسجد')),
-      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760),
-        child: ListView(padding: const EdgeInsets.all(AppSpacing.lg), children: [
+      appBar: AppBar(title: Text(localized(context, 'صلاحيات المسجد'))),
+      body: Center(
+          child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child:
+            ListView(padding: const EdgeInsets.all(AppSpacing.lg), children: [
           if (loading) const LinearProgressIndicator(),
           if (error != null) StatusBanner(text: error!, tone: Tone.danger),
-          const SectionTitle('صلاحياتي المعتمدة', icon: Icons.verified_user_outlined),
-          if (roles.isEmpty) const StatusBanner(text: 'لا توجد لك صلاحية قائد مسجد حاليًا.', tone: Tone.neutral),
-          for (final raw in roles) AppCard(child: ListTile(
-            leading: const Icon(Icons.mosque_outlined),
-            title: Text((raw as Map)['mosque_name'] as String),
-            trailing: PillTag(raw['role'] == 'ADMIN' ? 'مسؤول المسجد' : 'قائد'),
-          )),
+          const SectionTitle('صلاحياتي المعتمدة',
+              icon: Icons.verified_user_outlined),
+          if (roles.isEmpty)
+            const StatusBanner(
+                text: 'لا توجد لك صلاحية قائد مسجد حاليًا.',
+                tone: Tone.neutral),
+          for (final raw in roles)
+            AppCard(
+                child: ListTile(
+              leading: const Icon(Icons.mosque_outlined),
+              title: Text((raw as Map)['mosque_name'] as String),
+              trailing:
+                  PillTag(raw['role'] == 'ADMIN' ? 'مسؤول المسجد' : 'قائد'),
+            )),
           if (ownRequests.isNotEmpty) ...[
             const SectionTitle('طلباتي', icon: Icons.pending_actions_outlined),
-            for (final raw in ownRequests) AppCard(child: ListTile(
-              title: Text((raw as Map)['mosque_name'] as String),
-              subtitle: Text(raw['city'] as String),
-              trailing: PillTag(raw['status'] == 'PENDING' ? 'بانتظار التحقق' : raw['status'] as String),
-            )),
+            for (final raw in ownRequests)
+              AppCard(
+                  child: ListTile(
+                title: Text((raw as Map)['mosque_name'] as String),
+                subtitle: Text(raw['city'] as String),
+                trailing: PillTag(raw['status'] == 'PENDING'
+                    ? 'بانتظار التحقق'
+                    : raw['status'] as String),
+              )),
           ],
-          FilledButton.icon(onPressed: loading ? null : _request,
-            icon: const Icon(Icons.add_moderator_outlined), label: const Text('طلب إدارة مسجد')),
+          FilledButton.icon(
+              onPressed: loading ? null : _request,
+              icon: const Icon(Icons.add_moderator_outlined),
+              label: Text(localized(context, 'طلب إدارة مسجد'))),
           if (isAdmin) ...[
-            const SectionTitle('إدارة طلبات القادة', icon: Icons.admin_panel_settings_outlined),
+            const SectionTitle('إدارة طلبات القادة',
+                icon: Icons.admin_panel_settings_outlined),
             if (requests.where((r) => r['status'] == 'PENDING').isEmpty)
-              const StatusBanner(text: 'لا توجد طلبات معلقة.', tone: Tone.neutral),
-            for (final request in requests.where((r) => r['status'] == 'PENDING'))
-              AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Text(request['applicant_name'] as String, style: Theme.of(context).textTheme.titleMedium),
-                Text('${request['mosque_name']} • ${request['city']}'),
-                Text(request['applicant_email'] as String),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: () => _decide(request['id'] as String, false), child: const Text('رفض'))),
-                  const SizedBox(width: 8),
-                  Expanded(child: FilledButton(onPressed: () => _decide(request['id'] as String, true), child: const Text('اعتماد'))),
-                ]),
-              ])),
+              const StatusBanner(
+                  text: 'لا توجد طلبات معلقة.', tone: Tone.neutral),
+            for (final request
+                in requests.where((r) => r['status'] == 'PENDING'))
+              AppCard(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                    Text(request['applicant_name'] as String,
+                        style: Theme.of(context).textTheme.titleMedium),
+                    Text('${request['mosque_name']} • ${request['city']}'),
+                    Text(request['applicant_email'] as String),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                          child: OutlinedButton(
+                              onPressed: () =>
+                                  _decide(request['id'] as String, false),
+                              child: Text(localized(context, 'رفض')))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: FilledButton(
+                              onPressed: () =>
+                                  _decide(request['id'] as String, true),
+                              child: Text(localized(context, 'اعتماد')))),
+                    ]),
+                  ])),
           ],
         ]),
       )),
@@ -206,9 +287,10 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
             await api.call('/mosques/$mosqueId/leaderboard'));
         final group = nextDashboard['group'] as Map;
         if (!leaderMode && group['age_band'] == 'ADULT') {
-          nextMessages = (await api.call('/mosque-groups/$nextId/messages') as List)
-              .map((row) => Map<String, dynamic>.from(row as Map))
-              .toList();
+          nextMessages =
+              (await api.call('/mosque-groups/$nextId/messages') as List)
+                  .map((row) => Map<String, dynamic>.from(row as Map))
+                  .toList();
         }
       }
       if (!mounted) return;
@@ -233,9 +315,8 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
       : 'تعذر تحميل مجموعات المسجد. حاول مجددًا.';
 
   Future<void> _join() async {
-    await Navigator.of(context)
-        .push(MaterialPageRoute(
-            builder: (_) => const MosqueJoinScreen(target: 'SELF')));
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => const MosqueJoinScreen(target: 'SELF')));
     if (mounted) await load();
   }
 
@@ -249,16 +330,18 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('مغادرة المجموعة؟'),
-        content: Text(
-            'سيغادر ${membership['alias']} هذه المجموعة، ويمكن الانضمام لاحقًا بدعوة جديدة.'),
+        title: Text(localized(context, 'مغادرة المجموعة؟')),
+        content: Text(localized(
+            context,
+            'سيغادر {0} هذه المجموعة، ويمكن الانضمام لاحقًا بدعوة جديدة.',
+            [membership['alias']])),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء')),
+              child: Text(localized(context, 'إلغاء'))),
           FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('مغادرة')),
+              child: Text(localized(context, 'مغادرة'))),
         ],
       ),
     );
@@ -288,20 +371,29 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(replyTo == null ? 'رسالة إلى المجموعة' : 'رد على ${replyTo['author_alias']}'),
+        title: Text(localized(
+            context,
+            replyTo == null
+                ? 'رسالة إلى المجموعة'
+                : 'رد على ${replyTo['author_alias']}')),
         content: TextField(
           controller: text,
           autofocus: true,
           maxLength: 280,
           minLines: 2,
           maxLines: 5,
-          decoration: const InputDecoration(
-            hintText: 'مثال: أنا في الطريق إلى المسجد، من سينضم إليّ؟',
+          decoration: InputDecoration(
+            hintText: localized(
+                context, 'مثال: أنا في الطريق إلى المسجد، من سينضم إليّ؟'),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('إرسال')),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(localized(context, 'إلغاء'))),
+          FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(localized(context, 'إرسال'))),
         ],
       ),
     );
@@ -309,11 +401,13 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
     text.dispose();
     if (accepted != true || value.isEmpty || !mounted) return;
     await _run(() async {
-      await context.read<AccountController>().api.call(
-        '/mosque-groups/$selectedId/messages', method: 'POST', body: {
-          'body': value,
-          if (replyTo != null) 'parent_id': replyTo['id'],
-        });
+      await context
+          .read<AccountController>()
+          .api
+          .call('/mosque-groups/$selectedId/messages', method: 'POST', body: {
+        'body': value,
+        if (replyTo != null) 'parent_id': replyTo['id'],
+      });
       await load(selectedId);
     });
   }
@@ -341,14 +435,15 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('إنشاء مجموعة مسجد'),
+          title: Text(localized(context, 'إنشاء مجموعة مسجد')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
                   initialValue: mosqueId,
-                  decoration: const InputDecoration(labelText: 'المسجد'),
+                  decoration:
+                      InputDecoration(labelText: localized(context, 'المسجد')),
                   items: staffed
                       .map((mosque) => DropdownMenuItem<String>(
                           value: mosque['id'] as String,
@@ -360,19 +455,26 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                 TextField(
                   controller: name,
                   autofocus: true,
-                  decoration: const InputDecoration(labelText: 'اسم المجموعة'),
+                  decoration: InputDecoration(
+                      labelText: localized(context, 'اسم المجموعة')),
                 ),
                 DropdownButtonFormField<String>(
                   initialValue: ageBand,
-                  decoration: const InputDecoration(labelText: 'الفئة'),
-                  items: const [
+                  decoration:
+                      InputDecoration(labelText: localized(context, 'الفئة')),
+                  items: [
                     DropdownMenuItem(
-                        value: 'CHILD_5_9', child: Text('5–9 سنوات')),
+                        value: 'CHILD_5_9',
+                        child: Text(localized(context, '5–9 سنوات'))),
                     DropdownMenuItem(
-                        value: 'CHILD_10_13', child: Text('10–13 سنة')),
+                        value: 'CHILD_10_13',
+                        child: Text(localized(context, '10–13 سنة'))),
                     DropdownMenuItem(
-                        value: 'TEEN_14_17', child: Text('14–17 سنة')),
-                    DropdownMenuItem(value: 'ADULT', child: Text('بالغون')),
+                        value: 'TEEN_14_17',
+                        child: Text(localized(context, '14–17 سنة'))),
+                    DropdownMenuItem(
+                        value: 'ADULT',
+                        child: Text(localized(context, 'بالغون'))),
                   ],
                   onChanged: (value) =>
                       setDialogState(() => ageBand = value ?? ageBand),
@@ -383,10 +485,10 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('إلغاء')),
+                child: Text(localized(context, 'إلغاء'))),
             FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('إنشاء')),
+                child: Text(localized(context, 'إنشاء'))),
           ],
         ),
       ),
@@ -432,16 +534,22 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('فتح حضور الصلاة'),
+          title: Text(localized(context, 'فتح حضور الصلاة')),
           content: DropdownButtonFormField<String>(
             initialValue: prayer,
-            decoration: const InputDecoration(labelText: 'الصلاة'),
-            items: const [
-              DropdownMenuItem(value: 'fajr', child: Text('الفجر')),
-              DropdownMenuItem(value: 'dhuhr', child: Text('الظهر')),
-              DropdownMenuItem(value: 'asr', child: Text('العصر')),
-              DropdownMenuItem(value: 'maghrib', child: Text('المغرب')),
-              DropdownMenuItem(value: 'isha', child: Text('العشاء')),
+            decoration:
+                InputDecoration(labelText: localized(context, 'الصلاة')),
+            items: [
+              DropdownMenuItem(
+                  value: 'fajr', child: Text(localized(context, 'الفجر'))),
+              DropdownMenuItem(
+                  value: 'dhuhr', child: Text(localized(context, 'الظهر'))),
+              DropdownMenuItem(
+                  value: 'asr', child: Text(localized(context, 'العصر'))),
+              DropdownMenuItem(
+                  value: 'maghrib', child: Text(localized(context, 'المغرب'))),
+              DropdownMenuItem(
+                  value: 'isha', child: Text(localized(context, 'العشاء'))),
             ],
             onChanged: (value) =>
                 setDialogState(() => prayer = value ?? prayer),
@@ -449,10 +557,10 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('إلغاء')),
+                child: Text(localized(context, 'إلغاء'))),
             FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('فتح لمدة 30 دقيقة')),
+                child: Text(localized(context, 'فتح لمدة 30 دقيقة'))),
           ],
         ),
       ),
@@ -494,7 +602,7 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
       showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(title),
+          title: Text(localized(context, title)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -505,14 +613,14 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                     textDirection: TextDirection.ltr,
                     style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 8),
-                Text(note, textAlign: TextAlign.center),
+                Text(localized(context, note), textAlign: TextAlign.center),
               ],
             ),
           ),
           actions: [
             FilledButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('تم')),
+                child: Text(localized(context, 'تم'))),
           ],
         ),
       );
@@ -537,7 +645,7 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
     final staffed = mosques.any(
         (mosque) => mosque['role'] == 'ADMIN' || mosque['role'] == 'LEADER');
     return Scaffold(
-      appBar: AppBar(title: const Text('مجموعات المسجد')),
+      appBar: AppBar(title: Text(localized(context, 'مجموعات المسجد'))),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 820),
@@ -549,15 +657,15 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
               children: [
                 if (staffed)
                   SegmentedButton<bool>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                           value: false,
-                          icon: Icon(Icons.person_outline),
-                          label: Text('وضعي الشخصي')),
+                          icon: const Icon(Icons.person_outline),
+                          label: Text(localized(context, 'وضعي الشخصي'))),
                       ButtonSegment(
                           value: true,
-                          icon: Icon(Icons.admin_panel_settings_outlined),
-                          label: Text('وضع قائد المسجد')),
+                          icon: const Icon(Icons.admin_panel_settings_outlined),
+                          label: Text(localized(context, 'وضع قائد المسجد'))),
                     ],
                     selected: {leaderMode},
                     onSelectionChanged: loading
@@ -595,19 +703,19 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                       OutlinedButton.icon(
                         onPressed: loading ? null : _join,
                         icon: const Icon(Icons.person_add_alt),
-                        label: const Text('انضم بنفسي'),
+                        label: Text(localized(context, 'انضم بنفسي')),
                       ),
                       OutlinedButton.icon(
                         onPressed: loading ? null : _joinChild,
                         icon: const Icon(Icons.child_care),
-                        label: const Text('ضم طفل بموافقتي'),
+                        label: Text(localized(context, 'ضم طفل بموافقتي')),
                       ),
                     ],
                     if (leaderMode)
                       FilledButton.icon(
                         onPressed: loading ? null : _createGroup,
                         icon: const Icon(Icons.add),
-                        label: const Text('مجموعة جديدة'),
+                        label: Text(localized(context, 'مجموعة جديدة')),
                       ),
                   ],
                 ),
@@ -624,8 +732,8 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: selectedId,
                     isExpanded: true,
-                    decoration:
-                        const InputDecoration(labelText: 'المجموعة الحالية'),
+                    decoration: InputDecoration(
+                        labelText: localized(context, 'المجموعة الحالية')),
                     items: groups
                         .map((group) => DropdownMenuItem<String>(
                               value: group['id'] as String,
@@ -684,13 +792,16 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
               leading: Icon(membership['join_kind'] == 'CHILD'
                   ? Icons.child_care
                   : Icons.person_outline),
-              title: Text('${membership['mosque_name']} — ${membership['group_name']}'),
-              subtitle: Text(membership['status'] == 'PENDING'
-                  ? '${membership['alias']} • بانتظار قبول قائد المسجد'
-                  : '${membership['alias']} • عضوية نشطة'),
+              title: Text(
+                  '${membership['mosque_name']} — ${membership['group_name']}'),
+              subtitle: Text(localized(
+                  context,
+                  membership['status'] == 'PENDING'
+                      ? '${membership['alias']} • بانتظار قبول قائد المسجد'
+                      : '${membership['alias']} • عضوية نشطة')),
               trailing: TextButton(
                 onPressed: loading ? null : () => _leave(membership),
-                child: const Text('مغادرة'),
+                child: Text(localized(context, 'مغادرة')),
               ),
             ),
         ],
@@ -699,7 +810,8 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
   }
 
   Widget _adultConversation() {
-    final roots = messages.where((message) => message['parent_id'] == null).toList();
+    final roots =
+        messages.where((message) => message['parent_id'] == null).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -708,7 +820,7 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
           subtitle: 'رسائل تشجيعية قصيرة لأعضاء مجموعة البالغين فقط.',
           icon: Icons.forum_outlined,
           trailing: IconButton(
-            tooltip: 'تحديث الرسائل',
+            tooltip: localized(context, 'تحديث الرسائل'),
             onPressed: loading ? null : () => load(selectedId),
             icon: const Icon(Icons.refresh),
           ),
@@ -716,7 +828,7 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
         FilledButton.icon(
           onPressed: loading ? null : () => _composeMessage(),
           icon: const Icon(Icons.add_comment_outlined),
-          label: const Text('إرسال رسالة للمجموعة'),
+          label: Text(localized(context, 'إرسال رسالة للمجموعة')),
         ),
         const SizedBox(height: 8),
         if (roots.isEmpty)
@@ -731,12 +843,15 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
               children: [
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                  leading:
+                      const CircleAvatar(child: Icon(Icons.person_outline)),
                   title: Text(message['author_alias'] as String),
                   subtitle: Text(message['body'] as String),
                   trailing: IconButton(
-                    tooltip: 'رد',
-                    onPressed: loading ? null : () => _composeMessage(replyTo: message),
+                    tooltip: localized(context, 'رد'),
+                    onPressed: loading
+                        ? null
+                        : () => _composeMessage(replyTo: message),
                     icon: const Icon(Icons.reply),
                   ),
                 ),
@@ -793,8 +908,8 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleMedium),
-                                  const Text(
-                                      'طلب موثق بموافقة ولي الأمر • بانتظار القرار'),
+                                  Text(localized(context,
+                                      'طلب موثق بموافقة ولي الأمر • بانتظار القرار')),
                                 ],
                               ),
                             ),
@@ -807,10 +922,10 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                               child: OutlinedButton.icon(
                                 onPressed: loading
                                     ? null
-                                    : () => _reject(
-                                        row['profile_id'] as String),
+                                    : () =>
+                                        _reject(row['profile_id'] as String),
                                 icon: const Icon(Icons.close),
-                                label: const Text('رفض الطلب'),
+                                label: Text(localized(context, 'رفض الطلب')),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -818,10 +933,10 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                               child: FilledButton.icon(
                                 onPressed: loading
                                     ? null
-                                    : () => _approve(
-                                        row['profile_id'] as String),
+                                    : () =>
+                                        _approve(row['profile_id'] as String),
                                 icon: const Icon(Icons.check),
-                                label: const Text('قبول الطفل'),
+                                label: Text(localized(context, 'قبول الطفل')),
                               ),
                             ),
                           ],
@@ -850,7 +965,7 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
               style: Theme.of(context).textTheme.titleLarge),
           Text('${group['mosque_name']} • ${group['city']}'),
           const SizedBox(height: 8),
-          Text(dashboard!['privacy'] as String,
+          Text(localized(context, dashboard!['privacy'] as String),
               style: Theme.of(context).textTheme.bodySmall),
           if (isLeader) ...[
             const SizedBox(height: 12),
@@ -861,12 +976,12 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                 FilledButton.icon(
                   onPressed: loading ? null : _inviteFamilies,
                   icon: const Icon(Icons.qr_code_2),
-                  label: const Text('عرض QR للانضمام'),
+                  label: Text(localized(context, 'عرض QR للانضمام')),
                 ),
                 OutlinedButton.icon(
                   onPressed: loading ? null : _createAttendance,
                   icon: const Icon(Icons.how_to_reg),
-                  label: const Text('فتح حضور صلاة'),
+                  label: Text(localized(context, 'فتح حضور صلاة')),
                 ),
               ],
             ),
@@ -896,12 +1011,12 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(child: Text('${index + 1}')),
                 title: Text(row['alias'] as String),
-                subtitle: Text(
-                    '${attendance['attended']} من ${attendance['eligible']} • $percent%'),
+                subtitle: Text(localized(context, '{0} من {1} • {2}%',
+                    [attendance['attended'], attendance['eligible'], percent])),
                 trailing:
                     isLeader && active != null && active['closed_at'] == null
                         ? IconButton.filledTonal(
-                            tooltip: 'تسجيل حاضر',
+                            tooltip: localized(context, 'تسجيل حاضر'),
                             onPressed: loading
                                 ? null
                                 : () => _markAttendance(active['id'] as String,
@@ -933,8 +1048,8 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(child: Text('${index + 1}')),
                 title: Text(row['alias'] as String),
-                subtitle:
-                    Text('${practice['weekly_valid_prayers']} صلوات مكتملة'),
+                subtitle: Text(localized(context, '{0} صلوات مكتملة',
+                    [practice['weekly_valid_prayers']])),
                 trailing: PillTag('${practice['weekly_points']} نقطة',
                     tone: Tone.ready, icon: Icons.stars_outlined),
               );
@@ -961,7 +1076,8 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(child: Text('${index + 1}')),
                 title: Text(row['group_name'] as String),
-                subtitle: Text('${row['member_count']} أعضاء'),
+                subtitle: Text(
+                    localized(context, '{0} أعضاء', [row['member_count']])),
                 trailing: PillTag('$percent% حضور', tone: Tone.info),
               );
             }),
@@ -981,8 +1097,7 @@ class _MosqueGroupsScreenState extends State<MosqueGroupsScreen> {
 }
 
 class MosqueJoinScreen extends StatefulWidget {
-  const MosqueJoinScreen(
-      {super.key, this.initialToken, this.target = 'SELF'});
+  const MosqueJoinScreen({super.key, this.initialToken, this.target = 'SELF'});
 
   final String? initialToken;
   final String target;
@@ -1022,11 +1137,12 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
       final overview = Map<String, dynamic>.from(await api.call('/overview'));
       final self = overview['practice_profile'] as Map;
       final choices = <Map<String, dynamic>>[
-        if (widget.target == 'SELF') {
-          'id': self['id'],
-          'name': self['name'],
-          'description': 'ملفي الشخصي',
-        }
+        if (widget.target == 'SELF')
+          {
+            'id': self['id'],
+            'name': self['name'],
+            'description': 'ملفي الشخصي',
+          }
       ];
       if (widget.target == 'CHILD') {
         for (final raw in overview['families'] as List? ?? const []) {
@@ -1083,7 +1199,8 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
     });
     try {
       final controller = context.read<AccountController>();
-      final result = await controller.api.call('/mosque-groups/join', method: 'POST', body: {
+      final result = await controller.api
+          .call('/mosque-groups/join', method: 'POST', body: {
         'token': code,
         'profile_id': profileId,
         'alias': displayName,
@@ -1094,9 +1211,11 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
       controller.clearInvitation();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(result['status'] == 'PENDING'
-                ? 'أُرسل طلب الطفل إلى قائد المسجد للموافقة.'
-                : 'تم انضمامك إلى المجموعة.')));
+            content: Text(localized(
+                context,
+                result['status'] == 'PENDING'
+                    ? 'أُرسل طلب الطفل إلى قائد المسجد للموافقة.'
+                    : 'تم انضمامك إلى المجموعة.'))));
         Navigator.pop(context, true);
       }
     } catch (exception) {
@@ -1112,9 +1231,12 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(widget.target == 'CHILD'
-            ? 'ضم طفل إلى مجموعة مسجد'
-            : 'الانضمام بنفسي إلى مجموعة مسجد')),
+        appBar: AppBar(
+            title: Text(localized(
+                context,
+                widget.target == 'CHILD'
+                    ? 'ضم طفل إلى مجموعة مسجد'
+                    : 'الانضمام بنفسي إلى مجموعة مسجد'))),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 620),
@@ -1136,8 +1258,8 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
                 TextField(
                   controller: token,
                   textDirection: TextDirection.ltr,
-                  decoration:
-                      const InputDecoration(labelText: 'رمز دعوة المجموعة'),
+                  decoration: InputDecoration(
+                      labelText: localized(context, 'رمز دعوة المجموعة')),
                 ),
                 OutlinedButton.icon(
                   onPressed: loading
@@ -1149,13 +1271,14 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
                           if (value != null && mounted) token.text = value;
                         },
                   icon: const Icon(Icons.qr_code_scanner),
-                  label: const Text('مسح QR دعوة المسجد'),
+                  label: Text(localized(context, 'مسح QR دعوة المسجد')),
                 ),
                 if (profiles.isNotEmpty)
                   DropdownButtonFormField<String>(
                     initialValue: profileId,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'من سينضم؟'),
+                    decoration: InputDecoration(
+                        labelText: localized(context, 'من سينضم؟')),
                     items: profiles
                         .map((profile) => DropdownMenuItem<String>(
                               value: profile['id'] as String,
@@ -1171,26 +1294,28 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
                 if (!loading && profiles.isEmpty)
                   const StatusBanner(
                     title: 'لا يوجد طفل مسجل',
-                    text: 'أضف الطفل أولًا من إدارة الأسرة، ثم ارجع لمسح دعوة المجموعة.',
+                    text:
+                        'أضف الطفل أولًا من إدارة الأسرة، ثم ارجع لمسح دعوة المجموعة.',
                     tone: Tone.info,
                   ),
                 TextField(
                   controller: alias,
-                  decoration: const InputDecoration(
-                      labelText: 'الاسم المستعار الظاهر للمجموعة'),
+                  decoration: InputDecoration(
+                      labelText:
+                          localized(context, 'الاسم المستعار الظاهر للمجموعة')),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 AppCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('الموافقة',
+                      Text(localized(context, 'الموافقة'),
                           style: Theme.of(context).textTheme.titleMedium),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('مشاركة ملخص التدريب'),
-                        subtitle: const Text(
-                            'النقاط والصلوات المكتملة فقط؛ لا صور أو فيديو.'),
+                        title: Text(localized(context, 'مشاركة ملخص التدريب')),
+                        subtitle: Text(localized(context,
+                            'النقاط والصلوات المكتملة فقط؛ لا صور أو فيديو.')),
                         value: sharePractice,
                         onChanged: loading
                             ? null
@@ -1198,9 +1323,9 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
                       ),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('مشاركة حضور المسجد'),
-                        subtitle:
-                            const Text('سجل مستقل لا يغير تقييم التدريب.'),
+                        title: Text(localized(context, 'مشاركة حضور المسجد')),
+                        subtitle: Text(localized(
+                            context, 'سجل مستقل لا يغير تقييم التدريب.')),
                         value: shareAttendance,
                         onChanged: loading
                             ? null
@@ -1209,8 +1334,10 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
                       ),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('الظهور في لوحة التشجيع'),
-                        subtitle: const Text('بالاسم المستعار فقط.'),
+                        title:
+                            Text(localized(context, 'الظهور في لوحة التشجيع')),
+                        subtitle:
+                            Text(localized(context, 'بالاسم المستعار فقط.')),
                         value: leaderboard,
                         onChanged: loading
                             ? null
@@ -1224,9 +1351,11 @@ class _MosqueJoinScreenState extends State<MosqueJoinScreen> {
                 FilledButton.icon(
                   onPressed: loading || profileId == null ? null : _join,
                   icon: const Icon(Icons.verified_user_outlined),
-                  label: Text(widget.target == 'CHILD'
-                      ? 'أوافق وأرسل طلب الطفل'
-                      : 'أوافق وأنضم بنفسي'),
+                  label: Text(localized(
+                      context,
+                      widget.target == 'CHILD'
+                          ? 'أوافق وأرسل طلب الطفل'
+                          : 'أوافق وأنضم بنفسي')),
                 ),
               ],
             ),
@@ -1254,7 +1383,8 @@ class _GroupInviteScannerState extends State<GroupInviteScanner> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('مسح دعوة مجموعة المسجد')),
+        appBar:
+            AppBar(title: Text(localized(context, 'مسح دعوة مجموعة المسجد'))),
         body: Column(
           children: [
             const AppNote(
@@ -1262,10 +1392,11 @@ class _GroupInviteScannerState extends State<GroupInviteScanner> {
             Expanded(
               child: MobileScanner(
                 controller: scanner,
-                errorBuilder: (context, error) => const Center(
+                errorBuilder: (context, error) => Center(
                   child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.lg),
-                    child: Text('تعذر فتح الكاميرا. أدخل رمز الدعوة يدويًا.'),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Text(localized(
+                        context, 'تعذر فتح الكاميرا. أدخل رمز الدعوة يدويًا.')),
                   ),
                 ),
                 onDetect: (capture) {

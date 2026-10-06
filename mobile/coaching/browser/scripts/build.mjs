@@ -20,7 +20,7 @@ const actualParent = await realpath(path.dirname(out));
 if (actualParent.toLowerCase() !== path.resolve(root, '../web').toLowerCase() || (await lstat(out)).isSymbolicLink()) throw Error('Unsafe generated output directory');
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
-await build({ entryPoints: { app: path.join(root, 'src/app.mjs'), client: path.join(root, 'src/client.mjs'),bridge: path.join(root,'src/bridge.mjs') },
+await build({ entryPoints: { app: path.join(root, 'src/app.mjs'), client: path.join(root, 'src/client.mjs'),bridge: path.join(root,'src/bridge.mjs'), i18n: path.join(root,'src/i18n.mjs') },
   outdir: out, bundle: true, splitting: true, format: 'esm', target: ['es2022'], sourcemap: true, conditions: ['onnxruntime-web-use-extern-wasm'], chunkNames: 'chunks/[name]-[hash]', minify: true, plugins: [presencePlugin] });
 await build({ entryPoints: [path.join(root, 'src/worker.mjs')], outfile: path.join(out, 'worker.js'), bundle: true,
   format: 'iife', target: ['es2022'], sourcemap: true, conditions: ['onnxruntime-web-use-extern-wasm'], minify: true, plugins: [presencePlugin] });

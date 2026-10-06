@@ -1,3 +1,4 @@
+import '../l10n/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -27,17 +28,23 @@ class AccountEntry extends StatelessWidget {
       child: ListTile(
         leading:
             const Icon(Icons.account_circle_outlined, color: AppColors.accent),
-        title: Text(signedIn
-            ? 'مرحبًا ${c.guardian!['name']}'
-            : dependent
-                ? 'جهاز ${c.child!['name']}'
-                : 'الحساب — اختياري'),
-        subtitle: Text(signedIn
-            ? 'تقدمي • أسرتي • مجموعات المسجد'
-            : dependent
-                ? 'التدريب المحلي مرتبط بهذا الملف'
-                : 'تسجيل موحّد للجميع دون اختيار دور دائم'),
-        trailing: const Icon(Icons.chevron_left),
+        title: Text(localized(
+            context,
+            signedIn
+                ? 'مرحبًا ${c.guardian!['name']}'
+                : dependent
+                    ? 'جهاز ${c.child!['name']}'
+                    : 'الحساب — اختياري')),
+        subtitle: Text(localized(
+            context,
+            signedIn
+                ? 'تقدمي • أسرتي • مجموعات المسجد'
+                : dependent
+                    ? 'التدريب المحلي مرتبط بهذا الملف'
+                    : 'تسجيل موحّد للجميع دون اختيار دور دائم')),
+        trailing: Icon(Directionality.of(context) == TextDirection.rtl
+            ? Icons.chevron_left
+            : Icons.chevron_right),
       ),
     );
   }
@@ -71,7 +78,7 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     final c = context.watch<AccountController>();
     return Scaffold(
-      appBar: AppBar(title: const Text('الحساب')),
+      appBar: AppBar(title: Text(localized(context, 'الحساب'))),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
@@ -84,7 +91,7 @@ class _AccountScreenState extends State<AccountScreen> {
               if (c.error != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(c.error!,
+                  child: Text(localized(context, c.error!),
                       style: const TextStyle(color: AppColors.warning)),
                 ),
               if (c.guardian != null)
@@ -110,51 +117,64 @@ class _AccountScreenState extends State<AccountScreen> {
             if (signup)
               TextFormField(
                 controller: name,
-                decoration: const InputDecoration(labelText: 'الاسم'),
-                validator: (value) =>
-                    (value?.trim().isEmpty ?? true) ? 'أدخل الاسم' : null,
+                decoration:
+                    InputDecoration(labelText: localized(context, 'الاسم')),
+                validator: (value) => (value?.trim().isEmpty ?? true)
+                    ? localized(context, 'أدخل الاسم')
+                    : null,
               ),
             TextFormField(
               controller: email,
               keyboardType: TextInputType.emailAddress,
               textDirection: TextDirection.ltr,
-              decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
+              decoration: InputDecoration(
+                  labelText: localized(context, 'البريد الإلكتروني')),
               validator: (value) => value != null && value.contains('@')
                   ? null
-                  : 'أدخل بريدًا صالحًا',
+                  : localized(context, 'أدخل بريدًا صالحًا'),
             ),
             TextFormField(
               controller: password,
               obscureText: true,
               textDirection: TextDirection.ltr,
-              decoration: const InputDecoration(
-                  labelText: 'كلمة المرور (8 أحرف على الأقل)'),
-              validator: (value) =>
-                  (value?.length ?? 0) >= 8 ? null : '8 أحرف على الأقل',
+              decoration: InputDecoration(
+                  labelText:
+                      localized(context, 'كلمة المرور (8 أحرف على الأقل)')),
+              validator: (value) => (value?.length ?? 0) >= 8
+                  ? null
+                  : localized(context, '8 أحرف على الأقل'),
             ),
             if (signup) ...[
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: learningStage,
-                decoration:
-                    const InputDecoration(labelText: 'مسار التعلّم — اختياري'),
-                items: const [
-                  DropdownMenuItem(value: 'GENERAL', child: Text('تعلّم عام')),
+                decoration: InputDecoration(
+                    labelText: localized(context, 'مسار التعلّم — اختياري')),
+                items: [
                   DropdownMenuItem(
-                      value: 'NEW_MUSLIM', child: Text('مسلم جديد')),
+                      value: 'GENERAL',
+                      child: Text(localized(context, 'تعلّم عام'))),
+                  DropdownMenuItem(
+                      value: 'NEW_MUSLIM',
+                      child: Text(localized(context, 'مسلم جديد'))),
                 ],
                 onChanged: (value) =>
                     setState(() => learningStage = value ?? 'GENERAL'),
               ),
               DropdownButtonFormField<String>(
                 initialValue: accessibilityMode,
-                decoration:
-                    const InputDecoration(labelText: 'طريقة العرض — اختيارية'),
-                items: const [
+                decoration: InputDecoration(
+                    labelText: localized(context, 'طريقة العرض — اختيارية')),
+                items: [
                   DropdownMenuItem(
-                      value: 'STANDARD', child: Text('العرض القياسي')),
-                  DropdownMenuItem(value: 'SIMPLE', child: Text('واجهة مبسطة')),
-                  DropdownMenuItem(value: 'LARGE_TEXT', child: Text('نص أكبر')),
+                      value: 'STANDARD',
+                      child: Text(localized(context, 'العرض القياسي'))),
+                  DropdownMenuItem(
+                      value: 'SIMPLE',
+                      child: Text(localized(context, 'واجهة مبسطة'))),
+                  DropdownMenuItem(
+                      value: 'LARGE_TEXT',
+                      child: Text(localized(context, 'نص أكبر'))),
                 ],
                 onChanged: (value) =>
                     setState(() => accessibilityMode = value ?? 'STANDARD'),
@@ -174,30 +194,32 @@ class _AccountScreenState extends State<AccountScreen> {
                             accessibilityMode: accessibilityMode,
                           ));
                     },
-              child: Text(signup ? 'إنشاء الحساب' : 'تسجيل الدخول'),
+              child: Text(
+                  localized(context, signup ? 'إنشاء الحساب' : 'تسجيل الدخول')),
             ),
             OutlinedButton.icon(
               onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CodeEntryScreen())),
               icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('لدي رمز دعوة أو ربط جهاز'),
+              label: Text(localized(context, 'لدي رمز دعوة أو ربط جهاز')),
             ),
             TextButton(
               onPressed: () => setState(() => signup = !signup),
-              child: Text(signup ? 'لدي حساب بالفعل' : 'إنشاء حساب جديد'),
+              child: Text(localized(
+                  context, signup ? 'لدي حساب بالفعل' : 'إنشاء حساب جديد')),
             ),
             if (!signup) ...[
               TextButton(
                 onPressed:
                     c.busy ? null : () => c.action(() => c.recover(email.text)),
-                child: const Text('نسيت كلمة المرور'),
+                child: Text(localized(context, 'نسيت كلمة المرور')),
               ),
               TextButton(
                 onPressed: c.busy
                     ? null
                     : () => c.action(
                         () => c.resendVerification(email.text, password.text)),
-                child: const Text('إعادة إرسال رابط التفعيل'),
+                child: Text(localized(context, 'إعادة إرسال رابط التفعيل')),
               ),
             ],
             if (c.child?['profile_kind'] == 'DEPENDENT') ...[
@@ -227,12 +249,12 @@ class _AccountScreenState extends State<AccountScreen> {
           FilledButton.icon(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.self_improvement),
-            label: const Text('العودة إلى التدريب'),
+            label: Text(localized(context, 'العودة إلى التدريب')),
           ),
           OutlinedButton.icon(
             onPressed: c.busy ? null : () => c.action(c.disconnect),
             icon: const Icon(Icons.logout),
-            label: const Text('تسجيل خروج الطفل من هذا الجهاز'),
+            label: Text(localized(context, 'تسجيل خروج الطفل من هذا الجهاز')),
           ),
           const AppNote(
               'بعد الخروج لا يستطيع الطفل الدخول بكلمة مرور؛ يعيد ولي الأمر ربط الجهاز من إدارة الأسرة.'),
@@ -245,9 +267,9 @@ class _AccountScreenState extends State<AccountScreen> {
       return AppCard(
         child: ListTile(
           leading: const Icon(Icons.hourglass_empty),
-          title: const Text('جارٍ تحميل النتيجة'),
+          title: Text(localized(context, 'جارٍ تحميل النتيجة')),
           trailing: IconButton(
-            tooltip: 'تحديث النتيجة',
+            tooltip: localized(context, 'تحديث النتيجة'),
             onPressed: c.busy ? null : () => c.action(c.refreshChildProgress),
             icon: const Icon(Icons.refresh),
           ),
@@ -262,11 +284,14 @@ class _AccountScreenState extends State<AccountScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const CircleAvatar(child: Icon(Icons.emoji_events)),
-            title: Text('${score['weekly_points'] ?? 0} نقطة هذا الأسبوع'),
-            subtitle: Text(
-                '${score['weekly_valid_prayers'] ?? 0} صلاة مكتملة • ${score['streak'] ?? 0} أيام متتالية'),
+            title: Text(localized(context, '{0} نقطة هذا الأسبوع',
+                [score['weekly_points'] ?? 0])),
+            subtitle: Text(localized(
+                context,
+                '{0} صلاة مكتملة • {1} أيام متتالية',
+                [score['weekly_valid_prayers'] ?? 0, score['streak'] ?? 0])),
             trailing: IconButton(
-              tooltip: 'تحديث النتيجة',
+              tooltip: localized(context, 'تحديث النتيجة'),
               onPressed: c.busy ? null : () => c.action(c.refreshChildProgress),
               icon: const Icon(Icons.refresh),
             ),
@@ -277,7 +302,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 .toDouble(),
           ),
           const SizedBox(height: 8),
-          Text('اليوم: ${score['valid_prayers'] ?? 0} من 5 صلوات مكتملة'),
+          Text(localized(context, 'اليوم: {0} من 5 صلوات مكتملة',
+              [score['valid_prayers'] ?? 0])),
           MovementProgress(progress: score),
         ],
       ),
@@ -307,9 +333,11 @@ class _AccountScreenState extends State<AccountScreen> {
                       : const Icon(Icons.lock_outline),
                 ),
                 title: Text('${row['mosque_name']} — ${row['group_name']}'),
-                subtitle: Text(enabled
-                    ? 'الاسم: ${row['alias']} • ${row['weekly_points'] ?? 0} نقطة'
-                    : 'ولي الأمر عطّل الظهور في لوحة الترتيب.'),
+                subtitle: Text(localized(
+                    context,
+                    enabled
+                        ? 'الاسم: ${row['alias']} • ${row['weekly_points'] ?? 0} نقطة'
+                        : 'ولي الأمر عطّل الظهور في لوحة الترتيب.')),
                 trailing: enabled && row['practice_position'] != null
                     ? PillTag(
                         '${row['practice_position']} من ${row['participants']}',
@@ -326,20 +354,21 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _hub(AccountController c) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('السلام عليكم، ${c.guardian!['name']}',
+          Text(localized(context, 'السلام عليكم، {0}', [c.guardian!['name']]),
               style: Theme.of(context).textTheme.headlineSmall),
           if (c.pendingInvitation != null)
             AppCard(
               child: ListTile(
                 leading: const Icon(Icons.mark_email_unread_outlined,
                     color: AppColors.accent),
-                title: const Text('دعوة مسجد بانتظار الإكمال'),
-                subtitle: const Text('اختر ملفك أو طفلك ثم وافق على المشاركة.'),
+                title: Text(localized(context, 'دعوة مسجد بانتظار الإكمال')),
+                subtitle: Text(localized(
+                    context, 'اختر ملفك أو طفلك ثم وافق على المشاركة.')),
                 trailing: FilledButton(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => MosqueJoinScreen(
                           initialToken: c.pendingInvitation!))),
-                  child: const Text('إكمال'),
+                  child: Text(localized(context, 'إكمال')),
                 ),
               ),
             ),
@@ -347,11 +376,15 @@ class _AccountScreenState extends State<AccountScreen> {
             child: ListTile(
               leading:
                   const Icon(Icons.self_improvement, color: AppColors.accent),
-              title: const Text('تقدمي الشخصي'),
-              subtitle: Text(c.child?['profile_kind'] == 'SELF'
-                  ? 'نتائج التدريب بالكاميرا مرتبطة بحسابك'
-                  : 'اختر ملفك الشخصي لمزامنة ملخصات التدريب'),
-              trailing: const Icon(Icons.chevron_left),
+              title: Text(localized(context, 'تقدمي الشخصي')),
+              subtitle: Text(localized(
+                  context,
+                  c.child?['profile_kind'] == 'SELF'
+                      ? 'نتائج التدريب بالكاميرا مرتبطة بحسابك'
+                      : 'اختر ملفك الشخصي لمزامنة ملخصات التدريب')),
+              trailing: Icon(Directionality.of(context) == TextDirection.rtl
+                  ? Icons.chevron_left
+                  : Icons.chevron_right),
               onTap: () => Navigator.of(context).pop(),
             ),
           ),
@@ -359,57 +392,65 @@ class _AccountScreenState extends State<AccountScreen> {
           AppCard(
             onTap: () => Navigator.of(context)
                 .push(MaterialPageRoute(builder: (_) => const FamilyScreen())),
-            child: const ListTile(
-              leading: Icon(Icons.family_restroom, color: AppColors.accent),
-              title: Text('أسرتي'),
-              subtitle: Text('أفراد الأسرة • الأطفال • الأجهزة • الموافقات'),
-              trailing: Icon(Icons.chevron_left),
+            child: ListTile(
+              leading: const Icon(Icons.family_restroom, color: AppColors.accent),
+              title: Text(localized(context, 'أسرتي')),
+              subtitle: Text(localized(
+                  context, 'أفراد الأسرة • الأطفال • الأجهزة • الموافقات')),
+              trailing: Icon(Directionality.of(context) == TextDirection.rtl
+                  ? Icons.chevron_left
+                  : Icons.chevron_right),
             ),
           ),
           AppCard(
             onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const MosqueGroupsScreen())),
-            child: const ListTile(
-              leading: Icon(Icons.groups_outlined, color: AppColors.accent),
-              title: Text('مجموعات المسجد'),
-              subtitle: Text('الانضمام بموافقة ولي الأمر • الحضور • التشجيع'),
-              trailing: Icon(Icons.chevron_left),
+            child: ListTile(
+              leading: const Icon(Icons.groups_outlined, color: AppColors.accent),
+              title: Text(localized(context, 'مجموعات المسجد')),
+              subtitle: Text(localized(
+                  context, 'الانضمام بموافقة ولي الأمر • الحضور • التشجيع')),
+              trailing: Icon(Directionality.of(context) == TextDirection.rtl
+                  ? Icons.chevron_left
+                  : Icons.chevron_right),
             ),
           ),
           AppCard(
             onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const MosqueAccessScreen())),
-            child: const ListTile(
-              leading: Icon(Icons.admin_panel_settings_outlined,
+            child: ListTile(
+              leading: const Icon(Icons.admin_panel_settings_outlined,
                   color: AppColors.accent),
-              title: Text('صلاحيات وإدارة المسجد'),
-              subtitle: Text(
-                  'طلب صلاحية قائد • متابعة التحقق • إدارة الطلبات للمسؤول العام'),
-              trailing: Icon(Icons.chevron_left),
+              title: Text(localized(context, 'صلاحيات وإدارة المسجد')),
+              subtitle: Text(localized(context,
+                  'طلب صلاحية قائد • متابعة التحقق • إدارة الطلبات للمسؤول العام')),
+              trailing: Icon(Directionality.of(context) == TextDirection.rtl
+                  ? Icons.chevron_left
+                  : Icons.chevron_right),
             ),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const MosqueJoinScreen(target: 'SELF'))),
             icon: const Icon(Icons.person_add_alt),
-            label: const Text('مسح QR والانضمام بنفسي'),
+            label: Text(localized(context, 'مسح QR والانضمام بنفسي')),
           ),
           OutlinedButton.icon(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const MosqueJoinScreen(target: 'CHILD'))),
             icon: const Icon(Icons.child_care),
-            label: const Text('مسح QR وضم طفل بموافقتي'),
+            label: Text(localized(context, 'مسح QR وضم طفل بموافقتي')),
           ),
           OutlinedButton.icon(
             onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const CodeEntryScreen())),
             icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('استخدام رمز دعوة أو حضور أو جهاز'),
+            label: Text(localized(context, 'استخدام رمز دعوة أو حضور أو جهاز')),
           ),
           if (c.child != null) _linkedProfile(c),
           TextButton(
             onPressed: c.busy ? null : () => c.action(c.logout),
-            child: const Text('تسجيل الخروج'),
+            child: Text(localized(context, 'تسجيل الخروج')),
           ),
         ],
       );
@@ -420,8 +461,10 @@ class _AccountScreenState extends State<AccountScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.devices_outlined),
-              title: Text('ملف التدريب: ${c.child!['name']}'),
-              subtitle: Text('${c.queue.length} نتيجة تنتظر المزامنة'),
+              title: Text(
+                  localized(context, 'ملف التدريب: {0}', [c.child!['name']])),
+              subtitle: Text(localized(
+                  context, '{0} نتيجة تنتظر المزامنة', [c.queue.length])),
             ),
             Wrap(
               spacing: 8,
@@ -429,7 +472,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 TextButton.icon(
                   onPressed: c.syncing ? null : c.sync,
                   icon: const Icon(Icons.sync),
-                  label: const Text('مزامنة'),
+                  label: Text(localized(context, 'مزامنة')),
                 ),
               ],
             )
@@ -476,8 +519,9 @@ class _CodeEntryScreenState extends State<CodeEntryScreen> {
     if (c.guardian == null) {
       if (effectiveKind == 'MOSQUE') c.rememberInvitation(value);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('سجّل الدخول أو أنشئ حسابًا لإكمال الدعوة.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(localized(
+                context, 'سجّل الدخول أو أنشئ حسابًا لإكمال الدعوة.'))));
         Navigator.pop(context);
       }
       return;
@@ -500,7 +544,7 @@ class _CodeEntryScreenState extends State<CodeEntryScreen> {
   Widget build(BuildContext context) {
     final c = context.watch<AccountController>();
     return Scaffold(
-      appBar: AppBar(title: const Text('استخدام رمز')),
+      appBar: AppBar(title: Text(localized(context, 'استخدام رمز'))),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
@@ -509,27 +553,34 @@ class _CodeEntryScreenState extends State<CodeEntryScreen> {
             children: [
               DropdownButtonFormField<String>(
                 initialValue: kind,
-                decoration: const InputDecoration(labelText: 'نوع الرمز'),
-                items: const [
+                decoration:
+                    InputDecoration(labelText: localized(context, 'نوع الرمز')),
+                items: [
                   DropdownMenuItem(
-                      value: 'DEVICE', child: Text('ربط جهاز طفل')),
+                      value: 'DEVICE',
+                      child: Text(localized(context, 'ربط جهاز طفل'))),
                   DropdownMenuItem(
-                      value: 'MOSQUE', child: Text('دعوة مجموعة مسجد')),
-                  DropdownMenuItem(value: 'FAMILY', child: Text('دعوة أسرة')),
+                      value: 'MOSQUE',
+                      child: Text(localized(context, 'دعوة مجموعة مسجد'))),
                   DropdownMenuItem(
-                      value: 'ATTENDANCE', child: Text('تسجيل حضور في المسجد')),
+                      value: 'FAMILY',
+                      child: Text(localized(context, 'دعوة أسرة'))),
+                  DropdownMenuItem(
+                      value: 'ATTENDANCE',
+                      child: Text(localized(context, 'تسجيل حضور في المسجد'))),
                 ],
                 onChanged: (value) => setState(() => kind = value ?? 'DEVICE'),
               ),
               TextField(
                 controller: codeController,
                 textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(labelText: 'الرمز'),
+                decoration:
+                    InputDecoration(labelText: localized(context, 'الرمز')),
               ),
               const SizedBox(height: 12),
               FilledButton(
                   onPressed: c.busy ? null : submit,
-                  child: const Text('متابعة')),
+                  child: Text(localized(context, 'متابعة'))),
               OutlinedButton.icon(
                 onPressed: c.busy
                     ? null
@@ -547,10 +598,10 @@ class _CodeEntryScreenState extends State<CodeEntryScreen> {
                         }
                       },
                 icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('مسح QR'),
+                label: Text(localized(context, 'مسح QR')),
               ),
               if (c.error != null)
-                Text(c.error!,
+                Text(localized(context, c.error!),
                     style: const TextStyle(color: AppColors.warning)),
             ],
           ),
@@ -579,7 +630,7 @@ class _PairScannerState extends State<PairScanner> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('مسح الرمز')),
+        appBar: AppBar(title: Text(localized(context, 'مسح الرمز'))),
         body: Column(
           children: [
             const AppNote(
@@ -587,10 +638,11 @@ class _PairScannerState extends State<PairScanner> {
             Expanded(
               child: MobileScanner(
                 controller: scanner,
-                errorBuilder: (context, error) => const Center(
+                errorBuilder: (context, error) => Center(
                   child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.lg),
-                    child: Text('تعذر فتح الكاميرا. أدخل الرمز يدويًا.'),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Text(localized(
+                        context, 'تعذر فتح الكاميرا. أدخل الرمز يدويًا.')),
                   ),
                 ),
                 onDetect: (capture) {
