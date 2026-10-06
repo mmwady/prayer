@@ -1,4 +1,3 @@
-import '../l10n/app_localizations.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../prayer/prayer_definition.dart';
@@ -51,35 +50,28 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
         final c = controller;
         return Scaffold(
           appBar: AppBar(
-              title: Text(localized(context, 'تحليل فيديو — {0}',
-                  [localized(context, widget.definition.arabicName)]))),
+              title: Text('تحليل فيديو — ${widget.definition.arabicName}')),
           body: Center(
               child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 880),
                   child: ListView(padding: const EdgeInsets.all(20), children: [
                     BrandHeader(
-                        title: localized(
-                            context,
-                            c.report != null
-                                ? 'تقرير الحركات'
-                                : c.busy
-                                    ? 'نتأمل تسلسل الحركات'
-                                    : 'كل خطوة تبدأ بلحظة'),
-                        subtitle:
-                            localized(context, widget.definition.arabicName),
-                        caption: localized(
-                            context,
-                            c.report != null
-                                ? 'أدلة من تسجيلك • مراجعة واعية'
-                                : 'فيديو مسجل • خصوصية باختيارك')),
+                        title: c.report != null
+                            ? 'تقرير الحركات'
+                            : c.busy
+                                ? 'نتأمل تسلسل الحركات'
+                                : 'كل خطوة تبدأ بلحظة',
+                        subtitle: widget.definition.arabicName,
+                        caption: c.report != null
+                            ? 'أدلة من تسجيلك • مراجعة واعية'
+                            : 'فيديو مسجل • خصوصية باختيارك'),
                     const SizedBox(height: 20),
-                    AppNote(localized(context,
-                        'نتابع ترتيب الحركات المرصودة فقط، دون حكم على صحة الصلاة أو قبولها.')),
+                    const AppNote(
+                        'نتابع ترتيب الحركات المرصودة فقط، دون حكم على صحة الصلاة أو قبولها.'),
                     if (c.report == null &&
                         c.config?['inference_provider'] == 'mock')
-                      StatusBanner(
-                          text: localized(context, mockAnalysisNotice),
-                          tone: Tone.attention),
+                      const StatusBanner(
+                          text: mockAnalysisNotice, tone: Tone.attention),
                     if (!c.busy && c.report == null)
                       OutlinedButton.icon(
                           onPressed: () => Navigator.of(context).push(
@@ -87,8 +79,7 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                                   builder: (_) => LiveAnalysisScreen(
                                       definition: widget.definition))),
                           icon: const Icon(Icons.videocam_outlined),
-                          label: Text(
-                              localized(context, 'تحليل مباشر بالكاميرا'))),
+                          label: const Text('تحليل مباشر بالكاميرا')),
                     if (c.report != null) ...[
                       AnalysisResults(report: c.report!, api: c.api),
                       OutlinedButton.icon(
@@ -101,29 +92,24 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                             if (context.mounted) Navigator.pop(context);
                           },
                           icon: const Icon(Icons.delete_outline),
-                          label:
-                              Text(localized(context, 'حذف التحليل والعودة'))),
+                          label: const Text('حذف التحليل والعودة')),
                     ] else ...[
                       if (!c.busy) ...[
                         AppCard(
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                              SectionTitle(
-                                  localized(context, 'فيديو مسجل على جهازك'),
+                              const SectionTitle('فيديو مسجل على جهازك',
                                   icon: Icons.video_library_outlined),
-                              Text(localized(context, 'الصلاة المختارة: {0}', [
-                                localized(context, widget.definition.arabicName)
-                              ])),
+                              Text(
+                                  'الصلاة المختارة: ${widget.definition.arabicName}'),
                               if (c.video != null) ...[
                                 const SizedBox(height: 12),
                                 Text(c.video!.name,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis),
-                                Text(localized(context, 'المدة: {0} ثانية', [
-                                  (c.video!.durationMs / 1000)
-                                      .toStringAsFixed(1)
-                                ])),
+                                Text(
+                                    'المدة: ${(c.video!.durationMs / 1000).toStringAsFixed(1)} ثانية'),
                               ],
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
@@ -141,11 +127,9 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                                               }
                                             },
                                   icon: const Icon(Icons.folder_open),
-                                  label: Text(localized(
-                                      context,
-                                      picking
-                                          ? 'جارٍ فتح الفيديو…'
-                                          : 'اختيار فيديو محلي'))),
+                                  label: Text(picking
+                                      ? 'جارٍ فتح الفيديو…'
+                                      : 'اختيار فيديو محلي')),
                             ])),
                         if (c.config?['inference_provider'] == 'mock' &&
                             c.config?['mock_enabled'] == true)
@@ -153,38 +137,30 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                               child: DropdownButtonFormField<String>(
                             initialValue: scenario,
                             isExpanded: true,
-                            decoration: InputDecoration(
-                                labelText: localized(
-                                    context, 'سيناريو تطوير اصطناعي')),
-                            items: [
+                            decoration: const InputDecoration(
+                                labelText: 'سيناريو تطوير اصطناعي'),
+                            items: const [
                               DropdownMenuItem(
                                   value: 'normal',
-                                  child: Text(localized(
-                                      context, 'تسلسل كامل — محاكاة'))),
+                                  child: Text('تسلسل كامل — محاكاة')),
                               DropdownMenuItem(
                                   value: 'missing_ruku',
-                                  child: Text(
-                                      localized(context, 'ركوع غير مؤكد'))),
+                                  child: Text('ركوع غير مؤكد')),
                               DropdownMenuItem(
                                   value: 'missing_sujood',
-                                  child: Text(
-                                      localized(context, 'سجود غير مؤكد'))),
+                                  child: Text('سجود غير مؤكد')),
                               DropdownMenuItem(
                                   value: 'uncertain_pose',
-                                  child:
-                                      Text(localized(context, 'ثقة منخفضة'))),
+                                  child: Text('ثقة منخفضة')),
                               DropdownMenuItem(
                                   value: 'repeated_movement',
-                                  child:
-                                      Text(localized(context, 'حركة مكررة'))),
+                                  child: Text('حركة مكررة')),
                               DropdownMenuItem(
                                   value: 'wrong_sequence',
-                                  child: Text(
-                                      localized(context, 'ترتيب غير متوقع'))),
+                                  child: Text('ترتيب غير متوقع')),
                               DropdownMenuItem(
                                   value: 'incomplete_prayer',
-                                  child: Text(
-                                      localized(context, 'تسجيل غير مكتمل'))),
+                                  child: Text('تسجيل غير مكتمل')),
                             ],
                             onChanged: c.busy
                                 ? null
@@ -192,8 +168,8 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                           )),
                         if (c.config?['inference_provider'] == 'mock' &&
                             c.config?['mock_enabled'] != true)
-                          AppNote(localized(context,
-                              'المحاكاة غير مفعّلة على الخادم. يلزم تفعيل إعداد التطوير قبل التحليل.')),
+                          const AppNote(
+                              'المحاكاة غير مفعّلة على الخادم. يلزم تفعيل إعداد التطوير قبل التحليل.'),
                         if (!c.api.isLocal)
                           AppCard(
                               child: CheckboxListTile(
@@ -201,10 +177,10 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                             onChanged: c.busy
                                 ? null
                                 : (v) => setState(() => consent = v ?? false),
-                            title: Text(localized(context,
-                                'أوافق على إرسال صور مأخوذة من الفيديو إلى الخادم')),
-                            subtitle: Text(localized(context,
-                                'يُرفع عدد محدود من إطارات JPEG، وتُحذف تلقائيًا بعد مدة الاحتفاظ أو بطلبك. الفيديو الأصلي يبقى على جهازك.')),
+                            title: const Text(
+                                'أوافق على إرسال صور مأخوذة من الفيديو إلى الخادم'),
+                            subtitle: const Text(
+                                'يُرفع عدد محدود من إطارات JPEG، وتُحذف تلقائيًا بعد مدة الاحتفاظ أو بطلبك. الفيديو الأصلي يبقى على جهازك.'),
                           )),
                         if (c.preparingModels) ...[
                           const SizedBox(height: 12),
@@ -216,8 +192,7 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                           OutlinedButton.icon(
                               onPressed: () => c.prepareModels(),
                               icon: const Icon(Icons.refresh),
-                              label: Text(
-                                  localized(context, 'إعادة تجهيز الموديلات'))),
+                              label: const Text('إعادة تجهيز الموديلات')),
                         FilledButton.icon(
                             onPressed: c.busy ||
                                     (!c.api.isLocal && !consent) ||
@@ -226,21 +201,22 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                                     (c.config?['inference_provider'] == 'mock' &&
                                         c.config?['mock_enabled'] != true)
                                 ? null
-                                : () => c.start(widget.definition.prayerType.name,
+                                : () => c.start(
+                                    widget.definition.prayerType.name,
                                     consent: consent,
-                                    scenario:
-                                        c.config?['inference_provider'] == 'mock'
-                                            ? scenario
-                                            : null),
+                                    scenario: c.config?['inference_provider'] ==
+                                            'mock'
+                                        ? scenario
+                                        : null),
                             icon: Icon(c.api.isLocal
                                 ? Icons.play_arrow
                                 : Icons.upload_outlined),
-                            label: Text(localized(context,
-                                c.api.isLocal ? 'بدء التحليل على جهازك' : 'بدء التحليل بعد الموافقة'))),
+                            label: Text(c.api.isLocal
+                                ? 'بدء التحليل على جهازك'
+                                : 'بدء التحليل بعد الموافقة')),
                         if (c.api.isLocal)
-                          AppNote(
-                              localized(context,
-                                  'يُقرأ الفيديو وتُحلّل الصور على جهازك فقط. لا تُرسل أي صور أو مدخلات إلى خادم.'),
+                          const AppNote(
+                              'يُقرأ الفيديو وتُحلّل الصور على جهازك فقط. لا تُرسل أي صور أو مدخلات إلى خادم.',
                               icon: Icons.lock_outline),
                       ],
                       if (c.busy) ...[
@@ -249,18 +225,16 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                              Text(localized(
-                                  context,
-                                  switch (c.phase) {
-                                    AnalysisPhase.preparing =>
-                                      'تحضير إطارات الفيديو',
-                                    AnalysisPhase.uploading => c.api.isLocal
-                                        ? 'تحليل الإطار على جهازك'
-                                        : 'رفع دفعة الإطارات',
-                                    _ => c.api.isLocal
-                                        ? 'إعداد تقرير الحركات محليًا'
-                                        : 'الخادم يحلل تسلسل الحركات'
-                                  })),
+                              Text(switch (c.phase) {
+                                AnalysisPhase.preparing =>
+                                  'تحضير إطارات الفيديو',
+                                AnalysisPhase.uploading => c.api.isLocal
+                                    ? 'تحليل الإطار على جهازك'
+                                    : 'رفع دفعة الإطارات',
+                                _ => c.api.isLocal
+                                    ? 'إعداد تقرير الحركات محليًا'
+                                    : 'الخادم يحلل تسلسل الحركات',
+                              }),
                               const SizedBox(height: 12),
                               LinearProgressIndicator(
                                   value: c.total == 0
@@ -270,27 +244,22 @@ class _VideoAnalysisScreenState extends State<VideoAnalysisScreen> {
                                               : c.uploaded) /
                                           c.total),
                               const SizedBox(height: 8),
-                              Text(localized(
-                                  context,
-                                  c.api.isLocal
-                                      ? 'حُللت ${c.uploaded} / ${c.total} صورة محليًا'
-                                      : 'تحضير ${c.prepared} • رفع ${c.uploaded} • معالجة ${c.processed} / ${c.total}')),
+                              Text(c.api.isLocal
+                                  ? 'حُللت ${c.uploaded} / ${c.total} صورة محليًا'
+                                  : 'تحضير ${c.prepared} • رفع ${c.uploaded} • معالجة ${c.processed} / ${c.total}'),
                               TextButton(
                                   onPressed: c.cancel,
-                                  child: Text(localized(
-                                      context, 'إلغاء وحذف البيانات'))),
+                                  child: const Text('إلغاء وحذف البيانات')),
                             ])),
                       ],
                       if (c.error != null)
-                        StatusBanner(
-                            text: localized(context, c.error!),
-                            tone: Tone.danger),
+                        StatusBanner(text: c.error!, tone: Tone.danger),
                       if (c.phase == AnalysisPhase.failed)
-                        AppNote(localized(context,
-                            'يمكنك المحاولة مجددًا بعد معالجة الخطأ. ستُحذف الوظيفة السابقة قبل بدء محاولة جديدة.')),
+                        const AppNote(
+                            'يمكنك المحاولة مجددًا بعد معالجة الخطأ. ستُحذف الوظيفة السابقة قبل بدء محاولة جديدة.'),
                       if (c.phase == AnalysisPhase.cancelled)
-                        AppNote(localized(context,
-                            'أُلغي التحليل. يمكنك اختيار فيديو أو بدء محاولة جديدة.')),
+                        const AppNote(
+                            'أُلغي التحليل. يمكنك اختيار فيديو أو بدء محاولة جديدة.'),
                     ],
                   ]))),
         );
@@ -317,24 +286,15 @@ class _ModelPreparation extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(downloading
-            ? localized(context, 'تحميل {0}{1}', [
-                localized(context, model),
-                ratio == null
-                    ? ''
-                    : localized(
-                        context, ' — {0}٪', [(ratio * 100).toStringAsFixed(0)]),
-              ])
-            : localized(context, 'جارٍ تجهيز الموديلات على جهازك…')),
+            ? 'تحميل $model${ratio == null ? '' : ' — ${(ratio * 100).toStringAsFixed(0)}٪'}'
+            : 'جارٍ تجهيز الموديلات على جهازك…'),
         const SizedBox(height: 8),
         LinearProgressIndicator(value: downloading ? ratio : null),
         if (downloading)
-          Text(localized(context, 'تم تحميل {0}{1} ميجابايت', [
-            (loaded / 1048576).toStringAsFixed(1),
-            localized(context,
-                total > 0 ? ' من ${(total / 1048576).toStringAsFixed(1)}' : '')
-          ])),
-        Text(localized(context,
-            'التحميل الأول يحتاج إنترنت. تُحفظ الموديلات محليًا عند توفر مساحة؛ الفيديو يبقى على جهازك.')),
+          Text(
+              'تم تحميل ${(loaded / 1048576).toStringAsFixed(1)}${total > 0 ? ' من ${(total / 1048576).toStringAsFixed(1)}' : ''} ميجابايت'),
+        const Text(
+            'التحميل الأول يحتاج إنترنت. تُحفظ الموديلات محليًا عند توفر مساحة؛ الفيديو يبقى على جهازك.'),
       ],
     ));
   }
@@ -381,17 +341,13 @@ class AnalysisResults extends StatelessWidget {
     return null;
   }
 
-  Widget reviewSection(
-          BuildContext context, List<Map<String, dynamic>> items) =>
-      ExpansionTile(
-        title: Text(localized(context, 'حركات غير مسندة أو غير متوقعة')),
-        subtitle: Text(localized(context, '{0} حركة للمراجعة حسب زمن {1}', [
-          items.length,
-          localized(context, sourceLabel == 'الكاميرا' ? 'الجلسة' : 'الفيديو')
-        ])),
+  Widget reviewSection(List<Map<String, dynamic>> items) => ExpansionTile(
+        title: const Text('حركات غير مسندة أو غير متوقعة'),
+        subtitle: Text(
+            '${items.length} حركة للمراجعة حسب زمن ${sourceLabel == 'الكاميرا' ? 'الجلسة' : 'الفيديو'}'),
         children: [
           for (final item in items)
-            suspectedMovement(context, item,
+            suspectedMovement(item,
                 uncertain: item['observation_status'] == 'uncertain')
         ],
       );
@@ -484,8 +440,8 @@ class AnalysisResults extends StatelessWidget {
       });
   }
 
-  Widget stationComparison(BuildContext context, StationReport station,
-      List<Map<String, dynamic>> candidates) {
+  Widget stationComparison(
+      StationReport station, List<Map<String, dynamic>> candidates) {
     const keys = {
       'takbir',
       'standing',
@@ -500,29 +456,26 @@ class AnalysisResults extends StatelessWidget {
     };
     if (!keys.contains(station.key)) return const SizedBox.shrink();
     Widget example() => Column(children: [
-          Text(localized(context, 'الصورة التوضيحية')),
+          const Text('الصورة التوضيحية'),
           Image.asset('assets/prayer_positions/${station.key}.png',
               height: 200,
               fit: BoxFit.contain,
-              semanticLabel: localized(context, 'صورة مرجعية: {0}',
-                  [localized(context, station.label)]),
+              semanticLabel: 'صورة مرجعية: ${station.label}',
               errorBuilder: (_, __, ___) =>
-                  Text(localized(context, 'تعذر عرض الصورة المرجعية'))),
+                  const Text('تعذر عرض الصورة المرجعية')),
         ]);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text(localized(context,
-          'قارن وضعيتك بالمثال. عدم التأكيد لا يعني أن الوضعية خاطئة.')),
+      const Text('قارن وضعيتك بالمثال. عدم التأكيد لا يعني أن الوضعية خاطئة.'),
       const SizedBox(height: 8),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(
             child: Column(children: [
-          Text(localized(context, 'لقطتك في نفس الفترة')),
+          const Text('لقطتك في نفس الفترة'),
           if (candidates.isEmpty)
-            SizedBox(
+            const SizedBox(
                 height: 200,
                 child: Center(
-                    child: Text(
-                        localized(context, 'لا توجد لقطة مناسبة للمقارنة'),
+                    child: Text('لا توجد لقطة مناسبة للمقارنة',
                         textAlign: TextAlign.center)))
           else
             EvidenceImage(
@@ -535,12 +488,11 @@ class AnalysisResults extends StatelessWidget {
         Expanded(child: example()),
       ]),
       if (candidates.isNotEmpty)
-        Text(localized(
-            context, 'أقرب حركة مرصودة في هذه الفترة؛ للمقارنة فقط.')),
+        const Text('أقرب حركة مرصودة في هذه الفترة؛ للمقارنة فقط.'),
     ]);
   }
 
-  Widget suspectedMovement(BuildContext context, Map<String, dynamic> item,
+  Widget suspectedMovement(Map<String, dynamic> item,
       {required bool uncertain, bool showEvidence = true}) {
     const labels = {
       'standing': 'القيام',
@@ -563,35 +515,26 @@ class AnalysisResults extends StatelessWidget {
         child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(localized(context, 'حركة محتملة: {0}',
-            [localized(context, labels[pose] ?? 'غير محددة')])),
+        Text('حركة محتملة: ${labels[pose] ?? 'غير محددة'}'),
         if (timestamp != null)
-          Text(localized(context, 'عند {0} ث{1}', [
-            (timestamp / 1000).toStringAsFixed(1),
-            localized(
-                context,
-                confidence == null
-                    ? ''
-                    : ' • ثقة الموديل ${(confidence * 100).toStringAsFixed(0)}٪')
-          ])),
-        Text(localized(
-            context,
-            uncertain
-                ? 'رصد غير مؤكد؛ الحركة لم تستوفِ شروط الثقة أو الثبات.'
-                : item['reason'] == 'ambiguous'
-                    ? 'الحركة مرصودة، لكن إسنادها للركعة ملتبس.'
-                    : 'ترتيب غير متوقع أو تكرار.')),
+          Text('عند ${(timestamp / 1000).toStringAsFixed(1)} ث'
+              '${confidence == null ? '' : ' • ثقة الموديل ${(confidence * 100).toStringAsFixed(0)}٪'}'),
+        Text(uncertain
+            ? 'رصد غير مؤكد؛ الحركة لم تستوفِ شروط الثقة أو الثبات.'
+            : item['reason'] == 'ambiguous'
+                ? 'الحركة مرصودة، لكن إسنادها للركعة ملتبس.'
+                : 'ترتيب غير متوقع أو تكرار.'),
         if (evidence != null && showEvidence) ...[
           if (report.synthetic)
-            Text(localized(context,
-                'إطار مرتبط بمحاكاة اصطناعية؛ النسبة ليست تعرفًا فعليًا.')),
+            const Text(
+                'إطار مرتبط بمحاكاة اصطناعية؛ النسبة ليست تعرفًا فعليًا.'),
           EvidenceImage(
               api: api,
               evidenceId: evidence,
               prediction: report.prediction(evidence)),
         ] else if (api.isLocal && showEvidence) ...[
-          AppNote(localized(context,
-              'صورة هذه الحركة غير متاحة محليًا. تبقى قرارات التصنيف للمراجعة.')),
+          const AppNote(
+              'صورة هذه الحركة غير متاحة محليًا. تبقى قرارات التصنيف للمراجعة.'),
           LocalPredictionCards(result: eventPrediction(item)),
         ],
       ],
@@ -602,32 +545,21 @@ class AnalysisResults extends StatelessWidget {
   Widget build(BuildContext context) =>
       Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (report.synthetic)
-          StatusBanner(
-              text: localized(context, report.notice), tone: Tone.attention),
+          StatusBanner(text: report.notice, tone: Tone.attention),
         if (report.storageWarning != null)
-          StatusBanner(
-              text: localized(context, report.storageWarning!),
-              tone: Tone.attention),
+          StatusBanner(text: report.storageWarning!, tone: Tone.attention),
         MetricTile(
-            label: localized(context, 'نسبة اكتمال الحركات'),
-            value: localized(
-                context, '{0}٪', [report.movementScore.toStringAsFixed(1)]),
+            label: 'نسبة اكتمال الحركات',
+            value: '${report.movementScore.toStringAsFixed(1)}٪',
             icon: Icons.percent,
             tone: Tone.ready),
-        AppNote(localized(context, '{0} من {1} حركة متوقعة تم رصدها{2}.', [
-          report.movementsDetected,
-          report.movementsExpected,
-          localized(
-              context,
-              report.overallResult == 'REVIEW_REQUIRED'
-                  ? ' • النتيجة تحتاج مراجعة'
-                  : '')
-        ])),
+        AppNote(
+            '${report.movementsDetected} من ${report.movementsExpected} حركة متوقعة تم رصدها'
+            '${report.overallResult == 'REVIEW_REQUIRED' ? ' • النتيجة تحتاج مراجعة' : ''}.'),
         const SizedBox(height: 12),
         MetricTile(
-            label: localized(context, 'عدد الركعات المرصودة'),
-            value: localized(context, '{0} من {1}',
-                [report.observedRakahs, report.expectedRakahs]),
+            label: 'عدد الركعات المرصودة',
+            value: '${report.observedRakahs} من ${report.expectedRakahs}',
             icon: Icons.format_list_numbered,
             tone: Tone.ready),
         const SizedBox(height: 12),
@@ -636,13 +568,11 @@ class AnalysisResults extends StatelessWidget {
               padding: EdgeInsets.zero,
               child: ExpansionTile(
                 initiallyExpanded: rakah.number == 1,
-                title: Text(localized(context, 'الركعة {0}', [rakah.number])),
-                subtitle: Text(localized(
-                    context,
-                    rakah.result == 'OBSERVED_COMPLETE' &&
-                            rakah.stations.every((s) => s.status == 'DETECTED')
-                        ? 'لا توجد ملاحظات على ترتيب الحركات المرصودة'
-                        : 'توجد حركات تحتاج مراجعة')),
+                title: Text('الركعة ${rakah.number}'),
+                subtitle: Text(rakah.result == 'OBSERVED_COMPLETE' &&
+                        rakah.stations.every((s) => s.status == 'DETECTED')
+                    ? 'لا توجد ملاحظات على ترتيب الحركات المرصودة'
+                    : 'توجد حركات تحتاج مراجعة'),
                 children: [
                   for (final (index, station) in rakah.stations.indexed)
                     Padding(
@@ -661,81 +591,62 @@ class AnalysisResults extends StatelessWidget {
                                         : AppColors.warning),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                    child:
-                                        Text(localized(context, '{0} — {1}', [
-                                  localized(context, station.label),
-                                  localized(
-                                      context,
-                                      station.status == 'DETECTED'
-                                          ? 'تم رصدها'
-                                          : 'تحتاج مراجعة')
-                                ]))),
+                                    child: Text(
+                                        '${station.label} — ${station.status == 'DETECTED' ? 'تم رصدها' : 'تحتاج مراجعة'}')),
                               ]),
                               if (station.status != 'DETECTED')
-                                stationComparison(context, station,
-                                    comparisonCandidates(rakah, index))
+                                stationComparison(
+                                    station, comparisonCandidates(rakah, index))
                               else if (station.evidenceId != null)
                                 EvidenceImage(
                                     api: api,
                                     evidenceId: station.evidenceId!,
                                     showPrediction: false)
                               else
-                                Text(localized(
-                                    context, 'صورة الحركة غير متاحة.')),
+                                const Text('صورة الحركة غير متاحة.'),
                             ])),
                 ],
               )),
-        AppNote(localized(
-            context, 'التقييم لرصد الحركات وترتيبها، دون حكم على صحة الصلاة.')),
-        ExpansionTile(
-            title: Text(localized(context, 'تفاصيل التحليل والتصدير')),
-            children: [
-              if (api.isLocal)
-                AppNote(
-                    localized(context,
-                        'التقرير وصور الأدلة على هذا الجهاز. يمكنك حذفها أو تصديرها من السجل المحلي.'),
-                    icon: Icons.lock_outline),
-              LocalAssessmentReview(report: report),
-              if (api is LocalResultsService)
-                OutlinedButton.icon(
-                    onPressed: () async {
-                      try {
-                        final message =
-                            await (api as LocalResultsService).export();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(localized(
-                                  context,
-                                  message.startsWith('{')
-                                      ? 'تم تصدير التقرير محليًا'
-                                      : message))));
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(localized(
-                                  context, 'تعذر التصدير: {0}', [e]))));
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.download),
-                    label: Text(localized(context, 'تصدير التقرير المحلي'))),
-              if (reviewItems.isNotEmpty) reviewSection(context, reviewItems),
-              if (report.capturedActions.isNotEmpty)
-                ExpansionTile(
-                    title: Text(localized(
-                        context,
-                        'الأفعال الملتقطة تلقائيًا ({0})',
-                        [report.capturedActions.length])),
-                    children: [
-                      for (final item in report.capturedActions)
-                        AppCard(
-                            child: LocalPredictionCards(
-                                result:
-                                    Map<String, dynamic>.from(item['result']),
-                                expandable: true)),
-                    ]),
-            ]),
+        const AppNote('التقييم لرصد الحركات وترتيبها، دون حكم على صحة الصلاة.'),
+        ExpansionTile(title: const Text('تفاصيل التحليل والتصدير'), children: [
+          if (api.isLocal)
+            const AppNote(
+                'التقرير وصور الأدلة على هذا الجهاز. يمكنك حذفها أو تصديرها من السجل المحلي.',
+                icon: Icons.lock_outline),
+          LocalAssessmentReview(report: report),
+          if (api is LocalResultsService)
+            OutlinedButton.icon(
+                onPressed: () async {
+                  try {
+                    final message = await (api as LocalResultsService).export();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(message.startsWith('{')
+                              ? 'تم تصدير التقرير محليًا'
+                              : message)));
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('تعذر التصدير: $e')));
+                    }
+                  }
+                },
+                icon: const Icon(Icons.download),
+                label: const Text('تصدير التقرير المحلي')),
+          if (reviewItems.isNotEmpty) reviewSection(reviewItems),
+          if (report.capturedActions.isNotEmpty)
+            ExpansionTile(
+                title: Text(
+                    'الأفعال الملتقطة تلقائيًا (${report.capturedActions.length})'),
+                children: [
+                  for (final item in report.capturedActions)
+                    AppCard(
+                        child: LocalPredictionCards(
+                            result: Map<String, dynamic>.from(item['result']),
+                            expandable: true)),
+                ]),
+        ]),
       ]);
 }
 
@@ -767,11 +678,9 @@ class _EvidenceImageState extends State<EvidenceImage> {
               future: bytes,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Text(localized(
-                      context,
-                      widget.api.isLocal
-                          ? 'صورة الدليل غير متاحة في التخزين المحلي. نتائج التصنيف لا تتغير.'
-                          : 'تعذر تحميل الصورة؛ ربما انتهت مدة الاحتفاظ.'));
+                  return Text(widget.api.isLocal
+                      ? 'صورة الدليل غير متاحة في التخزين المحلي. نتائج التصنيف لا تتغير.'
+                      : 'تعذر تحميل الصورة؛ ربما انتهت مدة الاحتفاظ.');
                 }
                 if (!snapshot.hasData) {
                   return const SizedBox(
@@ -784,10 +693,9 @@ class _EvidenceImageState extends State<EvidenceImage> {
                         height: widget.height,
                         fit: BoxFit.contain,
                         filterQuality: FilterQuality.high,
-                        semanticLabel:
-                            localized(context, 'إطار الحركة المرتبط بالتقرير'),
+                        semanticLabel: 'إطار الحركة المرتبط بالتقرير',
                         errorBuilder: (_, __, ___) =>
-                            Text(localized(context, 'تعذر عرض الصورة'))));
+                            const Text('تعذر عرض الصورة')));
               }),
           if (widget.api.isLocal && widget.showPrediction)
             LocalPredictionCards(result: widget.prediction),

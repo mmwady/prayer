@@ -44,14 +44,14 @@ void main() {
         })));
     await tester.pump();
     expect(reads, 1);
-    expect(find.text('جاري تحميل التطبيق'), findsOneWidget);
-    expect(find.text('30%'), findsOneWidget);
-    expect(find.byType(LinearProgressIndicator), findsNothing);
-    expect(find.text('حُفظ 3 من 10 ملفًا'), findsNothing);
-    expect(find.text('صورك وفيديوهاتك تبقى على جهازك.'), findsNothing);
+    expect(find.text('جارٍ تجهيز التدريب دون إنترنت'), findsOneWidget);
+    expect(find.text('حُفظ 3 من 10 ملفًا'), findsOneWidget);
     expect(
-        find.text('اترك الصفحة مفتوحة حتى يكتمل حفظ ملفات التطبيق والنماذج.'),
-        findsNothing);
+        tester
+            .widget<LinearProgressIndicator>(
+                find.byType(LinearProgressIndicator))
+            .value,
+        .3);
     await tester.pump(const Duration(seconds: 1));
     expect(reads, 1);
     status = const OfflineStatus(
@@ -59,8 +59,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pump();
     expect(reads, 2);
-    expect(find.text('اكتمل تحميل التطبيق'), findsOneWidget);
-    expect(find.byType(Text), findsOneWidget);
+    expect(find.text('جاهز للتدريب دون اتصال'), findsOneWidget);
     expect(find.text('تطبيق التحديث'), findsNothing);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 8));
@@ -81,8 +80,7 @@ void main() {
     expect(reads, 1);
     pending.complete(const OfflineStatus(state: 'ready', ready: true));
     await tester.pump();
-    await tester.pump();
-    expect(find.text('اكتمل تحميل التطبيق'), findsOneWidget);
+    expect(find.text('جاهز للتدريب دون اتصال'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
   });
@@ -111,15 +109,16 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('failed offline preparation hides the notice entirely',
+  testWidgets(
+      'failed offline preparation keeps the on-device privacy statement visible',
       (tester) async {
     await tester.pumpWidget(_page(OfflineNotice(
       enabled: true,
       readStatus: () async => const OfflineStatus(state: 'failed'),
     )));
     await tester.pump();
-    expect(find.byType(Text), findsNothing);
-    expect(find.byType(Icon), findsNothing);
+    expect(find.text('لم يكتمل الحفظ للتشغيل دون إنترنت'), findsOneWidget);
+    expect(find.text('صورك وفيديوهاتك تبقى على جهازك.'), findsOneWidget);
     expect(find.text('تطبيق التحديث'), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

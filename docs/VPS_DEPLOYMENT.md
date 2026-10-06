@@ -2,152 +2,59 @@
 
 Deployed on 2026-10-05 through the SSH alias `iqtadi-vps`. Manual GitHub Actions deployment is available. This is a testing deployment with the stable URL https://vps-c79afd97.vps.ovh.ca.
 
-## Agent entry point and preferred deployment
+## Current update: 2026-10-06
 
-When asked to deploy, use direct SSH deployment from the local machine by default.
-Do not wait for GitHub Actions unless the user explicitly requests it. GitHub push
-and server deployment are separate operations. Only push files within the requested
-scope; existing unrelated working-tree changes must not enter the commit/artifact.
-This document is the deployment runbook for any AI agent working in this repository.
+The user separately authorized direct deployment of review commit `51efdb6` and
+the Gmail SMTP credential transfer after its initial automatic approval rejection.
+Web/backend release:
+`gha-20261006063004-1-51efdb64fac025180df82752338a9aa3bd508552`.
+No main merge/push was performed; the inherited main Git validation gate remains
+closed. This was direct SSH activation, not a GitHub Actions run.
 
-## Direct deployment from Windows (validated 2026-10-06)
+- Candidate Docker startup, isolated schema-v4/foreign-key check and three Linux
+  release/rollback tests passed. Installed runtime dependencies pass `pip check`.
+- Web packaging and server verification passed for all **80 files**, 126,913,014
+  bytes, offline version `986a399e1fb6ad2093576031`. All 141 protected prayer blobs
+  and Web/APK model manifest hashes still match Wady.
+- Stopped-container data snapshot and original env were retained under
+  `/srv/iqtadi/backups/gha-20261006063004-1-51efdb64fac025180df82752338a9aa3bd508552/`
+  (directory mode 0700). Activation's temporary release script restores both data
+  and env if cutover fails; neither database reset nor fixture database upload occurred.
+- Only SMTP and account-origin settings were transmitted via encrypted SSH stdin.
+  Server `backend.env` is root-owned mode 0600; no API key/password is in source,
+  Web assets, reports or GitHub. Gmail implicit SSL on port 465 authenticated from
+  the VPS before cutover. Paid guidance remains disabled.
+- Public health and account config pass (`email_configured=true`, mode SMTP).
+  Real published Flutter signup sent a received Gmail message; its production
+  link was confirmed in Chrome, followed by verified login/cookie reload. Account
+  and SELF ownership, token reuse rejection, payload scrubbing and schema-v4
+  integrity passed. The real user account remains; live Resend/password-reset
+  delivery and physical device acceptance remain unverified.
+- Public Chrome regression passed six prayer routes, a real 16-frame local video
+  using all three models (`REVIEW_REQUIRED` preserved), and simulated live-camera
+  input with 15 processed frames/one captured action. No prayer images/model inputs
+  were posted to the backend. Admin/OpenAPI and missing model/WASM 404 checks and
+  rejection of an unauthorized account Origin passed; no page JavaScript exceptions.
+  Captured console output contains the ONNX "Unknown CPU vendor" warning and the
+  TensorFlow Lite XNNPACK startup info; both inference workflows still passed.
 
-Run commands from the repository root in PowerShell. SSH alias `iqtadi-vps` currently
-uses `ubuntu@148.113.252.100` and the configured local SSH key. Other agents/machines
-must have authorized SSH access and verified host keys; do not copy private keys into
-the repository or disable host-key checks. The deployment user needs `sudo -n`.
-
-1. Inspect `git status --short` and the diff. Commit the intended code before
-   packaging so the release records its source revision. Check SSH and current state:
-
-```powershell
-ssh -o BatchMode=yes -o ConnectTimeout=15 iqtadi-vps "readlink /srv/iqtadi/current; cat /srv/iqtadi/deploy/last-deployment.txt"
-```
-
-2. Validate changed code, then build the complete Web distribution:
-
-```powershell
-Push-Location mobile/coaching
-try {
-    flutter analyze --no-pub
-    # The six known informational lints are documented below; inspect new findings.
-    flutter test --no-pub test/live_analysis_test.dart
-    if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
-} finally { Pop-Location }
-& ./deploy/vps/build-web.ps1
-if ($LASTEXITCODE -ne 0) { throw 'Web build failed' }
-```
-
-Choose additional focused tests according to the changed feature. The build script
-runs browser build, Flutter Release Web and offline packaging. Never upload a partial
-`build/web` or edit its files after generating the offline manifest without regenerating it.
-
-3. Package and upload. `deploy-release.sh` currently requires release IDs matching
-   `gha-NUMBER-NUMBER-FULLCOMMIT`; direct deployments use a UTC numeric timestamp
-   and attempt `1` within that format. This prefix is a parser constraint, not evidence
-   that a GitHub Actions run exists. Do not reuse a release ID.
-
-```powershell
-$sourceCommit = (git rev-parse HEAD).Trim()
-$deploymentStamp = [DateTime]::UtcNow.ToString('yyyyMMddHHmmss')
-$releaseId = "gha-$deploymentStamp-1-$sourceCommit"
-$remoteDir = "/srv/iqtadi/incoming/$releaseId"
-$stagingDir = Join-Path (Get-Location) 'output/direct-deploy'
-New-Item -ItemType Directory -Force $stagingDir | Out-Null
-# Bash scripts uploaded from Windows must use LF, without a UTF-8 BOM.
-$utf8NoBom = [Text.UTF8Encoding]::new($false)
-foreach ($scriptName in @('deploy-release.sh', 'verify-web.py')) {
-    $scriptText = [IO.File]::ReadAllText((Join-Path (Get-Location) "deploy/vps/$scriptName"))
-    [IO.File]::WriteAllText((Join-Path $stagingDir $scriptName), $scriptText.Replace("`r`n", "`n"), $utf8NoBom)
-}
-tar -czf "$stagingDir/web.tar.gz" -C mobile/coaching/build/web .
-if ($LASTEXITCODE -ne 0) { throw 'Packaging failed' }
-ssh -o BatchMode=yes iqtadi-vps "sudo -n mkdir -p '$remoteDir' && sudo -n chown ubuntu:ubuntu '$remoteDir'"
-if ($LASTEXITCODE -ne 0) { throw 'Remote preparation failed' }
-scp -o BatchMode=yes "$stagingDir/web.tar.gz" "$stagingDir/deploy-release.sh" "$stagingDir/verify-web.py" "iqtadi-vps:$remoteDir/"
-if ($LASTEXITCODE -ne 0) { throw 'Upload failed' }
-ssh -o BatchMode=yes -o ServerAliveInterval=15 iqtadi-vps "sudo -n bash '$remoteDir/deploy-release.sh' '$releaseId' web"
-if ($LASTEXITCODE -ne 0) { throw 'Deployment failed; inspect rollback output' }
-```
-
-This verifies every static file hash, tests Nginx, atomically changes `current`, and
-checks public health/manifest/bridge/admin blocking. It retains the previous release
-and attempts rollback on failure. Web-only deployment leaves the backend running.
-Never use initial provisioning (`prepare-server.sh`) to update an existing server.
-Avoid simultaneous direct/Actions deployments; the server script also enforces a lock.
-
-4. Verify externally and retain output:
-
-```powershell
-$publishedManifest = Invoke-RestMethod 'https://vps-c79afd97.vps.ovh.ca/iqtadi-offline-manifest.json'
-$localManifest = Get-Content mobile/coaching/build/web/iqtadi-offline-manifest.json -Raw | ConvertFrom-Json
-if ($publishedManifest.version -ne $localManifest.version) { throw 'Published version mismatch' }
-Invoke-RestMethod 'https://vps-c79afd97.vps.ovh.ca/healthz' | ConvertTo-Json
-ssh iqtadi-vps "readlink /srv/iqtadi/current; cat /srv/iqtadi/deploy/last-deployment.txt"
-```
-
-For UI/runtime acceptance also run the existing `browser/scripts/verify-vps.mjs`
-workflow as appropriate, or inspect the changed screen in a real browser. A successful
-build/hash check is not physical-camera or user-browser cache acceptance. Existing
-clients may need refresh or the explicit "تطبيق التحديث" action.
-
-For backend or combined updates, additionally package the exact backend whitelist
-shown in `.github/workflows/deploy-vps.yml` as `backend.tar.gz` into the same incoming
-directory, then invoke the script with `backend` or `both`. Do not upload `.env`,
-personal media, or `backend/data`. Backend deployment builds/tests a candidate image,
-stops the old container for a consistent snapshot and swaps it using existing server
-configuration; a brief interruption occurs. Use only when backend changes are requested.
-
-## Server and browser logs (verified 2026-10-06)
-
-| Source | Location/access | What it records |
-|---|---|---|
-| Nginx requests | `/var/log/nginx/access.log` | Web assets and proxied API HTTP requests/status codes |
-| Nginx errors | `/var/log/nginx/error.log` | HTTP serving/proxy errors |
-| Backend | `sudo docker logs iqtadi-backend` | stdout/stderr, startup and application errors |
-| Service events | `journalctl -u nginx` | Nginx service lifecycle/errors |
-| Last deployment | `/srv/iqtadi/deploy/last-deployment.txt` | Latest successful release ID and target, not a complete transcript |
-| Deployment artifacts | `/srv/iqtadi/incoming/<ID>/`, `/srv/iqtadi/backups/<ID>/` | Artifacts, published manifest and rollback metadata, not a full log stream |
-
-```powershell
-ssh iqtadi-vps "sudo -n tail -n 100 /var/log/nginx/access.log"
-ssh iqtadi-vps "sudo -n tail -n 100 /var/log/nginx/error.log"
-ssh iqtadi-vps "sudo -n docker logs --timestamps --since 1h --tail 200 iqtadi-backend 2>&1"
-ssh iqtadi-vps "sudo -n journalctl -u nginx --since '1 hour ago' --no-pager"
-# Follow live backend messages (Ctrl+C stops viewing, not the service):
-ssh iqtadi-vps "sudo -n docker logs -f --tail 50 iqtadi-backend"
-# Resolve the current container log path and rotation configuration dynamically:
-ssh iqtadi-vps "sudo -n docker inspect --format '{{.LogPath}} {{json .HostConfig.LogConfig}}' iqtadi-backend"
-```
-
-The current Docker driver is `json-file`; its internal path under
-`/var/lib/docker/containers/<container-id>/` changes on container recreation. Prefer
-`docker logs` to editing/reading the underlying JSON directly. `run-backend.sh`
-configures rotation to three files of 10 MB each; these are bounded operational logs,
-not a permanent archive. Application logging targets stdout and suppresses normal
-Uvicorn access messages below WARNING; use Nginx access logs for request history.
-Nginx logs inherit the global paths and may contain other configured sites; inspect
-current configuration/rotation rather than assuming a dedicated application log.
-
-Chrome JavaScript, service-worker download/cache/quota errors and local inference
-are not automatically sent to the server. Nginx can show a failed HTTP asset request,
-but cannot explain a client-side cache/hash/quota failure after a successful response.
-In the affected Chrome session open DevTools > Console and Application > Service
-Workers / Cache Storage. `window.iqtadiOffline.status()` returns the actual offline
-state and warning; preserve that output before clearing cache or unregistering workers.
-Do not infer the cause of an offline banner from its generic text alone.
+Evidence under ignored `output/deployment/`, `output/vps-mail-live/` and
+`output/vps/`; prior release/data/env remain available for operator rollback.
+See [mail delivery checks](ACCOUNT_EMAIL_DELIVERY.md) for exact test boundaries.
 
 ## Layout and access
 
 - `/srv/iqtadi/current/web`: complete Flutter Release Web distribution; current points
-  to the last successful release. Read `readlink /srv/iqtadi/current` for live state;
-  `first` retains the initial release.
+  to `/srv/iqtadi/releases/gha-20261006063004-1-51efdb64fac025180df82752338a9aa3bd508552`;
+  previous releases and `first` are retained.
 - `/srv/iqtadi/shared/data`: persistent SQLite/reference/analysis data, mounted at
   `/app/data` in the backend container, owned by UID 10001.
-- `/srv/iqtadi/shared/backend.env`: server-only configuration, mode 0600. No local
-  developer secrets or personal media/database files were uploaded.
+- `/srv/iqtadi/shared/backend.env`: server-only configuration, mode 0600. The
+  explicitly approved Gmail SMTP credential is installed; no other local developer
+  secrets or personal media/database files were uploaded.
 - `/srv/iqtadi/deploy`: installed deployment scripts and `public-url.txt`.
-- Docker image `iqtadi-backend:20261005-test`: Python 3.11 and CPU-only Torch 2.5.1.
+- Docker image `iqtadi-backend:gha-20261006063004-1-51efdb64fac025180df82752338a9aa3bd508552`:
+  Python 3.11 and CPU-only Torch 2.5.1.
   Container `iqtadi-backend` has `unless-stopped` restart policy and a health check.
 - Public Nginx listens on IPv4/IPv6 ports 80 and 443 for `vps-c79afd97.vps.ovh.ca`.
   HTTP redirects to HTTPS except the ACME webroot `/srv/iqtadi/acme`.
@@ -174,9 +81,10 @@ a device test; the deployment browser check uses a simulated canvas camera and r
 
 Mosque Companion is enabled **as a simulated demo**. Paid guidance calls are disabled
 (`PRAYER_GUIDANCE_ENABLED=false`); no provider key was installed. Account cookies are
-Secure/HttpOnly/SameSite strict, allowed origins are limited to the stable HTTPS URL. SMTP is
-unconfigured: ordinary signup email verification/password-reset delivery is unavailable
-until actual SMTP settings are provided. Development email mode was not enabled.
+Secure/HttpOnly/SameSite strict, allowed origins are limited to the stable HTTPS URL.
+Gmail SMTP is configured and real signup/verification delivery passed. Password
+reset uses the same transport but live reset delivery was not exercised in this
+deployment. Development email mode is not enabled.
 
 ## Operations
 
@@ -296,3 +204,13 @@ The selected commit/target appear in the workflow summary and last-deployment.tx
 Three isolated deployment tests exercise web-only activation, combined-release rollback
 and rejection of invalid static hashes. These test the script with simulated Docker/HTTP;
 they do not claim a real production failure was injected.
+
+## Authorized rich sample-data addition (2026-10-06)
+
+Ezz samples were added to the existing account database following explicit user
+selection. Both existing accounts and sessions survived; no release/image/env/schema
+change or database reset occurred. Six private-credential accounts, two families,
+three children, four age-compatible mosque groups, 189 synthetic practices and
+65 attendance events are installed. Consistent private snapshots and real HTTPS
+login/UI/role/ranking checks are documented in [ACCOUNT_DEMO_SERVER.md](ACCOUNT_DEMO_SERVER.md).
+No credential or database is published to GitHub. Main remains gated as before.

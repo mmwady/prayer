@@ -7,7 +7,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'screens/home_screen.dart';
@@ -15,44 +14,40 @@ import 'state/locale_provider.dart';
 import 'ui/app_theme.dart';
 import 'config/env.dart';
 import 'accounts/controller.dart';
-import 'l10n/app_localizations.dart';
+import 'accounts/platform.dart';
 
 Future<void> main() async {
+  // Read a one-time child pairing link before MaterialApp normalizes the URL.
+  final startupPairingCode = initialAccountPairingCode();
   // Restore the test endpoint before any backend client is constructed.
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await Env.load();
   } catch (_) {/* Use the build default if storage is unavailable. */}
-  final localeProvider = LocaleProvider();
-  await localeProvider.load();
   runApp(
-    ChangeNotifierProvider.value(
-      value: localeProvider,
-      child: const CoachingApp(),
+    ChangeNotifierProvider(
+      create: (_) => LocaleProvider(),
+      child: CoachingApp(startupPairingCode: startupPairingCode),
     ),
   );
 }
 
 /// Root widget: shared Arabic RTL theme for Android and responsive Web.
 class CoachingApp extends StatelessWidget {
-  const CoachingApp({super.key});
+  const CoachingApp({super.key, this.startupPairingCode});
+
+  final String? startupPairingCode;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => AccountController()..initialize(),
+      create: (_) => AccountController(startupPairingCode: startupPairingCode)
+        ..initialize(),
       child: Consumer<LocaleProvider>(
         builder: (context, localeProvider, child) {
           return MaterialApp(
-            onGenerateTitle: (context) => localized(context, 'اقتدِ'),
-            locale: localeProvider.locale,
-            supportedLocales: const [Locale('ar'), Locale('en')],
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
+            // Dynamically read title from translations if needed, or fallback.
+            title: 'اقتدِ',
             debugShowCheckedModeBanner: false,
             theme: buildAppTheme(),
             builder: (context, child) {

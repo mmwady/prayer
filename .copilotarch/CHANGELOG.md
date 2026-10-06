@@ -1,14 +1,43 @@
 # Changelog
 
-## 2026-10-06: Arabic / English
+## 2026-10-06: additive Ezz samples on existing VPS
 
-- Added a persisted language menu, Arabic default, English translations and RTL/LTR presentation across Flutter screens and SDK controls.
-- Preserved visual tokens, assets, recognition/sequence logic, stored reports and backend contracts. Locale tests cover retained screen state and report data.
+- User selected current-site sample addition; both real accounts/sessions retained.
+- Private labelled samples, age-compatible mosque memberships, full attendance
+  denominators and explicit synthetic practice history; no auth/prayer/schema changes.
+- Two operator tools preserve the original Ezz seed guards, refuse conflicts,
+  backup with SQLite and audit repeat imports. Private credentials/data stay ignored.
+- Published login/UI/role/ranking/code acceptance and backups: `docs/ACCOUNT_DEMO_SERVER.md`.
 
-## 2026-10-06: ordered prayer illustrations
+## 2026-10-06: authorized VPS account/email update
 
-- Restore a home entry for ten numbered movement illustrations and names, with the Dorar prayer-description link at the end.
-- Web release and browser layout verified; 12 local-source/offline tests passed. Analyzer retains six existing infos.
+- Direct SSH deployed review commit 51efdb6 Web/backend, with data/env snapshot
+  rollback and the stable origin. Main/source branches remain unchanged.
+- Explicitly approved Gmail SMTP transfer; actual published registration, inbox
+  link activation, login/secure-cookie reload and correct profile persistence pass.
+- Public six-prayer routes, real 16-frame local video/three-model inference and
+  simulated live input/report pass; no prayer media upload. Physical camera pending.
+
+## 2026-10-06: reliable account email
+
+- Schema v4 adds durable account mail intent and private signed Resend receipts.
+- Submit after commit; retry frozen links with leases/backoff across restarts.
+- SMTP auto SSL/STARTTLS, honest queued/accepted UI, no automatic verification.
+- Local Chrome signup/outage/retry/verification/login acceptance passes. Real
+  Gmail SMTP received-link activation/login/secure-cookie reload and correct
+  account/SELF persistence also pass on an isolated HTTPS host; live Resend remains
+  unverified. Prayer pipeline and main release gate unchanged.
+- Final account suites 62 pass, Flutter 153 pass, Web/Android build, v4 migration
+  and protected model hashes pass; inherited analyzer/backend/lint/type gates remain.
+
+## 2026-10-06: Wady / Ezz semantic integration
+
+- Retained Wady offline prayer pipeline and Ezz complete auth/family/mosque APIs;
+  adapted nullable scalar coverage, profile progress, rankings and navigation.
+- Additive schema v3 safely upgrades either source branch; original rows and
+  sessions survive. Pinned inference bytes and packaged models match Wady.
+- Flutter 151 tests, Web/Android builds pass. Main remains unchanged because
+  inherited backend boundary tests, lint and type checks fail; see integration report.
 
 ## 2026-10-06: movement completion score
 

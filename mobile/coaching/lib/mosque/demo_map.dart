@@ -1,4 +1,3 @@
-import '../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../ui/app_theme.dart';
 import 'client.dart';
@@ -28,25 +27,15 @@ class DemoMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(children: [
-        Text(localized(context, 'خريطة تخطيطية للديمو • المسارات محاكاة'),
-            style: const TextStyle(color: AppColors.warning)),
+        const Text('خريطة تخطيطية للديمو • المسارات محاكاة',
+            style: TextStyle(color: AppColors.warning)),
         const SizedBox(height: 8),
         LayoutBuilder(builder: (context, c) {
-          final plotted = displayPoints
-              .map((point) => <String, dynamic>{
-                    ...point,
-                    'label': localized(
-                        context, point['label'] ?? point['name'] ?? 'نقطة'),
-                  })
-              .toList();
+          final plotted = displayPoints;
           final geometry = MapGeometry([...plotted, ...path]);
           return Semantics(
-              label: localized(context, 'خريطة تخطيطية: {0}', [
-                points
-                    .map((p) =>
-                        localized(context, p['label'] ?? p['name'] ?? 'نقطة'))
-                    .join(localized(context, '، '))
-              ]),
+              label:
+                  'خريطة تخطيطية: ${points.map((p) => p['label'] ?? p['name'] ?? 'نقطة').join('، ')}',
               child: GestureDetector(
                 onTapUp: onPoint == null
                     ? null
@@ -59,14 +48,11 @@ class DemoMap extends StatelessWidget {
                     height: 220,
                     width: double.infinity,
                     child: CustomPaint(
-                        painter: _MapPainter(plotted, path, geometry,
-                            Directionality.of(context)))),
+                        painter: _MapPainter(plotted, path, geometry))),
               ));
         }),
-        Text(
-            localized(context,
-                'أخضر: البداية • ذهبي: الوجهة • أزرق: نقطة لقاء مقترحة'),
-            style: const TextStyle(fontSize: 11)),
+        const Text('أخضر: البداية • ذهبي: الوجهة • أزرق: نقطة لقاء مقترحة',
+            style: TextStyle(fontSize: 11)),
       ]);
 }
 
@@ -92,10 +78,9 @@ class MapGeometry {
 }
 
 class _MapPainter extends CustomPainter {
-  _MapPainter(this.points, this.path, this.geometry, this.textDirection);
+  _MapPainter(this.points, this.path, this.geometry);
   final List<Json> points, path;
   final MapGeometry geometry;
-  final TextDirection textDirection;
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRRect(
@@ -143,7 +128,7 @@ class _MapPainter extends CustomPainter {
                   fontFamily: 'IqtadiArabic',
                   fontSize: 10,
                   color: AppColors.textPrimary)),
-          textDirection: textDirection,
+          textDirection: TextDirection.rtl,
           maxLines: 2)
         ..layout(maxWidth: 130);
       text.paint(

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/env.dart';
 import 'client.dart';
+import 'codes.dart';
 import 'platform.dart';
 import 'sync_adapter.dart';
 
@@ -11,14 +12,18 @@ class AccountController extends ChangeNotifier {
   AccountController(
       {AccountClient? client,
       Future<String?> Function(String)? tokenReader,
-      Future<void> Function(String, String?)? tokenWriter})
+      Future<void> Function(String, String?)? tokenWriter,
+      String? startupPairingCode})
       : api = client ?? AccountClient(Env.backendUrl),
         _readToken = tokenReader ?? readAccountToken,
-        _writeToken = tokenWriter ?? writeAccountToken;
+        _writeToken = tokenWriter ?? writeAccountToken,
+        _startupPairingCode = startupPairingCode;
   final AccountClient api;
   final Future<String?> Function(String) _readToken;
   final Future<void> Function(String, String?) _writeToken;
-  Map<String, dynamic>? guardian, child;
+  final String? _startupPairingCode;
+  Map<String, dynamic>? guardian, child, childProgress;
+  String? pendingInvitation;
   List<Map<String, dynamic>> queue = [];
   String? error;
   bool ready = false, syncing = false, busy = false;
@@ -36,7 +41,20 @@ class AccountController extends ChangeNotifier {
   String get _queueKey => 'account_queue_$_scope';
   String? get binding => child == null ? null : '$_scope|${child!['child_id']}';
 
+  void rememberInvitation(String value) {
+    pendingInvitation = value.trim();
+    _emit();
+  }
+
+  void clearInvitation() {
+    pendingInvitation = null;
+    _emit();
+  }
+
   Future<void> initialize() async {
+    // Capture the QR fragment before Flutter's route initialization can
+    // normalize the browser URL and discard an unrecognized hash.
+    final pairingCode = _startupPairingCode ?? initialAccountPairingCode();
     try {
       _prefs = await SharedPreferences.getInstance();
       final cached = _prefs!.getString(_childKey);
@@ -55,22 +73,54 @@ class AccountController extends ChangeNotifier {
       api.deviceToken = await _readToken(_childKey);
       PrayerSyncAdapter.binding = binding;
       PrayerSyncAdapter.sink = enqueue;
-      _retry =
-          Timer.periodic(const Duration(seconds: 30), (_) => unawaited(sync()));
+      _retry = Timer.periodic(
+          const Duration(seconds: 30), (_) => unawaited(_heartbeat()));
     } catch (_) {
       error = 'تعذر فتح تخزين الحساب؛ التدريب المحلي متاح.';
     }
     ready = true;
     _emit();
+    if (pairingCode != null) {
+      await action(() => pair(pairingCode));
+      clearAccountPairingLink();
+    }
     unawaited(refreshSession());
+  }
+
+  Future<void> _heartbeat() async {
+    if (child != null) {
+      try {
+        final value = await api.call('/device', child: true) as Map;
+        child = {
+          ...child!,
+          'name': value['name'],
+          'profile_kind': value['profile_kind'] ?? child!['profile_kind'],
+        };
+        await _saveChild();
+        await refreshChildProgress();
+      } on AccountError catch (e) {
+        if (e.status == 401) {
+          await forgetChild();
+          error = 'فصل ولي الأمر هذا الجهاز.';
+        }
+      } catch (_) {
+        // A temporary network failure must not sign the child out.
+      }
+    }
+    await sync();
   }
 
   Future<void> refreshSession() async {
     if (child != null) {
       try {
         final value = await api.call('/device', child: true) as Map;
-        child = {...child!, 'name': value['name']};
+        child = {
+          ...child!,
+          'name': value['name'],
+          'profile_kind': value['profile_kind'] ?? child!['profile_kind'],
+        };
         await _saveChild();
+        await refreshChildProgress();
       } on AccountError catch (e) {
         if (e.status == 401) {
           await forgetChild();
@@ -109,16 +159,25 @@ class AccountController extends ChangeNotifier {
     }
   }
 
-  Future<void> authenticate(String email, String password, String role,
-      {String? fullName}) async {
+  Future<void> authenticate(String email, String password,
+      {String? fullName,
+      String learningStage = 'GENERAL',
+      String accessibilityMode = 'STANDARD'}) async {
     if (fullName != null) {
-      await api.call('/auth/signup', method: 'POST', body: {
+      final signupResult =
+          await api.call('/auth/signup', method: 'POST', body: {
         'name': fullName.trim(),
         'email': email.trim(),
         'password': password,
-        'role': role
-      });
-      error = 'أرسلنا رابط تفعيل البريد. بعد التفعيل سجّل الدخول.';
+        'learning_stage': learningStage,
+        'accessibility_mode': accessibilityMode,
+      }) as Map;
+      error = signupResult['delivery'] == 'development_outbox'
+          ? 'لم يُرسل بريد في وضع التطوير؛ حُفظ رابط التفعيل في صندوق البريد المحلي على الكمبيوتر.'
+          : signupResult['delivery'] == 'queued'
+              ? 'تم حفظ الحساب؛ طلب إرسال رابط التفعيل معلّق وسيُعاد تلقائيًا. '
+                  '${signupResult['delivery_error'] is String ? AccountError(signupResult['delivery_error'] as String) : ''}'
+              : 'تم قبول طلب إرسال رابط التفعيل. تحقق من بريدك والبريد غير المرغوب؛ بعد التفعيل سجّل الدخول.';
       return;
     }
     final session = await api.call('/session',
@@ -130,41 +189,91 @@ class AccountController extends ChangeNotifier {
     if (!await _prefs!.setString(_guardianKey, jsonEncode(guardian))) {
       throw StateError('STORAGE');
     }
+    final profile = session['practice_profile'];
+    if (profile is Map) {
+      api.deviceToken = session['practice_session_token'] as String?;
+      await _writeToken(_childKey, api.deviceToken);
+      child = Map<String, dynamic>.from(profile);
+      await _saveChild();
+      PrayerSyncAdapter.binding = binding;
+      unawaited(sync());
+    }
   }
 
   Future<void> resendVerification(String email, String password) async {
-    await api
-        .call('/auth/resend', method: 'POST', body: {'email': email.trim()});
-    error = 'أرسلنا رابط التفعيل إلى بريدك.';
+    final result = await api.call('/auth/resend',
+        method: 'POST', body: {'email': email.trim()}) as Map;
+    error = result['delivery'] == 'development_outbox'
+        ? 'لم يُرسل بريد في وضع التطوير؛ حُفظ رابط التفعيل في صندوق البريد المحلي على الكمبيوتر.'
+        : 'إذا كان البريد مسجلًا ولم يُفعّل، سيحاول الخادم إرسال رابط التفعيل. تحقق من بريدك والبريد غير المرغوب.';
   }
 
   Future<void> recover(String email) async {
-    await api
-        .call('/auth/recover', method: 'POST', body: {'email': email.trim()});
-    error = 'إذا كان البريد مسجلًا، سيصلك رابط استعادة كلمة المرور.';
+    final result = await api.call('/auth/recover',
+        method: 'POST', body: {'email': email.trim()}) as Map;
+    error = result['delivery'] == 'development_outbox'
+        ? 'وضع محلي: حُفظ رابط الاستعادة في مجلد البريد التجريبي على الكمبيوتر؛ لم يُرسل بريد.'
+        : 'إذا كان البريد مسجلًا، سيحاول الخادم إرسال رابط استعادة كلمة المرور. تحقق من بريدك والبريد غير المرغوب.';
   }
 
   Future<void> logout() async {
-    await api.call('/session', method: 'DELETE');
-    await _writeToken(_guardianKey, null);
-    await _prefs?.remove(_guardianKey);
-    api.guardianToken = null;
-    guardian = null;
+    final forgetSelfProfile = child?['profile_kind'] == 'SELF';
+    try {
+      if (forgetSelfProfile) {
+        try {
+          await api.call('/device', method: 'DELETE', child: true);
+        } catch (_) {
+          // The server session may already be gone; local logout must continue.
+        }
+      }
+      try {
+        await api.call('/session', method: 'DELETE');
+      } catch (_) {
+        // Offline/revoked sessions must never trap a cached identity in the UI.
+      }
+    } finally {
+      if (forgetSelfProfile) await forgetChild();
+      await _writeToken(_guardianKey, null);
+      await _prefs?.remove(_guardianKey);
+      api.guardianToken = null;
+      guardian = null;
+      _emit();
+    }
   }
 
   Future<void> pair(String code) async {
     if (child != null) throw StateError('Disconnect current child first');
-    final value = await api.call('/pairing/redeem',
-        method: 'POST',
-        body: {'token': code.trim(), 'platform': api.platform}) as Map;
+    final value = await api.call('/pairing/redeem', method: 'POST', body: {
+      'token': normalizeAccountCode(code),
+      'platform': api.platform,
+    }) as Map;
     api.deviceToken = value['session_token'] as String?;
     await _writeToken(_childKey, api.deviceToken);
     child = {
-      for (final key in ['child_id', 'name', 'device_id']) key: value[key]
+      for (final key in ['child_id', 'name', 'device_id']) key: value[key],
+      'profile_kind': value['profile_kind'] ?? 'DEPENDENT',
     };
     await _saveChild();
     PrayerSyncAdapter.binding = binding;
+    unawaited(_refreshChildProgressQuietly());
     unawaited(sync());
+  }
+
+  Future<void> refreshChildProgress() async {
+    if (child == null) return;
+    childProgress = Map<String, dynamic>.from(
+        await api.call('/device/progress', child: true));
+    _emit();
+  }
+
+  Future<void> _refreshChildProgressQuietly() async {
+    try {
+      await refreshChildProgress();
+    } on AccountError catch (e) {
+      if (e.status == 401) await forgetChild();
+    } catch (_) {
+      // Keep the last score visible while temporarily offline.
+    }
   }
 
   Future<void> _saveChild() async {
@@ -175,6 +284,7 @@ class AccountController extends ChangeNotifier {
 
   Future<void> forgetChild() async {
     child = null;
+    childProgress = null;
     api.deviceToken = null;
     PrayerSyncAdapter.binding = null;
     await _writeToken(_childKey, null);

@@ -1,4 +1,3 @@
-import '../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
 
@@ -40,14 +39,14 @@ class BrandHeader extends StatelessWidget {
                             color: AppColors.gold, size: 21),
                         const SizedBox(width: 8),
                         Expanded(
-                            child: Text(localized(context, caption),
+                            child: Text(caption,
                                 style: const TextStyle(
                                     fontFamily: 'IqtadiArabic',
                                     color: Color(0xFFE1C994),
                                     fontSize: 12)))
                       ]),
                       const SizedBox(height: 20),
-                      Text(localized(context, title),
+                      Text(title,
                           style: const TextStyle(
                               fontFamily: 'IqtadiArabic',
                               color: Color(0xFFFFF8E9),
@@ -55,7 +54,7 @@ class BrandHeader extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                               height: 1.5)),
                       const SizedBox(height: 8),
-                      Text(localized(context, subtitle),
+                      Text(subtitle,
                           style: const TextStyle(
                               fontFamily: 'IqtadiArabic',
                               color: Color(0xFFF1E6CD),

@@ -23,6 +23,11 @@ form analyzer, rep counter) has been **deleted**, not merely disconnected.
 
 ## Primary Entry Points
 
+- Integrated ownership/validation: `docs/WADY_EZZ_OWNERSHIP.md`,
+  `docs/WADY_EZZ_INTEGRATION_REPORT.md`; main remains gated by documented checks.
+- Ezz identities/family/mosque groups: `backend/app/accounts/`,
+  `mobile/coaching/lib/accounts/`; nullable scalar prayer coverage uses schema v3.
+
 - Recorded analysis: `mobile/coaching/lib/local/`, `mobile/coaching/lib/video/`,
   `mobile/coaching/lib/screens/video_analysis_screen.dart`
 - Live camera: `mobile/coaching/lib/local/`, `mobile/coaching/lib/live/`,
@@ -70,5 +75,3 @@ Local frame extraction uses native Android/web decoding; inference uses the pack
 
 - Backend: `app/mosque/` → SQLite demo sessions behind explicit opt-in; Flutter: `mobile/coaching/lib/mosque/`, home card.
 - Run/limitations: `docs/MOSQUE_COMPANION.md`; no production identities or real street routing are claimed.
-
-Deployment agents: use `docs/VPS_DEPLOYMENT.md` for direct SSH release steps and server/browser logs; direct deployment is preferred over waiting for GitHub Actions.

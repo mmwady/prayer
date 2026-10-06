@@ -1,4 +1,3 @@
-import '../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../ui/app_theme.dart';
 import '../ui/ui_kit.dart';
@@ -135,20 +134,17 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
               child: secondary
                   ? OutlinedButton(
                       onPressed: client.busy ? null : action,
-                      child: Text(localized(context, text),
-                          textAlign: TextAlign.center))
+                      child: Text(text, textAlign: TextAlign.center))
                   : FilledButton.icon(
                       onPressed: client.busy ? null : action,
                       icon: Icon(icon ?? Icons.arrow_back),
-                      label: Text(localized(context, text),
-                          textAlign: TextAlign.center))));
+                      label: Text(text, textAlign: TextAlign.center))));
   Widget card(List<Widget> children) => AppCard(
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch, children: children));
   Widget title(String text) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Text(localized(context, text),
-          style: Theme.of(context).textTheme.titleLarge));
+      child: Text(text, style: Theme.of(context).textTheme.titleLarge));
   Widget dropdown(String label, String value, Map<String, String> items,
           void Function(String) change) =>
       Padding(
@@ -157,12 +153,11 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
               key: ValueKey('$label-$value'),
               initialValue: value,
               isExpanded: true,
-              decoration: InputDecoration(labelText: localized(context, label)),
+              decoration: InputDecoration(labelText: label),
               items: items.entries
                   .map((e) => DropdownMenuItem(
                       value: e.key,
-                      child: Text(localized(context, e.value),
-                          overflow: TextOverflow.ellipsis)))
+                      child: Text(e.value, overflow: TextOverflow.ellipsis)))
                   .toList(),
               onChanged:
                   client.busy ? null : (v) => setState(() => change(v!))));
@@ -176,36 +171,29 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
                   ? const TextInputType.numberWithOptions(
                       decimal: true, signed: true)
                   : TextInputType.text,
-              decoration: InputDecoration(labelText: localized(context, label)),
-              textDirection: number ? TextDirection.ltr : null,
-              validator: validate == null
-                  ? null
-                  : (value) {
-                      final error = validate(value);
-                      return error == null ? null : localized(context, error);
-                    }));
+              decoration: InputDecoration(labelText: label),
+              validator: validate));
   String? requiredNumber(String? value) =>
       int.tryParse(value ?? '') == null ? 'أدخل عددًا صحيحًا' : null;
   Widget check(String label, bool value, void Function(bool) change) =>
       CheckboxListTile(
           contentPadding: EdgeInsets.zero,
-          title: Text(localized(context, label)),
+          title: Text(label),
           value: value,
           onChanged: client.busy ? null : (v) => setState(() => change(v!)));
   Future<bool> confirmDialog(String text) async =>
       await showDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
-                  title: Text(localized(context, 'راجع وأكد')),
-                  content: SingleChildScrollView(
-                      child: Text(localized(context, text))),
+                  title: const Text('راجع وأكد'),
+                  content: SingleChildScrollView(child: Text(text)),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(c, false),
-                        child: Text(localized(context, 'رجوع'))),
+                        child: const Text('رجوع')),
                     FilledButton(
                         onPressed: () => Navigator.pop(c, true),
-                        child: Text(localized(context, 'أوافق')))
+                        child: const Text('أوافق'))
                   ])) ??
       false;
   Json journey() {
@@ -314,19 +302,19 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
     final value = await showDialog<String>(
         context: context,
         builder: (c) => AlertDialog(
-                title: Text(localized(context, 'سبب الإلغاء')),
+                title: const Text('سبب الإلغاء'),
                 content: TextField(
                     controller: reason,
                     maxLength: 160,
-                    decoration: InputDecoration(
-                        hintText: localized(context, 'اكتب سبب الإلغاء'))),
+                    decoration:
+                        const InputDecoration(hintText: 'اكتب سبب الإلغاء')),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(c),
-                      child: Text(localized(context, 'رجوع'))),
+                      child: const Text('رجوع')),
                   FilledButton(
                       onPressed: () => Navigator.pop(c, reason.text.trim()),
-                      child: Text(localized(context, 'إلغاء الرحلة')))
+                      child: const Text('إلغاء الرحلة'))
                 ]));
     // Keep the controller alive until the dialog's dismissal animation finishes.
     if (value != null && value.isNotEmpty) {
@@ -337,13 +325,13 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
 
   @override
   Widget build(BuildContext context) => Directionality(
-      textDirection: Directionality.of(context),
+      textDirection: TextDirection.rtl,
       child: Scaffold(
         drawer: const BackendSettingsDrawer(),
         appBar: AppBar(
-            title: Text(localized(context, 'رفيق المسجد')),
+            title: const Text('رفيق المسجد'),
             leading: IconButton(
-                tooltip: localized(context, 'رجوع'),
+                tooltip: 'رجوع',
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
                   if (page == 'home') {
@@ -355,11 +343,11 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
             actions: [
               Builder(
                   builder: (context) => IconButton(
-                      tooltip: localized(context, 'إعدادات رفيق المسجد'),
+                      tooltip: 'إعدادات رفيق المسجد',
                       onPressed: () => Scaffold.of(context).openDrawer(),
                       icon: const Icon(Icons.settings_outlined))),
               IconButton(
-                  tooltip: localized(context, 'تحديث الحالة'),
+                  tooltip: 'تحديث الحالة',
                   onPressed: client.busy ? null : client.refresh,
                   icon: const Icon(Icons.refresh))
             ]),
@@ -370,14 +358,13 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
                     key: ValueKey('$page-$step-${client.actor}'),
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     children: [
-                      AppNote(
-                          localized(context,
-                              'بيانات تجريبية • حسابات ومنازل خيالية • لا إشعارات لأشخاص حقيقيين'),
+                      const AppNote(
+                          'بيانات تجريبية • حسابات ومنازل خيالية • لا إشعارات لأشخاص حقيقيين',
                           icon: Icons.science_outlined),
                       if (client.busy) const LinearProgressIndicator(),
                       if (client.error != null)
                         card([
-                          Text(localized(context, client.error!),
+                          Text(client.error!,
                               style: const TextStyle(color: AppColors.danger)),
                           button(
                               'إعادة المحاولة',
@@ -387,8 +374,8 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
                               secondary: true)
                         ]),
                       if (client.state == null && !client.busy)
-                        Text(localized(context,
-                            'فعّل MOSQUE_DEMO_ENABLED=true على الخادم ثم أعد المحاولة. التشغيل الحقيقي غير متاح بعد.')),
+                        const Text(
+                            'فعّل MOSQUE_DEMO_ENABLED=true على الخادم ثم أعد المحاولة. التشغيل الحقيقي غير متاح بعد.'),
                       if (client.state != null) ...[
                         dropdown('الشخصية التجريبية', client.actor, {
                           for (final p in list('personas'))
@@ -398,10 +385,7 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
                           client.switchActor(v);
                         }),
                         Text(
-                            localized(
-                                context,
-                                'الجمعة التجريبية • {0} • الرياض\nكل المواعيد مواعيد رحلات تجريبية وليست إقامة فعلية.',
-                                [clock(state['now'])]),
+                            'الجمعة التجريبية • ${clock(state['now'])} • الرياض\nكل المواعيد مواعيد رحلات تجريبية وليست إقامة فعلية.',
                             style: Theme.of(context).textTheme.bodySmall),
                         if (page == 'home') ...home(),
                         if (page == 'form') ...wizard(),
@@ -413,8 +397,8 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
       ));
   List<Widget> home() => [
         title('إلى المسجد، برفقة مناسبة'),
-        Text(localized(context,
-            'اختر انطلاقك ووجهتك، ثم اتفقا على اللقاء والعودة قبل تأكيد الرحلة.')),
+        const Text(
+            'اختر انطلاقك ووجهتك، ثم اتفقا على اللقاء والعودة قبل تأكيد الرحلة.'),
         button('أحتاج رفيقًا', () => start(false), icon: Icons.people_outline),
         button('سأذهب ويمكنني المساعدة', () => start(true),
             icon: Icons.volunteer_activism_outlined, secondary: true),
@@ -424,12 +408,8 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
             icon: Icons.route, secondary: true),
         for (final r in list('requests').where((r) => r['mine'] == true))
           card([
-            Text(localized(context, '{0} • {1}',
-                [r['name'], localized(context, mosqueName(r['mosque']))])),
-            Text(localized(context, '{0} • {1}', [
-              localized(context, r['status_label']),
-              clock(r['departure'])
-            ])),
+            Text('${r['name']} • ${mosqueName(r['mosque'])}'),
+            Text('${r['status_label']} • ${clock(r['departure'])}'),
             if (['draft', 'no_match', 'rejected', 'expired']
                 .contains(r['status']))
               button('راجع الخيارات أو ابحث مجددًا', () => candidates(r['id']),
@@ -442,17 +422,12 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
         for (final t
             in list('trips').where((t) => t['provider'] == client.actor))
           card([
-            Text(localized(context, '{0} • {1}', [
-              localized(context, mosqueName(t['mosque'])),
-              clock(t['departure'])
-            ])),
-            Text(localized(context, '{0} مقاعد متبقية • {1}',
-                [t['remaining'], tripStatus(t['display_status'])])),
-            Text(localized(
-                context,
-                t['return_enabled'] == true
-                    ? 'عودة ${clock(t['return_at'])}'
-                    : 'ذهاب فقط')),
+            Text('${mosqueName(t['mosque'])} • ${clock(t['departure'])}'),
+            Text(
+                '${t['remaining']} مقاعد متبقية • ${tripStatus(t['display_status'])}'),
+            Text(t['return_enabled'] == true
+                ? 'عودة ${clock(t['return_at'])}'
+                : 'ذهاب فقط'),
             if (!['cancelled', 'completed'].contains(t['status']))
               button('إلغاء الرحلة المنشورة', () => cancel(t['id'], trip: true),
                   secondary: true),
@@ -460,11 +435,10 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
         if (list('notifications').isNotEmpty) ...[
           title('تحديثاتك داخل الديمو'),
           for (final n in list('notifications').reversed.take(4))
-            AppNote(localized(context, n['text']),
-                icon: Icons.notifications_none)
+            AppNote(n['text'], icon: Icons.notifications_none)
         ],
         ExpansionTile(
-            title: Text(localized(context, 'أدوات عرض اللجنة — ديمو فقط')),
+            title: const Text('أدوات عرض اللجنة — ديمو فقط'),
             children: [
               button('S03 • بدء سيناريو أحمد ويوسف', () => scenario('U01'),
                   secondary: true),
@@ -487,8 +461,8 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
                   await client.tool('reset');
                 }
               }, secondary: true),
-              AppNote(localized(context,
-                  'تبديل الشخصية يحافظ على الطلبات. الديمو يستخدم Backend وSQLite؛ ليس نظام حسابات إنتاجيًا.')),
+              const AppNote(
+                  'تبديل الشخصية يحافظ على الطلبات. الديمو يستخدم Backend وSQLite؛ ليس نظام حسابات إنتاجيًا.'),
             ]),
       ];
   String tripStatus(String s) =>
@@ -510,10 +484,8 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
 
   List<Widget> wizard() => [
         title(['من أين ستخرج؟', 'اختر المسجد', 'تفاصيل الرحلة'][step]),
-        Text(localized(context, 'الخطوة {0} من 3 • {1}', [
-          step + 1,
-          localized(context, publishing ? 'نشر رحلة' : 'طلب مرافقة')
-        ])),
+        Text(
+            'الخطوة ${step + 1} من 3 • ${publishing ? 'نشر رحلة' : 'طلب مرافقة'}'),
         if (step == 0) ...originFields(),
         if (step == 1) ...mosqueFields(),
         if (step == 2)
@@ -528,8 +500,8 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
       ];
   List<Widget> originFields() => [
         if (!publishing && client.actor == 'U04')
-          AppNote(localized(context,
-              'أنت عمر؛ تنشئ طلب الحاج محمود بعلاقة أسرية مخولة تجريبيًا.')),
+          const AppNote(
+              'أنت عمر؛ تنشئ طلب الحاج محمود بعلاقة أسرية مخولة تجريبيًا.'),
         button('موقعي الحالي — اطلب إذن GPS', () async {
           if (!await confirmDialog(
               'سيطلب الجهاز إذن الموقع لتحديد الانطلاق فقط. لن يُحفظ كبيت تلقائيًا. في الديمو يمكنك استخدام نقطة خيالية بالمدينة.')) {
@@ -564,8 +536,7 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
             setState(() {});
           }, secondary: true),
         if (locationMessage != null)
-          AppNote(localized(context, locationMessage!),
-              icon: Icons.location_on_outlined),
+          AppNote(locationMessage!, icon: Icons.location_on_outlined),
         field('خط العرض — إدخال يدوي', lat, number: true),
         field('خط الطول — إدخال يدوي', lng, number: true),
         DemoMap(
@@ -581,8 +552,8 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
               lng.text = b.toStringAsFixed(6);
               setState(() {});
             }),
-        Text(localized(context,
-            'اضغط على الخريطة لتعديل الانطلاق. النقاط المقترحة غير متحقق من مداخلها أو صلاحية التقاط السيارات.')),
+        const Text(
+            'اضغط على الخريطة لتعديل الانطلاق. النقاط المقترحة غير متحقق من مداخلها أو صلاحية التقاط السيارات.'),
         button('احفظ هذا المكان كبيتي', () async {
           if (!readOrigin()) {
             return;
@@ -666,30 +637,19 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
                     publicMeeting = null;
                   }),
               title: Text(place['name']),
-              subtitle: Text(localized(
-                  context, 'مسافة مباشرة: {0} متر — ليست طول الطريق\n{1}', [
-                place['direct_meters'],
-                localized(
-                    context,
-                    place['route']['minutes'] == null
-                        ? 'تعذر التوجيه'
-                        : 'زمن محاكى ${place['route']['minutes']} دقيقة')
-              ]))),
+              subtitle: Text(
+                  'مسافة مباشرة: ${place['direct_meters']} متر — ليست طول الطريق\n${place['route']['minutes'] == null ? 'تعذر التوجيه' : 'زمن محاكى ${place['route']['minutes']} دقيقة'}')),
         ]),
-      AppNote(localized(context, p['route']['label']), icon: Icons.route),
-      AppNote(localized(context,
-          'مركز المسجد مستقل عن نقطة اللقاء. المدخل ونقطة النزول غير متحقق منهما؛ قد يلزم مشي بعد النزول. مقصد قباء نطاق تقريبي، وليس تصريح التقاط سيارات.')),
+      AppNote(p['route']['label'], icon: Icons.route),
+      const AppNote(
+          'مركز المسجد مستقل عن نقطة اللقاء. المدخل ونقطة النزول غير متحقق منهما؛ قد يلزم مشي بعد النزول. مقصد قباء نطاق تقريبي، وليس تصريح التقاط سيارات.'),
       button('التالي: تفاصيل الرحلة', () => setState(() => step = 2)),
     ];
   }
 
   List<Widget> details() => [
-        Text(localized(context, '{0} • {1}', [
-          localized(context, mosqueName(mosque)),
-          localized(context, mode == 'walk' ? 'مشي' : 'سيارة')
-        ])),
-        AppNote(localized(
-            context, 'مواعيد رحلات تجريبية، وليست مواعيد صلاة أو إقامة.')),
+        Text('${mosqueName(mosque)} • ${mode == 'walk' ? 'مشي' : 'سيارة'}'),
+        const AppNote('مواعيد رحلات تجريبية، وليست مواعيد صلاة أو إقامة.'),
         dropdown(
             'الصلاة',
             prayer,
@@ -716,7 +676,7 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
               {'ar': 'العربية', 'en': 'الإنجليزية', 'ur': 'الأردية'},
               (v) => language = v),
         if (publishing) ...[
-          Text(localized(context, 'اللغات المتاحة')),
+          const Text('اللغات المتاحة'),
           for (final entry
               in {'ar': 'العربية', 'en': 'الإنجليزية', 'ur': 'الأردية'}.entries)
             check(entry.value, availableLanguages.contains(entry.key), (v) {
@@ -748,8 +708,8 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
               },
               (v) => meeting = v),
           if (meeting == 'public') ...[
-            Text(localized(context,
-                'اختر نقطة لقاء عامة بالضغط على الخريطة؛ تحتاج تأكيد إتاحتها.')),
+            const Text(
+                'اختر نقطة لقاء عامة بالضغط على الخريطة؛ تحتاج تأكيد إتاحتها.'),
             DemoMap(
                 points: [
                   {...origin!, 'label': 'الانطلاق'},
@@ -768,28 +728,28 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
                     })),
           ],
           field('ملاحظة قصيرة عن المساعدة المطلوبة', note),
-          AppNote(localized(context,
-              'لا توجد خدمة AI متصلة هنا. راجع نوع الدعم واللغة بنفسك؛ الملاحظة لا تغيّر شروط الأهلية.')),
+          const AppNote(
+              'لا توجد خدمة AI متصلة هنا. راجع نوع الدعم واللغة بنفسك؛ الملاحظة لا تغيّر شروط الأهلية.'),
           check('المستفيد بالغ؛ لا طلب للأطفال', adult, (v) => adult = v),
           check('الطلب دعم بسيط؛ لا نقل طبي أو متخصص', basic, (v) => basic = v),
         ],
         if (publishing)
           field('أقصى انحراف مقبول بالدقائق', detour,
               number: true, validate: requiredNumber),
-        AppNote(localized(context,
-            'للبلوغ والدعم البسيط فقط. اعتماد الديمو ليس تحققًا إنتاجيًا.')),
+        const AppNote(
+            'للبلوغ والدعم البسيط فقط. اعتماد الديمو ليس تحققًا إنتاجيًا.'),
         button(publishing ? 'راجع الملخص ثم انشر' : 'اعرض الرفقاء المناسبين',
             submit,
             icon: Icons.search),
       ];
   List<Widget> matchCards() => [
         title('رفقاء ورحلات مناسبة'),
-        AppNote(localized(context,
-            'مطابقة حسب المسار والتفضيلات • كل دقائق الطرق واللقاء محاكاة معلّمة، دون AI')),
+        const AppNote(
+            'مطابقة حسب المسار والتفضيلات • كل دقائق الطرق واللقاء محاكاة معلّمة، دون AI'),
         if (matches.isEmpty) ...[
           card([
-            Text(localized(context,
-                'لا يوجد مرافق مناسب لهذه الوجهة والتوقيت والاحتياج. لم نختَر بديلًا لا يغطي طلبك.')),
+            const Text(
+                'لا يوجد مرافق مناسب لهذه الوجهة والتوقيت والاحتياج. لم نختَر بديلًا لا يغطي طلبك.'),
             button('إنشاء طلب انتظار / البحث عن مؤهلين', () async {
               await client.action('search', requestId!);
               if (client.error == null) {
@@ -814,38 +774,21 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
                   child: Text(m['name'],
                       style: Theme.of(context).textTheme.titleLarge))
             ]),
-            Text(localized(
-                context,
-                m['verification'] == 'demo-approved'
-                    ? 'اعتماد مساعدة تجريبي محفوظ'
-                    : 'حساب تجريبي • لا اعتماد مساعدة متخصص')),
-            Text(localized(context, '{0} • {1}', [
-              localized(
-                  context,
-                  m['mode'] == 'walk'
-                      ? 'رفيق مشي'
-                      : m['support'] == true
-                          ? 'توصيلة ودعم بسيط'
-                          : 'توصيلة'),
-              localized(context, languageNames(m['languages'] as List))
-            ])),
-            Text(localized(context, '{0} • الخروج {1}', [
-              localized(context, mosqueName(m['mosque'])),
-              clock(m['departure'])
-            ])),
-            Text(localized(context, 'اللقاء: {0}\nموعد محاكى: {1}', [
-              localized(context, m['meeting_label']),
-              clock(m['meeting_at'])
-            ])),
-            Text(localized(context, '{0} مقاعد متبقية • انحراف محاكى {1} دقيقة',
-                [m['seats'], m['detour']])),
-            Text(localized(
-                context,
-                m['return_enabled'] == true
-                    ? 'عودة ملتزم بها ${clock(m['return_at'])}'
-                    : 'ذهاب فقط')),
-            Text(localized(context, 'سبب الترشيح: {0}',
-                [localized(context, (m['reasons'] as List).join('، '))])),
+            Text(m['verification'] == 'demo-approved'
+                ? 'اعتماد مساعدة تجريبي محفوظ'
+                : 'حساب تجريبي • لا اعتماد مساعدة متخصص'),
+            Text(
+                '${m['mode'] == 'walk' ? 'رفيق مشي' : m['support'] == true ? 'توصيلة ودعم بسيط' : 'توصيلة'} • ${languageNames(m['languages'] as List)}'),
+            Text(
+                '${mosqueName(m['mosque'])} • الخروج ${clock(m['departure'])}'),
+            Text(
+                'اللقاء: ${m['meeting_label']}\nموعد محاكى: ${clock(m['meeting_at'])}'),
+            Text(
+                '${m['seats']} مقاعد متبقية • انحراف محاكى ${m['detour']} دقيقة'),
+            Text(m['return_enabled'] == true
+                ? 'عودة ملتزم بها ${clock(m['return_at'])}'
+                : 'ذهاب فقط'),
+            Text('سبب الترشيح: ${(m['reasons'] as List).join('، ')}'),
             button('طلب الانضمام', () async {
               await client
                   .action('join', requestId!, extras: {'trip': m['trip']});
@@ -863,45 +806,32 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
           }, secondary: true),
         if (excluded.isNotEmpty)
           ExpansionTile(
-              title: Text(localized(context, 'لماذا استُبعدت خيارات أخرى؟')),
+              title: const Text('لماذا استُبعدت خيارات أخرى؟'),
               children: [
                 for (final option in excluded)
                   ListTile(
                       title: Text(option['name']),
-                      subtitle: Text(localized(
-                          context, (option['reasons'] as List).join('، ')))),
+                      subtitle: Text((option['reasons'] as List).join('، '))),
               ]),
       ];
   List<Widget> inbox() => [
         title('طلبات المرافقة'),
-        AppNote(localized(context,
-            'قبل تأكيد الطرفين يُعرض نطاق الانطلاق فقط. القبول يحجز مؤقتًا؛ الدعوة وحدها لا تحجز مقعدًا.')),
+        const AppNote(
+            'قبل تأكيد الطرفين يُعرض نطاق الانطلاق فقط. القبول يحجز مؤقتًا؛ الدعوة وحدها لا تحجز مقعدًا.'),
         if (list('invitations').isEmpty)
-          Text(localized(context, 'لا توجد دعوات لهذا الحساب حاليًا.')),
+          const Text('لا توجد دعوات لهذا الحساب حاليًا.'),
         for (final i in list('invitations')) ...invitation(i),
       ];
   List<Widget> invitation(Json i) {
     final r = list('requests').firstWhere((r) => r['id'] == i['request']);
     return [
       card([
-        Text(localized(context, '{0} • {1}',
-            [r['name'], localized(context, mosqueName(r['mosque']))])),
-        Text(localized(context, '{0}\n{1}',
-            [localized(context, r['area']), clock(r['departure'])])),
-        Text(localized(context, '{0} • {1} ركاب • {2}', [
-          localized(
-              context,
-              r['support'] == true
-                  ? 'توصيلة ودعم بسيط'
-                  : r['mode'] == 'walk'
-                      ? 'مشي'
-                      : 'توصيلة'),
-          r['passengers'],
-          localized(context,
-              r['return_required'] == true ? 'العودة مطلوبة' : 'ذهاب فقط')
-        ])),
-        Text(localized(context, 'حالة الدعوة: {0} • المهلة {1}',
-            [inviteStatus(i['status']), clock(i['expires'])])),
+        Text('${r['name']} • ${mosqueName(r['mosque'])}'),
+        Text('${r['area']}\n${clock(r['departure'])}'),
+        Text(
+            '${r['support'] == true ? 'توصيلة ودعم بسيط' : r['mode'] == 'walk' ? 'مشي' : 'توصيلة'} • ${r['passengers']} ركاب • ${r['return_required'] == true ? 'العودة مطلوبة' : 'ذهاب فقط'}'),
+        Text(
+            'حالة الدعوة: ${inviteStatus(i['status'])} • المهلة ${clock(i['expires'])}'),
         if (i['status'] == 'pending') ...[
           button(
               r['return_required'] == true
@@ -932,7 +862,7 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
   List<Widget> tripCards() => [
         title('رحلتي'),
         if (list('requests').isEmpty)
-          Text(localized(context, 'لا توجد رحلة؛ ابدأ بطلب رفيق أو نشر رحلة.')),
+          const Text('لا توجد رحلة؛ ابدأ بطلب رفيق أو نشر رحلة.'),
         for (final r in list('requests')) ...trip(r),
       ];
   List<Widget> trip(Json r) {
@@ -961,24 +891,17 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
     final index = stage == null ? -1 : stages.indexOf(stage);
     return [
       card([
-        Text(
-            localized(context, '{0} • {1}',
-                [r['name'], localized(context, mosqueName(r['mosque']))]),
+        Text('${r['name']} • ${mosqueName(r['mosque'])}',
             style: Theme.of(context).textTheme.titleLarge),
-        Text(localized(context, '{0} • {1}',
-            [localized(context, r['status_label']), clock(r['departure'])])),
-        Text(localized(
-            context,
-            r['return_required'] == true
-                ? 'الذهاب والعودة التزامان مستقلان'
-                : 'رحلة ذهاب فقط')),
+        Text('${r['status_label']} • ${clock(r['departure'])}'),
+        Text(r['return_required'] == true
+            ? 'الذهاب والعودة التزامان مستقلان'
+            : 'رحلة ذهاب فقط'),
         if (offer != null) ...[
-          Text(localized(context, 'المرافق: {0}', [offer['name']])),
-          Text(localized(context, 'اللقاء المتوقع (محاكى): {0}',
-              [clock(offer['meeting_at'])])),
+          Text('المرافق: ${offer['name']}'),
+          Text('اللقاء المتوقع (محاكى): ${clock(offer['meeting_at'])}'),
           if (r['status'] == 'offered')
-            Text(localized(
-                context, 'الحجز مؤقت حتى {0}', [clock(offer['expires'])])),
+            Text('الحجز مؤقت حتى ${clock(offer['expires'])}'),
           if (r['status'] == 'offered' && r['mine'] == true)
             button('أؤكد العرض ونقطة اللقاء', () async {
               if (await confirmDialog(
@@ -987,17 +910,13 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
               }
             }, icon: Icons.check_circle_outline),
           if (active || r['status'] == 'completed') ...[
-            Text(localized(context, 'الحالة: {0}',
-                [localized(context, labels[stage].toString())])),
+            Text('الحالة: ${labels[stage]}'),
             if (r['return_required'] == true)
-              Text(localized(
-                  context,
-                  stage == 'completed'
-                      ? 'العودة مكتملة'
-                      : 'العودة ما زالت ملتزمًا بها • ${clock(offer['return_at'])}')),
+              Text(stage == 'completed'
+                  ? 'العودة مكتملة'
+                  : 'العودة ما زالت ملتزمًا بها • ${clock(offer['return_at'])}'),
             if (r['meeting_point'] != null) ...[
-              Text(localized(context, 'اللقاء: {0}',
-                  [localized(context, r['meeting_point']['label'])])),
+              Text('اللقاء: ${r['meeting_point']['label']}'),
               DemoMap(
                   points: [
                     {
@@ -1019,8 +938,8 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
               button('افتح الخرائط لوجهة المسجد',
                   () => navigation(destinationFor(r)),
                   secondary: true),
-              AppNote(localized(context,
-                  'الخرائط الخارجية تحسب الطريق الفعلي إن توفر. نقطة اللقاء مقترحة؛ اتفقا على إتاحتها، ومركز المسجد ليس مدخل سيارات.')),
+              const AppNote(
+                  'الخرائط الخارجية تحسب الطريق الفعلي إن توفر. نقطة اللقاء مقترحة؛ اتفقا على إتاحتها، ومركز المسجد ليس مدخل سيارات.'),
             ],
             if (active && index >= 0 && index < stages.length - 1)
               button(
@@ -1029,20 +948,20 @@ class _MosqueCompanionScreenState extends State<MosqueCompanionScreen> {
                       extras: {'stage': stages[index + 1]}),
                   icon: Icons.directions_walk),
             if (stage == 'arrived' && r['return_required'] == true)
-              AppNote(localized(context,
-                  'وصلتم للمسجد؛ الطلب لم يكتمل لأن العودة لم تُنجز.')),
+              const AppNote(
+                  'وصلتم للمسجد؛ الطلب لم يكتمل لأن العودة لم تُنجز.'),
           ],
         ],
         if (r['status'] == 'searching')
-          AppNote(localized(context,
-              'بانتظار المرافق. بدّل إلى الشخصية المدعوة، وافتح طلبات المرافقة. بعد قبولها ارجع وأكد العرض.')),
+          const AppNote(
+              'بانتظار المرافق. بدّل إلى الشخصية المدعوة، وافتح طلبات المرافقة. بعد قبولها ارجع وأكد العرض.'),
         if (['draft', 'expired', 'rejected', 'no_match']
                 .contains(r['status']) &&
             r['mine'] == true)
           button('البحث عن خيار تالٍ', () => candidates(r['id']),
               secondary: true),
         if (r['cancel_reason'] != null)
-          Text(localized(context, 'سبب الإلغاء: {0}', [r['cancel_reason']])),
+          Text('سبب الإلغاء: ${r['cancel_reason']}'),
         if (!['completed', 'cancelled'].contains(r['status']) &&
             (r['mine'] == true || offer?['provider'] == client.actor))
           button('إلغاء مع السبب', () => cancel(r['id']), secondary: true),

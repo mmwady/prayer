@@ -1,4 +1,3 @@
-import '../l10n/app_localizations.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../local/contracts.dart';
@@ -42,32 +41,30 @@ class _LocalSessionsScreenState extends State<LocalSessionsScreen> {
       if (mounted) refresh();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(localized(context, 'تعذر فتح التقرير: {0}', [e]))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('تعذر فتح التقرير: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(localized(context, 'تقاريري على الجهاز'))),
+        appBar: AppBar(title: const Text('تقاريري على الجهاز')),
         body: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 880),
                 child: ListView(padding: const EdgeInsets.all(20), children: [
-                  AppNote(
-                      localized(context,
-                          'التقارير وصور الأدلة محفوظة على هذا الجهاز فقط. يمكنك تصديرها أو حذفها. لا يُحفظ فيديو المصدر في السجل.'),
+                  const AppNote(
+                      'التقارير وصور الأدلة محفوظة على هذا الجهاز فقط. يمكنك تصديرها أو حذفها. لا يُحفظ فيديو المصدر في السجل.',
                       icon: Icons.lock_outline),
-                  AppNote(localized(context,
-                      'الحد المحلي 10 جلسات أو 128 MB. عند امتلائه يبقى التقرير الحالي ظاهرًا للتصدير، ولا تُحذف جلسات قديمة تلقائيًا. يُبطل سجل المحرك عند تغير إصدار النموذج أو النتيجة.')),
+                  const AppNote(
+                      'الحد المحلي 10 جلسات أو 128 MB. عند امتلائه يبقى التقرير الحالي ظاهرًا للتصدير، ولا تُحذف جلسات قديمة تلقائيًا. يُبطل سجل المحرك عند تغير إصدار النموذج أو النتيجة.'),
                   FutureBuilder<List<Map<String, dynamic>>>(
                       future: items,
                       builder: (context, s) {
                         if (s.hasError) {
                           return StatusBanner(
-                              text: localized(context,
-                                  'تعذر فتح السجل المحلي: {0}', [s.error]),
+                              text: 'تعذر فتح السجل المحلي: ${s.error}',
                               tone: Tone.attention);
                         }
                         if (!s.hasData) {
@@ -75,8 +72,8 @@ class _LocalSessionsScreenState extends State<LocalSessionsScreen> {
                               child: CircularProgressIndicator());
                         }
                         if (s.data!.isEmpty) {
-                          return AppNote(localized(context,
-                              'لا توجد جلسات محفوظة بعد. ابدأ تدريبًا من شاشة اختيار الصلاة.'));
+                          return const AppNote(
+                              'لا توجد جلسات محفوظة بعد. ابدأ تدريبًا من شاشة اختيار الصلاة.');
                         }
                         return Column(children: [
                           for (final item in s.data!)
@@ -85,22 +82,10 @@ class _LocalSessionsScreenState extends State<LocalSessionsScreen> {
                                 child: ListTile(
                                     leading:
                                         const Icon(Icons.description_outlined),
-                                    title: Text(localized(
-                                        context, name(item['prayer']))),
-                                    subtitle:
-                                        Text(localized(context, '{0}\n{1}', [
-                                      item['created_at'],
-                                      localized(
-                                          context,
-                                          item['overall_result'] ==
-                                                  'OBSERVED_COMPLETE'
-                                              ? 'تسلسل الحركات المرصود مكتمل'
-                                              : 'يحتاج مراجعة')
-                                    ])),
-                                    trailing: Icon(Directionality.of(context) ==
-                                            TextDirection.rtl
-                                        ? Icons.chevron_left
-                                        : Icons.chevron_right)))
+                                    title: Text(name(item['prayer'])),
+                                    subtitle: Text(
+                                        '${item['created_at']}\n${item['overall_result'] == 'OBSERVED_COMPLETE' ? 'تسلسل الحركات المرصود مكتمل' : 'يحتاج مراجعة'}'),
+                                    trailing: const Icon(Icons.chevron_left)))
                         ]);
                       }),
                 ]))),
@@ -146,7 +131,7 @@ class _SavedReportScreen extends StatelessWidget {
   final StoredAnalysisService service;
   @override
   Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: Text(localized(context, 'تقرير محلي محفوظ'))),
+      appBar: AppBar(title: const Text('تقرير محلي محفوظ')),
       body: Center(
           child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 880),
@@ -161,7 +146,6 @@ class _SavedReportScreen extends StatelessWidget {
                       if (context.mounted) Navigator.pop(context);
                     },
                     icon: const Icon(Icons.delete_outline),
-                    label: Text(
-                        localized(context, 'حذف التقرير وصور أدلته من الجهاز')))
+                    label: const Text('حذف التقرير وصور أدلته من الجهاز'))
               ]))));
 }

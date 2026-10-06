@@ -2,22 +2,58 @@
 
 ## Status
 
-2026-10-06 Arabic / English: Arabic is the default; the home language menu switches
-the whole Flutter presentation between RTL and LTR and remembers the choice on
-the device. Presentation copy and SDK controls are localized; inference, prayer
-rules, stored reports, API wire values and account state are unchanged.
-Verification: 149 Flutter tests pass with `--concurrency=1`; release Web builds;
-Chrome checks cover both languages at 320/390/820px, persistence after reload and
-home/teaching/accounts/video/live navigation. Analyzer retains six existing infos.
+2026-10-06 explicitly authorized additive rich Ezz samples on the existing VPS DB:
+both real accounts/sessions retained; six labelled fake accounts, two families,
+three dependents, four age-compatible mosque groups, 189 synthetic attempts and
+65 attendance events added. Private replacement passwords/codes, distinct platform
+admin password, SQLite backups, strict atomic importer and repeat-import audit.
+Real HTTPS logins/UI/role/ranking/code checks pass; no schema/app/prayer changes.
+See `docs/ACCOUNT_DEMO_SERVER.md` and `backend/tools/*account_demo*`.
+
+2026-10-06 user-authorized VPS update: direct SSH deployed review commit 51efdb6
+as Web/backend at the stable HTTPS hostname, preserving shared data and keeping
+main/source branches unchanged. Gmail SMTP is configured after explicit credential
+transfer approval; published real signup, received-link activation, login/cookie
+reload, correct SELF ownership and schema-v4/integrity pass. Original data/env
+snapshots support rollback. Public six-prayer routes, 16-frame real local video
+through three models and 15-frame simulated-camera inference/report pass with no
+prayer media upload; physical camera remains unverified.
+see `docs/VPS_DEPLOYMENT.md`. Inherited main Git validation gate remains closed.
+
+2026-10-06 account-email follow-up: additive schema v4 commits mail intent with the
+account/token before contacting providers. Leased background retries preserve
+tokens and frozen Resend envelopes across outages/restarts. SMTP supports both
+STARTTLS and implicit SSL; signed Resend receipts track delivery separately from
+submission and never authenticate the account. Real local Chrome signup/outage/
+retry/.eml verification/login/reload acceptance passed. Subsequent real Gmail SMTP
+SSL delivery, received-link activation, verified login, Secure/HttpOnly cookie
+reload and correct account/SELF-profile persistence passed on an isolated HTTPS
+review host and then the explicitly authorized published VPS. Real Resend/webhooks and mobile
+registration remain unverified. No credentials or test database are committed.
+Final account/API suites: 62 passed; Flutter: 153 passed; Web/Android builds and
+v4 migration/model preservation audit pass. Analyzer retains six inherited infos.
+Complete backend run: 198 passed/four inherited boundary failures before the last
+two mail tests; final account suite covers the final patch. Main gate unchanged;
+see `docs/ACCOUNT_EMAIL_DELIVERY.md`.
+
+2026-10-06 semantic integration on `integration/wady-ezz`: pinned Wady b20b441
+owns local prayer; pinned Ezz 59457c4 owns backend/auth/personal profiles,
+families/guardians/dependents, mosque groups and companion. Shared scalar adapters,
+navigation and nullable account schema v3 reconcile both. Original domain rules,
+model/pipeline hashes and Ezz session/consent permissions remain protected.
+Web release and Android debug builds pass; packaged model hashes pass; Flutter
+151 tests pass and analyzer has six existing infos. Main gate remains CLOSED:
+four inherited backend boundary tests disagree with unchanged sequence rules;
+212 inherited Ruff and five inherited mypy diagnostics also fail validation.
+No main/source-branch update. Initial review preceded the separately authorized
+VPS deployment described above. Details and runtime limits:
+`docs/WADY_EZZ_INTEGRATION_REPORT.md`, `docs/WADY_EZZ_OWNERSHIP.md`.
 
 2026-10-06 movement completion score: shared video/live report and local history/export
 store detected/expected station counts and percentage. Paired scalar sync stores
-schema-v2 nullable fields; guardian day/week views and leaderboard tie-breaking use
+schema-v3 nullable fields; personal/guardian day/week views and leaderboard tie-breaking use
 best attempt per prayer/day. Existing uncertainty and points remain independent.
-Deployed 2026-10-06 from `wady` commit `b20b441` to the stable OVH host (web/backend).
-Public HTTPS scalar score persistence, duplicate retry and guardian leaderboard passed;
-schema v2 migration and backend health/dependency checks passed. Synthetic test data removed.
-Public Chrome video and simulated-camera score persistence passed; physical camera unverified.
+This change is local and has not been deployed. Validation is recorded in docs/ACCOUNTS.md.
 
 2026-10-05 VPS testing deployment: complete Flutter Release Web served through
 public Nginx HTTPS at `vps-c79afd97.vps.ovh.ca` with automatic certificate renewal; the temporary tunnel is disabled. Docker backend uses Python

@@ -41,15 +41,19 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     mosque_demo_enabled: bool = False
     mosque_demo_db: str = "data/mosque_companion.sqlite3"
-    account_db: str = 'data/accounts.sqlite3'
-    account_public_url: str = 'http://127.0.0.1:8000'
-    account_mail_mode: Literal['smtp', 'development'] = 'smtp'
-    account_mail_outbox: str = 'data/account_mail_outbox'
-    account_mail_from: str = 'Iqtadi <no-reply@example.com>'
-    account_smtp_host: str = ''
+    account_db: str = "data/accounts.sqlite3"
+    account_public_url: str = "http://127.0.0.1:8000"
+    account_mail_mode: Literal["smtp", "resend", "development"] = "smtp"
+    account_mail_outbox: str = "data/account_mail_outbox"
+    account_mail_from: str = "Iqtadi <no-reply@example.com>"
+    account_resend_api_key: str = ""
+    account_resend_webhook_secret: str = ""
+    account_mail_worker_enabled: bool = True
+    account_smtp_host: str = ""
     account_smtp_port: int = 587
-    account_smtp_user: str = ''
-    account_smtp_password: str = ''
+    account_smtp_security: Literal["auto", "starttls", "ssl"] = "auto"
+    account_smtp_user: str = ""
+    account_smtp_password: str = ""
     account_allowed_origins: list[str] = []
     account_secure_cookies: bool = True
     mosque_hold_minutes: int = Field(default=5, ge=1, le=30)
@@ -81,8 +85,8 @@ class Settings(BaseSettings):
     prayer_guidance_enabled: bool = True
 
     # Single-instance recorded-video MVP. Mock scenarios require explicit opt-in.
-    inference_provider: Literal['mock', 'real'] = 'mock'
-    prayer_model_bundle_dir: str = 'models/prayer_action'
+    inference_provider: Literal["mock", "real"] = "mock"
+    prayer_model_bundle_dir: str = "models/prayer_action"
     # Experimental postprocessing: opt in independently; raw model is the default.
     prayer_mirror_sujood_recovery: bool = False
     prayer_ruku_geometry_gate: bool = False
@@ -100,15 +104,15 @@ class Settings(BaseSettings):
     analysis_max_jobs: int = Field(default=8, ge=1, le=32)
     analysis_workers: int = Field(default=1, ge=1, le=4)
     analysis_retention_seconds: int = Field(default=3600, ge=1)
-    analysis_storage_dir: str = 'data/prayer_analyses'
+    analysis_storage_dir: str = "data/prayer_analyses"
     analysis_live_buffer_bytes: int = Field(default=480_000_000, gt=0)
-    temporal_confidence: float = Field(default=.65, ge=0, le=1)
+    temporal_confidence: float = Field(default=0.65, ge=0, le=1)
     temporal_min_observations: int = Field(default=1, ge=1)
     temporal_min_duration_ms: int = Field(default=0, ge=0)
     temporal_max_gap_ms: int = Field(default=1000, gt=0)
     analysis_pose_map: dict[str, str] = Field(default_factory=lambda: dict(DEFAULT_POSE_MAP))
     # With no key admin is loopback-only; reverse proxies MUST configure a key.
-    prayer_admin_token: str = ''
+    prayer_admin_token: str = ""
 
 
 @lru_cache

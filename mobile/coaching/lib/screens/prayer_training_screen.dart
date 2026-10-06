@@ -1,4 +1,3 @@
-import '../l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -84,9 +83,9 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
         : (widget.detectorFactory?.call() ?? getPlatformPoseDetector());
     if (detector is StubPoseDetector) {
       detector.dispose();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(localized(context,
-              'الرصد الحقيقي متاح على الهاتف، أو بفيديو محلي في المتصفح. استخدم المحاكاة للتجربة هنا.'))));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'الرصد الحقيقي متاح على الهاتف، أو بفيديو محلي في المتصفح. استخدم المحاكاة للتجربة هنا.')));
       return;
     }
     // Guidance accompanies real observation only. Synthetic simulation runs
@@ -133,14 +132,11 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
         final s = c.state;
         final active = s.sessionStatus == SessionStatus.active;
         return Scaffold(
-          appBar: AppBar(
-              title: Text(localized(context, widget.definition.arabicName)),
-              actions: [
-                if (active)
-                  TextButton(
-                      onPressed: c.finish,
-                      child: Text(localized(context, 'إنهاء التدريب'))),
-              ]),
+          appBar: AppBar(title: Text(widget.definition.arabicName), actions: [
+            if (active)
+              TextButton(
+                  onPressed: c.finish, child: const Text('إنهاء التدريب')),
+          ]),
           body: !active
               ? _summary(c, s)
               : c.calibrating
@@ -157,8 +153,7 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
   Widget _setup() {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar:
-          AppBar(title: Text(localized(context, widget.definition.arabicName))),
+      appBar: AppBar(title: Text(widget.definition.arabicName)),
       // A short settings form rather than a long feed: a single scroll view
       // keeps every control (including the disabled camera button) in the tree
       // so its state is always reachable and testable.
@@ -177,15 +172,14 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
                         color: AppColors.accent, size: 22),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
-                        child: Text(localized(context, 'قبل أن تبدأ'),
+                        child: Text('قبل أن تبدأ',
                             style: theme.textTheme.titleLarge)),
                   ]),
                   const SizedBox(height: AppSpacing.md),
-                  Text(localized(context, PrayerContent.purpose),
+                  Text(PrayerContent.purpose,
                       style: theme.textTheme.bodyMedium),
                   const SizedBox(height: AppSpacing.sm),
-                  Text(localized(context, PrayerContent.setup),
-                      style: theme.textTheme.bodyMedium),
+                  Text(PrayerContent.setup, style: theme.textTheme.bodyMedium),
                 ],
               ),
             ),
@@ -199,39 +193,36 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
                         size: 20, color: AppColors.info),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
-                        child: Text(
-                            localized(context, 'تجربة سريعة بدون كاميرا'),
+                        child: Text('تجربة سريعة بدون كاميرا',
                             style: theme.textTheme.titleMedium)),
                   ]),
                   const SizedBox(height: AppSpacing.md),
                   OutlinedButton(
                       onPressed: () => _selectSource(true),
-                      child: Text(
-                          localized(context, 'محاكاة للتجربة — دون كاميرا'))),
+                      child: const Text('محاكاة للتجربة — دون كاميرا')),
                   const SizedBox(height: AppSpacing.sm),
-                  AppNote(localized(context,
-                      'المحاكاة تعرض بيانات اصطناعية، ولا تقيس حركاتك.')),
+                  const AppNote(
+                      'المحاكاة تعرض بيانات اصطناعية، ولا تقيس حركاتك.'),
                 ],
               ),
             ),
-            SectionTitle(
-              localized(context, 'الرصد الحقيقي'),
+            const SectionTitle(
+              'الرصد الحقيقي',
               icon: Icons.videocam_outlined,
-              subtitle: localized(context,
-                  'فيديو أو كاميرا على جهازك، دون خادم أو خدمة إرشاد خارجية.'),
+              subtitle:
+                  'فيديو أو كاميرا على جهازك، دون خادم أو خدمة إرشاد خارجية.',
             ),
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(localized(context,
-                      'مرجع الضبط المحلي اختياري. يمكن التدريب بدونه؛ حينها لا تتم مقارنة وضعيتك بمرجع مُفعَّل.')),
+                  const Text(
+                      'مرجع الضبط المحلي اختياري. يمكن التدريب بدونه؛ حينها لا تتم مقارنة وضعيتك بمرجع مُفعَّل.'),
                   const SizedBox(height: AppSpacing.md),
                   OutlinedButton.icon(
                       onPressed: _loading ? null : _manageReference,
                       icon: const Icon(Icons.folder_open_outlined),
-                      label: Text(
-                          localized(context, 'المراجع والإرشادات المحلية'))),
+                      label: const Text('المراجع والإرشادات المحلية')),
                   if (_loading)
                     const Padding(
                         padding: EdgeInsets.only(top: AppSpacing.md),
@@ -241,14 +232,14 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
             ),
             if (_referenceError != null)
               StatusBanner(
-                  title: localized(context, 'المرجع المحلي غير متاح'),
-                  text: localized(context, _referenceError!),
+                  title: 'المرجع المحلي غير متاح',
+                  text: _referenceError!,
                   tone: Tone.danger),
             if (_reference != null)
               StatusBanner(
-                  title: localized(context, 'مرجع محلي مفعّل للضبط'),
-                  text: localized(context, 'المرجع: {0} — نسخة {1}',
-                      [_reference!.name, _reference!.revision]),
+                  title: 'مرجع محلي مفعّل للضبط',
+                  text:
+                      'المرجع: ${_reference!.name} — نسخة ${_reference!.revision}',
                   tone: Tone.ready),
             AppCard(
               margin: EdgeInsets.zero,
@@ -258,18 +249,16 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
                   FilledButton.icon(
                       onPressed: _loading ? null : () => _selectSource(false),
                       icon: Icon(_sourceIcon),
-                      label: Text(localized(context, _sourceLabel))),
+                      label: Text(_sourceLabel)),
                   const SizedBox(height: AppSpacing.sm),
-                  AppNote(localized(
-                      context,
-                      _reference == null
-                          ? 'لا يوجد مرجع مُفعَّل. سيبدأ التدريب على ترتيب الحركات دون تقييم مطابقتها لمرجع.'
-                          : _isWeb
-                              ? 'اختر مقطعًا جانبيًا يظهر فيه الجسم كاملًا.'
-                              : 'ثبّت الهاتف وأظهر الجسم كاملًا قبل البدء.')),
+                  AppNote(_reference == null
+                      ? 'لا يوجد مرجع مُفعَّل. سيبدأ التدريب على ترتيب الحركات دون تقييم مطابقتها لمرجع.'
+                      : _isWeb
+                          ? 'اختر مقطعًا جانبيًا يظهر فيه الجسم كاملًا.'
+                          : 'ثبّت الهاتف وأظهر الجسم كاملًا قبل البدء.'),
                   const SizedBox(height: AppSpacing.sm),
-                  AppNote(localized(context,
-                      'هذه شاشة التدريب الهندسي القديمة: تستخدم نقاط الجسم وقواعد محلية، ولا تعرض قرارات النماذج الثلاثة. تحليل الفيديو والكاميرا من بطاقات الصلاة يستخدم محرك النماذج المحلي.')),
+                  const AppNote(
+                      'هذه شاشة التدريب الهندسي القديمة: تستخدم نقاط الجسم وقواعد محلية، ولا تعرض قرارات النماذج الثلاثة. تحليل الفيديو والكاميرا من بطاقات الصلاة يستخدم محرك النماذج المحلي.'),
                 ],
               ),
             ),
@@ -297,13 +286,12 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
       children: [
         Row(children: [
           Expanded(
-              child: Text(localized(context, 'ضبط التصوير قبل الصلاة'),
+              child: Text('ضبط التصوير قبل الصلاة',
                   style: theme.textTheme.titleLarge)),
-          PillTag(localized(context, 'نسخة {0}', [reference.revision])),
+          PillTag('نسخة ${reference.revision}'),
         ]),
         const SizedBox(height: AppSpacing.xs),
-        Text(localized(context, 'المرجع: {0}', [reference.name]),
-            style: theme.textTheme.bodySmall),
+        Text('المرجع: ${reference.name}', style: theme.textTheme.bodySmall),
         const SizedBox(height: AppSpacing.md),
         AppCard(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -338,17 +326,15 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
                     ready: ready),
               ),
               const SizedBox(height: AppSpacing.sm),
-              AppNote(localized(context,
-                  'الاتجاه تقريبي: الرسم دليل من المرجع المصوَّر، وليس حكمًا على صحة الوقوف.')),
+              const AppNote(
+                  'الاتجاه تقريبي: الرسم دليل من المرجع المصوَّر، وليس حكمًا على صحة الوقوف.'),
             ],
           ),
         ),
         StatusBanner(
-          text: localized(
-              context,
-              c.floorCheck.active
-                  ? '${c.floorCheck.phase == FloorCheckPhase.ruku ? 'انحنِ للركوع' : 'انتقل للسجود'} وثبّت الوضع لتأكيد بقاء الجسم داخل الصورة.${c.floorCheck.visible ? '' : ' أظهر الرأس والقدمين بوضوح.'}'
-                  : PrayerContent.calibrationLabels[reading.issue]!),
+          text: c.floorCheck.active
+              ? '${c.floorCheck.phase == FloorCheckPhase.ruku ? 'انحنِ للركوع' : 'انتقل للسجود'} وثبّت الوضع لتأكيد بقاء الجسم داخل الصورة.${c.floorCheck.visible ? '' : ' أظهر الرأس والقدمين بوضوح.'}'
+              : PrayerContent.calibrationLabels[reading.issue]!,
           tone: tone,
           icon: ready ? Icons.check_circle : Icons.center_focus_strong,
         ),
@@ -364,30 +350,28 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(localized(context,
-                  'تأكد قبل البدء من بقاء الرأس والقدمين داخل الصورة أثناء الركوع والسجود أيضًا. الضبط في القيام وحده لا يضمن ذلك.')),
+              const Text(
+                  'تأكد قبل البدء من بقاء الرأس والقدمين داخل الصورة أثناء الركوع والسجود أيضًا. الضبط في القيام وحده لا يضمن ذلك.'),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(
                   onPressed: ready ? c.startFloorCheck : null,
                   icon: const Icon(Icons.straighten),
-                  label: Text(localized(
-                      context, 'اختبار مساحة الركوع والسجود (اختياري)'))),
+                  label: const Text('اختبار مساحة الركوع والسجود (اختياري)')),
               if (c.floorCheck.phase == FloorCheckPhase.completed) ...[
                 const SizedBox(height: AppSpacing.sm),
-                Text(localized(context,
-                    '✓ اكتمل فحص مساحة الركوع والسجود. قف مجددًا لتأكيد الضبط قبل البدء.')),
+                const Text(
+                    '✓ اكتمل فحص مساحة الركوع والسجود. قف مجددًا لتأكيد الضبط قبل البدء.'),
               ],
               if (kIsWeb) ...[
                 const SizedBox(height: AppSpacing.sm),
-                AppNote(localized(context,
-                    'للفيديو المحلي: اضبطه عند القيام، ثم أعده إلى البداية عند بدء التدريب.')),
+                const AppNote(
+                    'للفيديو المحلي: اضبطه عند القيام، ثم أعده إلى البداية عند بدء التدريب.'),
               ],
             ],
           ),
         ),
         if (c.sourceError != null)
-          StatusBanner(
-              text: localized(context, c.sourceError!), tone: Tone.danger),
+          StatusBanner(text: c.sourceError!, tone: Tone.danger),
         if (c.starting)
           const Padding(
               padding: EdgeInsets.only(bottom: AppSpacing.md),
@@ -397,13 +381,13 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
             child: TextButton.icon(
                 onPressed: c.start,
                 icon: const Icon(Icons.refresh),
-                label: Text(localized(context, 'حاول مجددًا'))),
+                label: const Text('حاول مجددًا')),
           ),
         const SizedBox(height: AppSpacing.sm),
         FilledButton.icon(
             onPressed: ready ? c.beginPrayer : null,
             icon: const Icon(Icons.play_arrow),
-            label: Text(localized(context, 'ابدأ التدريب'))),
+            label: const Text('ابدأ التدريب')),
       ],
     );
   }
@@ -422,19 +406,17 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
           AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
       children: [
         if (_simulation)
-          StatusBanner(
-              title: localized(context, 'وضع المحاكاة'),
-              text: localized(context, 'محاكاة — بيانات اصطناعية'),
+          const StatusBanner(
+              title: 'وضع المحاكاة',
+              text: 'محاكاة — بيانات اصطناعية',
               tone: Tone.attention,
               icon: Icons.smart_display_outlined),
         if (!_simulation)
           StatusBanner(
-              title: localized(context, 'تدريب هندسي محلي'),
-              text: localized(
-                  context,
-                  _reference == null
-                      ? 'لم يُحمَّل مرجع للضبط. الرصد تقريبي من قواعد هندسية؛ انخفاض الثقة يوقف التقدم ولا يمثل حكمًا على صحة الصلاة.'
-                      : 'يستخدم هذا التدريب قواعد هندسية ومرجع الضبط المحلي، دون إرسال بيانات. ثقة الرصد لا تعني صحة الصلاة.'),
+              title: 'تدريب هندسي محلي',
+              text: _reference == null
+                  ? 'لم يُحمَّل مرجع للضبط. الرصد تقريبي من قواعد هندسية؛ انخفاض الثقة يوقف التقدم ولا يمثل حكمًا على صحة الصلاة.'
+                  : 'يستخدم هذا التدريب قواعد هندسية ومرجع الضبط المحلي، دون إرسال بيانات. ثقة الرصد لا تعني صحة الصلاة.',
               tone: Tone.info),
         AppCard(
           child: Column(
@@ -442,15 +424,10 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
             children: [
               Row(children: [
                 Expanded(
-                    child: Text(
-                        localized(context, 'الركعة {0} من {1}',
-                            [s.currentRakah, s.totalRakahs]),
+                    child: Text('الركعة ${s.currentRakah} من ${s.totalRakahs}',
                         style: theme.textTheme.titleLarge)),
                 PillTag(
-                    localized(context, 'الحركة {0} من {1}', [
-                      (doneInRakah + 1).clamp(1, stations.length),
-                      stations.length
-                    ]),
+                    'الحركة ${(doneInRakah + 1).clamp(1, stations.length)} من ${stations.length}',
                     tone: Tone.info),
               ]),
               const SizedBox(height: AppSpacing.md),
@@ -473,9 +450,8 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
                     size: 18, color: AppColors.accent),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
-                    child: Text(localized(context, 'المعاينة'),
-                        style: theme.textTheme.titleSmall)),
-                PillTag(localized(context, _simulation ? 'اصطناعي' : 'مباشر'),
+                    child: Text('المعاينة', style: theme.textTheme.titleSmall)),
+                PillTag(_simulation ? 'اصطناعي' : 'مباشر',
                     tone: _simulation ? Tone.attention : Tone.ready),
               ]),
               const SizedBox(height: AppSpacing.sm),
@@ -489,18 +465,16 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
         Row(children: [
           Expanded(
             child: MetricTile(
-                label: localized(context, 'الوضع المرصود'),
-                value: localized(
-                    context, PrayerContent.poseLabels[s.observedPose]!),
+                label: 'الوضع المرصود',
+                value: PrayerContent.poseLabels[s.observedPose]!,
                 icon: Icons.self_improvement,
                 tone: Tone.ready),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: MetricTile(
-                label: localized(context, 'ثقة الرصد'),
-                value: localized(context, '{0}٪',
-                    [(s.confidence.clamp(0, 1) * 100).round()]),
+                label: 'ثقة الرصد',
+                value: '${(s.confidence.clamp(0, 1) * 100).round()}٪',
                 icon: Icons.speed,
                 tone: Tone.info),
           ),
@@ -510,16 +484,15 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(localized(context, 'الحركة التالية'),
-                  style: theme.textTheme.titleSmall),
+              Text('الحركة التالية', style: theme.textTheme.titleSmall),
               const SizedBox(height: AppSpacing.xs),
-              Text(localized(context, PrayerContent.labels[s.expectedStation]!),
+              Text(PrayerContent.labels[s.expectedStation]!,
                   style: theme.textTheme.headlineSmall),
               const SizedBox(height: AppSpacing.lg),
               StepTracker([
                 for (final station in stations)
                   TrackerStep(
-                    localized(context, PrayerContent.labels[station]!),
+                    PrayerContent.labels[station]!,
                     mark: s.completedStations.any((x) =>
                             x.rakah == s.currentRakah && x.station == station)
                         ? StepMark.done
@@ -532,13 +505,12 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
           ),
         ),
         StatusBanner(
-            text: localized(context, _feedback(s)),
+            text: _feedback(s),
             tone: _feedbackTone(s.feedback),
             icon: _feedbackIcon(s.feedback)),
         _guidanceCard(c),
         if (c.sourceError != null)
-          StatusBanner(
-              text: localized(context, c.sourceError!), tone: Tone.danger),
+          StatusBanner(text: c.sourceError!, tone: Tone.danger),
         if (c.starting)
           const Padding(
               padding: EdgeInsets.only(bottom: AppSpacing.md),
@@ -548,7 +520,7 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
             child: TextButton.icon(
                 onPressed: c.start,
                 icon: const Icon(Icons.refresh),
-                label: Text(localized(context, 'حاول مجدداً'))),
+                label: const Text('حاول مجدداً')),
           ),
       ],
     );
@@ -610,8 +582,7 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
                 size: 18, color: AppColors.info),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
-                child: Text(localized(context, 'إرشاد محلي'),
-                    style: theme.textTheme.titleSmall)),
+                child: Text('إرشاد محلي', style: theme.textTheme.titleSmall)),
             if (c.guidancePending)
               const SizedBox(
                   width: 14,
@@ -620,19 +591,18 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
           ]),
           if (text != null) ...[
             const SizedBox(height: AppSpacing.sm),
-            Text(localized(context, text), style: theme.textTheme.bodyLarge),
+            Text(text, style: theme.textTheme.bodyLarge),
           ],
           if (c.guidanceDegraded)
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.sm),
-              child: Text(localized(context, 'تعذر تجهيز الإرشاد المحلي.'),
-                  style: const TextStyle(
-                      color: AppColors.warning, fontSize: 12.5)),
+            const Padding(
+              padding: EdgeInsets.only(top: AppSpacing.sm),
+              child: Text('تعذر تجهيز الإرشاد المحلي.',
+                  style: TextStyle(color: AppColors.warning, fontSize: 12.5)),
             ),
           if (c.guidanceError != null)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.sm),
-              child: Text(localized(context, c.guidanceError!),
+              child: Text(c.guidanceError!,
                   style:
                       const TextStyle(color: AppColors.danger, fontSize: 12.5)),
             ),
@@ -666,24 +636,16 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                        localized(
-                            context,
-                            completed
-                                ? 'تم إكمال التدريب'
-                                : 'تم إيقاف التدريب'),
+                    Text(completed ? 'تم إكمال التدريب' : 'تم إيقاف التدريب',
                         style: theme.textTheme.headlineSmall),
                     if (_simulation)
-                      Padding(
-                        padding: const EdgeInsets.only(top: AppSpacing.xs),
-                        child: Text(localized(
-                            context, 'ملخص محاكاة — ليس رصداً لحركاتك')),
+                      const Padding(
+                        padding: EdgeInsets.only(top: AppSpacing.xs),
+                        child: Text('ملخص محاكاة — ليس رصداً لحركاتك'),
                       ),
                     Padding(
                       padding: const EdgeInsets.only(top: AppSpacing.xs),
-                      child: Text(
-                          localized(context, 'الصلاة: {0}',
-                              [localized(context, s.definition.arabicName)]),
+                      child: Text('الصلاة: ${s.definition.arabicName}',
                           style: theme.textTheme.bodySmall),
                     ),
                   ],
@@ -692,8 +654,7 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
             ],
           ),
         ),
-        SectionTitle(localized(context, 'الملخص'),
-            icon: Icons.insights_outlined),
+        const SectionTitle('الملخص', icon: Icons.insights_outlined),
         AppCard(
           child: Column(children: [
             StatLine(
@@ -726,21 +687,19 @@ class _PrayerTrainingScreenState extends State<PrayerTrainingScreen> {
                       size: 18, color: AppColors.info),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                      child: Text(localized(context, 'إرشاد محلي'),
+                      child: Text('إرشاد محلي',
                           style: theme.textTheme.titleSmall)),
                 ]),
                 const SizedBox(height: AppSpacing.sm),
-                Text(localized(context, c.guidanceText!),
-                    style: theme.textTheme.bodyLarge),
+                Text(c.guidanceText!, style: theme.textTheme.bodyLarge),
               ],
             ),
           ),
-        AppNote(localized(context, PrayerContent.purpose),
-            icon: Icons.shield_outlined),
+        const AppNote(PrayerContent.purpose, icon: Icons.shield_outlined),
         const SizedBox(height: AppSpacing.lg),
         FilledButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(localized(context, 'العودة لاختيار الصلاة'))),
+            child: const Text('العودة لاختيار الصلاة')),
       ],
     );
   }
@@ -766,8 +725,7 @@ class _LegendItem extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          Text(localized(context, text),
-              style: Theme.of(context).textTheme.bodySmall),
+          Text(text, style: Theme.of(context).textTheme.bodySmall),
         ],
       );
 }

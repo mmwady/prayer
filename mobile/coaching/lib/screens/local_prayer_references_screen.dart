@@ -1,4 +1,3 @@
-import '../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -146,47 +145,44 @@ class _LocalPrayerReferencesScreenState
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-            title: Text(localized(context, 'المراجع والإرشادات المحلية'))),
+        appBar: AppBar(title: const Text('المراجع والإرشادات المحلية')),
         body: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            StatusBanner(
-              title: localized(context, 'كل البيانات على جهازك'),
-              text: localized(context,
-                  'لا يُرفع المرجع أو الصور إلى خادم. التعرف بالنماذج لا يحتاج مرجعًا مُفعَّلًا. مرجع الضبط اختياري ويحتاج أدلة مصوَّرة ومراجعة بشرية.'),
+            const StatusBanner(
+              title: 'كل البيانات على جهازك',
+              text:
+                  'لا يُرفع المرجع أو الصور إلى خادم. التعرف بالنماذج لا يحتاج مرجعًا مُفعَّلًا. مرجع الضبط اختياري ويحتاج أدلة مصوَّرة ومراجعة بشرية.',
               tone: Tone.info,
             ),
             if (_busy) const LinearProgressIndicator(),
             if (_reference != null)
               StatusBanner(
-                title: localized(context, 'المرجع المحلي المفعّل'),
-                text: localized(context, '{0} — نسخة {1}، 6 محطات.',
-                    [_reference!.name, _reference!.revision]),
+                title: 'المرجع المحلي المفعّل',
+                text:
+                    '${_reference!.name} — نسخة ${_reference!.revision}، 6 محطات.',
                 tone: Tone.ready,
               )
             else
-              AppNote(
-                localized(context,
-                    'لا يوجد مرجع مُفعَّل على هذا الجهاز. الرسوم التعليمية أدناه ليست بيانات معايرة.'),
+              const AppNote(
+                'لا يوجد مرجع مُفعَّل على هذا الجهاز. الرسوم التعليمية أدناه ليست بيانات معايرة.',
                 icon: Icons.info_outline,
               ),
             AppCard(
                 child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(localized(context, 'استيراد وتحرير المرجع'),
+                Text('استيراد وتحرير المرجع',
                     style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.sm),
-                Text(localized(context,
-                    'استورد JSON بالإصدار 2 من مرجع مقاس سابقًا، أو الصق محتواه. يحتفظ المحرر بالنقاط والعينات وبيانات التأليف؛ لا يولّد نقاطًا من الرسوم ولا يستنتج حدود صحة الحركة.')),
+                const Text(
+                    'استورد JSON بالإصدار 2 من مرجع مقاس سابقًا، أو الصق محتواه. يحتفظ المحرر بالنقاط والعينات وبيانات التأليف؛ لا يولّد نقاطًا من الرسوم ولا يستنتج حدود صحة الحركة.'),
                 const SizedBox(height: AppSpacing.md),
                 if (supportsLocalReferenceFilePicker)
                   OutlinedButton.icon(
                     onPressed: _busy ? null : _importFile,
                     icon: const Icon(Icons.file_open_outlined),
-                    label:
-                        Text(localized(context, 'استيراد ملف JSON من الجهاز')),
+                    label: const Text('استيراد ملف JSON من الجهاز'),
                   ),
                 TextField(
                   key: const ValueKey('local-reference-json'),
@@ -195,10 +191,10 @@ class _LocalPrayerReferencesScreenState
                   minLines: 6,
                   maxLines: 14,
                   textDirection: TextDirection.ltr,
-                  decoration: InputDecoration(
-                      labelText: localized(context, 'محتوى المرجع JSON'),
-                      helperText: localized(context,
-                          'الحد الأقصى 2 ميجابايت. حفظ المرجع محلي فقط.')),
+                  decoration: const InputDecoration(
+                      labelText: 'محتوى المرجع JSON',
+                      helperText:
+                          'الحد الأقصى 2 ميجابايت. حفظ المرجع محلي فقط.'),
                   onChanged: (_) => setState(() {
                     _reviewConfirmed = false;
                     _message = null;
@@ -211,10 +207,10 @@ class _LocalPrayerReferencesScreenState
                       ? null
                       : (value) =>
                           setState(() => _reviewConfirmed = value ?? false),
-                  title: Text(localized(context,
-                      'أؤكد مراجعة هذا المرجع المصوَّر وملاءمته للضبط التعليمي.')),
-                  subtitle: Text(localized(context,
-                      'هذا تأكيد المستخدم؛ التطبيق لا يعتمد المرجع دينيًا أو طبيًا.')),
+                  title: const Text(
+                      'أؤكد مراجعة هذا المرجع المصوَّر وملاءمته للضبط التعليمي.'),
+                  subtitle: const Text(
+                      'هذا تأكيد المستخدم؛ التطبيق لا يعتمد المرجع دينيًا أو طبيًا.'),
                 ),
                 Wrap(
                     spacing: AppSpacing.sm,
@@ -223,38 +219,35 @@ class _LocalPrayerReferencesScreenState
                       FilledButton.icon(
                         onPressed: _busy || !_reviewConfirmed ? null : _save,
                         icon: const Icon(Icons.save_outlined),
-                        label: Text(localized(context, 'حفظ وتفعيل محليًا')),
+                        label: const Text('حفظ وتفعيل محليًا'),
                       ),
                       OutlinedButton.icon(
                         onPressed:
                             _busy || _source.text.isEmpty ? null : _export,
                         icon: const Icon(Icons.download_outlined),
-                        label: Text(localized(context, 'تصدير JSON')),
+                        label: const Text('تصدير JSON'),
                       ),
                       TextButton.icon(
                         onPressed: _busy || _reference == null ? null : _clear,
                         icon: const Icon(Icons.delete_outline),
-                        label: Text(localized(context, 'حذف المرجع المحلي')),
+                        label: const Text('حذف المرجع المحلي'),
                       ),
                     ]),
               ],
             )),
-            if (_error != null)
-              StatusBanner(
-                  text: localized(context, _error!), tone: Tone.danger),
+            if (_error != null) StatusBanner(text: _error!, tone: Tone.danger),
             if (_message != null)
-              StatusBanner(
-                  text: localized(context, _message!), tone: Tone.info),
-            SectionTitle(localized(context, 'الرسوم التعليمية المرفقة'),
+              StatusBanner(text: _message!, tone: Tone.info),
+            const SectionTitle('الرسوم التعليمية المرفقة',
                 icon: Icons.menu_book_outlined,
-                subtitle: localized(context,
-                    'للتوضيح فقط؛ لا تُستخدم للحكم على وضعيتك أو لتفعيل مرجع.')),
+                subtitle:
+                    'للتوضيح فقط؛ لا تُستخدم للحكم على وضعيتك أو لتفعيل مرجع.'),
             _illustration('تكبيرة الإحرام', 'takbir'),
             for (final station in PrayerStation.values)
               _illustration(PrayerContent.labels[station]!, _asset(station)),
             _illustration('التسليم يمينًا', 'salam_right'),
             _illustration('التسليم يسارًا', 'salam_left'),
-            AppNote(localized(context, PrayerContent.purpose)),
+            const AppNote(PrayerContent.purpose),
           ],
         ),
       );
@@ -263,14 +256,12 @@ class _LocalPrayerReferencesScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(localized(context, title),
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.sm),
             Image.asset('assets/prayer_positions/$asset.png',
                 height: 240,
                 fit: BoxFit.contain,
-                semanticLabel: localized(
-                    context, 'رسم تعليمي: {0}', [localized(context, title)])),
+                semanticLabel: 'رسم تعليمي: $title'),
           ],
         ),
       );
