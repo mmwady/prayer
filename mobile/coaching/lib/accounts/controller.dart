@@ -174,7 +174,10 @@ class AccountController extends ChangeNotifier {
       }) as Map;
       error = signupResult['delivery'] == 'development_outbox'
           ? 'لم يُرسل بريد في وضع التطوير؛ حُفظ رابط التفعيل في صندوق البريد المحلي على الكمبيوتر.'
-          : 'أرسلنا رابط تفعيل حقيقي إلى بريدك. بعد التفعيل سجّل الدخول.';
+          : signupResult['delivery'] == 'queued'
+              ? 'تم حفظ الحساب؛ طلب إرسال رابط التفعيل معلّق وسيُعاد تلقائيًا. '
+                  '${signupResult['delivery_error'] is String ? AccountError(signupResult['delivery_error'] as String) : ''}'
+              : 'تم قبول طلب إرسال رابط التفعيل. تحقق من بريدك والبريد غير المرغوب؛ بعد التفعيل سجّل الدخول.';
       return;
     }
     final session = await api.call('/session',
@@ -202,7 +205,7 @@ class AccountController extends ChangeNotifier {
         method: 'POST', body: {'email': email.trim()}) as Map;
     error = result['delivery'] == 'development_outbox'
         ? 'لم يُرسل بريد في وضع التطوير؛ حُفظ رابط التفعيل في صندوق البريد المحلي على الكمبيوتر.'
-        : 'إذا كان البريد مسجلًا، أرسلنا إليه رابط تفعيل حقيقي.';
+        : 'إذا كان البريد مسجلًا ولم يُفعّل، سيحاول الخادم إرسال رابط التفعيل. تحقق من بريدك والبريد غير المرغوب.';
   }
 
   Future<void> recover(String email) async {
@@ -210,7 +213,7 @@ class AccountController extends ChangeNotifier {
         method: 'POST', body: {'email': email.trim()}) as Map;
     error = result['delivery'] == 'development_outbox'
         ? 'وضع محلي: حُفظ رابط الاستعادة في مجلد البريد التجريبي على الكمبيوتر؛ لم يُرسل بريد.'
-        : 'إذا كان البريد مسجلًا، سيصلك رابط استعادة كلمة المرور.';
+        : 'إذا كان البريد مسجلًا، سيحاول الخادم إرسال رابط استعادة كلمة المرور. تحقق من بريدك والبريد غير المرغوب.';
   }
 
   Future<void> logout() async {

@@ -76,7 +76,7 @@ artifacts. Model files and the locked browser inference manifest are untouched.
 ## Database
 
 `ACCOUNT_DB`, default `backend/data/accounts.sqlite3` relative to backend launch
-directory, is separate from Mosque/analysis data. SQLite schema version 3 keeps
+directory, is separate from Mosque/analysis data. SQLite schema version 4 keeps
 the original tables and adds personal profiles, `family_memberships`,
 `guardian_links`, `family_invites`, `mosques`, `mosque_staff`, `mosque_groups`,
 `group_invites`, `group_memberships`, `guardian_consents`,
@@ -96,6 +96,10 @@ accepted. The API checks the expected station count for the selected prayer and
 recomputes the percentage before saving it; counts and percentage must agree.
 Both source branches previously used version 2 for different additive changes;
 version 3 reconciles them without resetting either database or replacing rows.
+
+Schema version 4 adds durable account email intents and private delivery receipts.
+Mail is submitted only after account/token commit, with background retries and
+SMTP SSL/STARTTLS support. See [delivery setup and verification](ACCOUNT_EMAIL_DELIVERY.md).
 
 ## Dependencies
 

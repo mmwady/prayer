@@ -27,7 +27,7 @@ def env(tmp_path, monkeypatch):
     get_settings.cache_clear()
     messages = []
     monkeypatch.setattr(
-        auth, "send_email", lambda address, kind, token: messages.append((address, kind, token))
+        auth, "send_email", lambda address, kind, token, **kwargs: messages.append((address, kind, token))
     )
     app = FastAPI()
     app.add_middleware(AccountBoundary)
@@ -133,6 +133,7 @@ def test_development_signup_still_requires_email_verification(env, monkeypatch):
     assert response.json() == {
         "message": "CHECK_EMAIL",
         "delivery": "development_outbox",
+        "submission": "stored",
     }
     assert emails[-1][:2] == ("local.parent@example.com", "verify")
     with database.transaction() as db:
@@ -178,7 +179,7 @@ def test_resend_provider_submits_real_message(monkeypatch):
     finally:
         get_settings.cache_clear()
 
-    assert delivery == "resend"
+    assert delivery == {"mode": "resend", "provider_id": "resend-message-id"}
     assert captured["url"] == "https://api.resend.com/emails"
     assert captured["headers"]["Authorization"] == "Bearer re_test_secret"
     assert captured["json"]["to"] == ["parent@example.com"]
@@ -677,4 +678,4 @@ def test_schema_v2_preserves_v1_attempts_and_is_idempotent(tmp_path):
         row = dict(db.execute("SELECT * FROM attempts").fetchone())
         assert row["id"] == "old" and row["valid"] == 1
         assert row["movement_score"] is None and row["movements_detected"] is None
-        assert db.execute("SELECT max(version) FROM account_schema").fetchone()[0] == 3
+        assert db.execute("SELECT max(version) FROM account_schema").fetchone()[0] == 4

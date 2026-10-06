@@ -350,6 +350,36 @@ void main() {
     expect(c.error, contains('لم يُرسل بريد'));
     c.dispose();
   });
+  for (final queued in [true, false]) {
+    test('signup distinguishes queued from accepted mail ($queued)', () async {
+      SharedPreferences.setMockInitialValues({});
+      final c = AccountController(
+        client: AccountClient(base, client: MockClient((request) async {
+          if (request.url.path.endsWith('/auth/signup')) {
+            return http.Response(
+                jsonEncode({
+                  'message': 'CHECK_EMAIL',
+                  'delivery': queued ? 'queued' : 'resend',
+                  'submission': queued ? 'queued' : 'accepted',
+                  if (queued) 'delivery_error': 'EMAIL_API_KEY_INVALID',
+                }),
+                200);
+          }
+          return http.Response('{}', 200);
+        })),
+        tokenReader: (_) async => null,
+        tokenWriter: (_, __) async {},
+      );
+      await c.initialize();
+      await c.authenticate('parent@example.com', 'Pass123!',
+          fullName: 'Parent');
+      expect(c.guardian, isNull);
+      expect(c.child, isNull);
+      expect(c.error, contains(queued ? 'معلّق' : 'قبول طلب'));
+      if (queued) expect(c.error, contains('مفتاح خدمة البريد غير صالح'));
+      c.dispose();
+    });
+  }
   for (final width in [320.0, 390.0, 1024.0]) {
     testWidgets('unified account and separate code entry at width $width',
         (tester) async {

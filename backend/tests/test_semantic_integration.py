@@ -43,7 +43,7 @@ def test_self_profile_coverage_survives_ezz_family_and_duplicate_sync(env):
         row = db.execute("SELECT * FROM attempts").fetchone()
         assert row["child_id"] == profile["id"]
         assert db.execute("PRAGMA foreign_key_check").fetchall() == []
-        assert db.execute("SELECT max(version) FROM account_schema").fetchone()[0] == 3
+        assert db.execute("SELECT max(version) FROM account_schema").fetchone()[0] == 4
 
 
 def test_family_leaderboard_keeps_coverage_tie_breaker(env):

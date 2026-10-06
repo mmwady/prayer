@@ -27,7 +27,7 @@ def env(tmp_path, monkeypatch):
     get_settings.cache_clear()
     messages = []
     monkeypatch.setattr(
-        auth, "send_email", lambda address, kind, token: messages.append((address, kind, token))
+        auth, "send_email", lambda address, kind, token, **kwargs: messages.append((address, kind, token))
     )
     app = FastAPI()
     app.add_middleware(AccountBoundary)

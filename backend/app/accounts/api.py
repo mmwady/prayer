@@ -29,6 +29,7 @@ from .auth import (
 from .domain import RAKATS, PrayerTimeService, progress
 from ..analysis.domain import stations
 from .store import AccountStore, digest, ensure_personal_profile
+from .mail import dispatch_email, record_resend_event
 
 router = APIRouter(prefix="/api/v1/accounts", tags=["optional accounts"])
 COOKIE_PATH = "/api/v1/accounts"
@@ -228,10 +229,11 @@ def signup(body: SignupBody, request: Request, database=Depends(store)):
     with database.transaction() as db:
         limited(request, db, "email", 10)
     with database.transaction() as db:
-        delivery = register(db, body)
+        job_id = register(db, body)
+    submission = dispatch_email(database, job_id)
     return {
         "message": "CHECK_EMAIL",
-        "delivery": delivery,
+        **submission,
     }
 
 
@@ -249,20 +251,29 @@ def request_email(body, request, database, kind):
     delivery = (
         "development_outbox"
         if get_settings().account_mail_mode == "development"
-        else get_settings().account_mail_mode
+        else "queued"
     )
     with database.transaction() as db:
         limited(request, db, "email", 10)
+    job_id = None
     with database.transaction() as db:
         row = db.execute(
             "SELECT * FROM guardians WHERE email=?", (str(body.email).casefold(),)
         ).fetchone()
         if row and (kind == "reset" or not row["email_verified"]):
-            delivery = email_action(db, row["id"], row["email"], kind)
+            job_id = email_action(db, row["id"], row["email"], kind)
+    if job_id:
+        dispatch_email(database, job_id)
     return {
         "message": "CHECK_EMAIL_IF_REGISTERED",
         "delivery": delivery,
     }
+
+
+@router.post("/auth/mail-events")
+async def mail_events(request: Request, database=Depends(store)):
+    # External callbacks use their signature, not guardian credentials/header.
+    return record_resend_event(database, await request.body(), request.headers)
 
 
 @router.post("/auth/verify", dependencies=[Depends(boundary)])

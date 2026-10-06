@@ -101,6 +101,12 @@ PrayerController (discrete event) -> PrayerGuidanceClient -> POST /api/v1/prayer
 
 ## External Integrations
 
+- Account email: schema-v4 SQLite outbox commits with hashed one-use tokens;
+  `accounts/mail.py` leases/retries committed jobs outside account write locks.
+  `accounts/auth.py` owns SMTP/Resend transport; signed provider receipts update
+  delivery status only. Pending private raw-token payloads are scrubbed after
+  acceptance/expiry/replacement. See `docs/ACCOUNT_EMAIL_DELIVERY.md`.
+
 - LLM: DeepSeek via any OpenAI-compatible Chat Completions endpoint (`DEEPSEEK_BASE_URL`,
   `DEEPSEEK_MODEL`). Only `deepseek-flash` and `deepseek-v4-pro` are valid model names.
 - Web pose: same-origin Heavy MediaPipe Tasks through `web/mediapipe_wrapper.js` and the shared local bridge; no CDN runtime dependency.

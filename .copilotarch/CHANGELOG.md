@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-06: reliable account email
+
+- Schema v4 adds durable account mail intent and private signed Resend receipts.
+- Submit after commit; retry frozen links with leases/backoff across restarts.
+- SMTP auto SSL/STARTTLS, honest queued/accepted UI, no automatic verification.
+- Local Chrome signup/outage/retry/verification/login acceptance passes; external
+  delivery remains unverified. Prayer pipeline and main release gate unchanged.
+- Final account suites 62 pass, Flutter 153 pass, Web/Android build, v4 migration
+  and protected model hashes pass; inherited analyzer/backend/lint/type gates remain.
+
 ## 2026-10-06: Wady / Ezz semantic integration
 
 - Retained Wady offline prayer pipeline and Ezz complete auth/family/mosque APIs;

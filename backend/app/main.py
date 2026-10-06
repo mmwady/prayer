@@ -22,6 +22,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .accounts.api import router as accounts_router
 from .accounts.boundary import AccountBoundary
 from .accounts.community import router as account_spaces_router
+from .accounts.mail import EmailWorker
+from .accounts.store import AccountStore
 from .admin.prayer_references import router as prayer_reference_router
 from .analysis.api import router as analysis_router
 from .analysis.jobs import JobManager
@@ -48,11 +50,19 @@ def create_app() -> FastAPI:
         live = LiveManager(jobs)
         application.state.live_manager = live
         await live.start()
+        mail_worker = None
         try:
+            if settings.account_mail_worker_enabled:
+                mail_worker = EmailWorker(AccountStore(settings.account_db))
+                await mail_worker.start()
             yield
         finally:
-            await live.close()
-            await jobs.close()
+            try:
+                if mail_worker:
+                    await mail_worker.close()
+            finally:
+                await live.close()
+                await jobs.close()
 
     app = FastAPI(
         title="Iqtadi Prayer Backend",

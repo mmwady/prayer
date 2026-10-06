@@ -271,6 +271,28 @@ class AccountStore:
                     db.execute(f"ALTER TABLE attempts ADD COLUMN {name} {kind}")
             db.execute("INSERT OR IGNORE INTO account_schema VALUES(3)")
 
+            # Version 4: delivery intent commits atomically with its email token.
+            db.executescript("""
+                CREATE TABLE IF NOT EXISTS account_email_outbox(
+                  id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES guardians(id),
+                  token_hash TEXT NOT NULL REFERENCES email_tokens(token_hash),
+                  kind TEXT NOT NULL, mode TEXT NOT NULL, payload TEXT,
+                  state TEXT NOT NULL DEFAULT 'PENDING', attempts INTEGER NOT NULL DEFAULT 0,
+                  next_attempt_at REAL NOT NULL, lease_id TEXT, lease_until REAL,
+                  error_code TEXT, provider_id TEXT, delivery_status TEXT NOT NULL DEFAULT 'UNKNOWN',
+                  created_at REAL NOT NULL, accepted_at REAL);
+                CREATE INDEX IF NOT EXISTS account_email_due
+                  ON account_email_outbox(state,next_attempt_at);
+                CREATE INDEX IF NOT EXISTS account_email_provider
+                  ON account_email_outbox(provider_id);
+                CREATE TABLE IF NOT EXISTS account_email_events(
+                  id TEXT PRIMARY KEY, provider_id TEXT NOT NULL,
+                  status TEXT NOT NULL, occurred_at REAL NOT NULL);
+                CREATE INDEX IF NOT EXISTS account_email_event_provider
+                  ON account_email_events(provider_id,occurred_at);
+                INSERT OR IGNORE INTO account_schema VALUES(4);
+            """)
+
     @contextmanager
     def transaction(self):
         db = sqlite3.connect(self.path, timeout=15)

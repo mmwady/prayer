@@ -47,8 +47,11 @@ class Settings(BaseSettings):
     account_mail_outbox: str = "data/account_mail_outbox"
     account_mail_from: str = "Iqtadi <no-reply@example.com>"
     account_resend_api_key: str = ""
+    account_resend_webhook_secret: str = ""
+    account_mail_worker_enabled: bool = True
     account_smtp_host: str = ""
     account_smtp_port: int = 587
+    account_smtp_security: Literal["auto", "starttls", "ssl"] = "auto"
     account_smtp_user: str = ""
     account_smtp_password: str = ""
     account_allowed_origins: list[str] = []

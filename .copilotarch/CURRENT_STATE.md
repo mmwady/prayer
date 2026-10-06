@@ -2,6 +2,19 @@
 
 ## Status
 
+2026-10-06 account-email follow-up: additive schema v4 commits mail intent with the
+account/token before contacting providers. Leased background retries preserve
+tokens and frozen Resend envelopes across outages/restarts. SMTP supports both
+STARTTLS and implicit SSL; signed Resend receipts track delivery separately from
+submission and never authenticate the account. Real local Chrome signup/outage/
+retry/.eml verification/login/reload acceptance passed. External email delivery
+and live provider webhook configuration remain unverified (SMTP/Resend not configured).
+Final account/API suites: 62 passed; Flutter: 153 passed; Web/Android builds and
+v4 migration/model preservation audit pass. Analyzer retains six inherited infos.
+Complete backend run: 198 passed/four inherited boundary failures before the last
+two mail tests; final account suite covers the final patch. Main gate unchanged;
+see `docs/ACCOUNT_EMAIL_DELIVERY.md`.
+
 2026-10-06 semantic integration on `integration/wady-ezz`: pinned Wady b20b441
 owns local prayer; pinned Ezz 59457c4 owns backend/auth/personal profiles,
 families/guardians/dependents, mosque groups and companion. Shared scalar adapters,

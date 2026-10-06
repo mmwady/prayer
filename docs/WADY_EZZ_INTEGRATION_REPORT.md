@@ -11,6 +11,15 @@ a main update. The user explicitly authorized publishing only this review branch
 to GitHub on 2026-10-06, following an earlier automatic approval rejection.
 No merge into main, main push or deployment is authorized by this publication.
 
+User-authorized follow-up, 2026-10-06: account email submission now uses an additive
+schema-v4 durable outbox, leased retries, SMTP SSL/STARTTLS and signed Resend delivery
+receipts. Authentication eligibility, roles/relationships and protected prayer rules
+are preserved; the email transport/registration-response behavior intentionally
+differs from the pinned Ezz version to fix commit ordering and outage recovery.
+[Mail repair, setup and acceptance](ACCOUNT_EMAIL_DELIVERY.md) records the new
+behavior and limits. The validation table below records the initial integration;
+the mail follow-up has its own checks and does not reopen the main gate.
+
 ## Sources and ownership
 
 Fetched GitHub before inspection. The actual remote branch is `Ezz`, case-sensitive.
